@@ -167,6 +167,32 @@
   .out .gen em{color:var(--warn);font-style:normal;background:rgba(255,180,84,.11);border-radius:3px}
   .muted{color:var(--tx-3);font-size:11.5px}
 
+  /* ---------------- 提示词 → token 映射 ---------------- */
+  .tokmap{
+    margin-top:8px;background:#0a0d13;border:1px solid var(--line);border-radius:9px;
+    padding:9px 10px;font-size:11.5px;line-height:1.7;
+  }
+  .tokmap .tm-head{color:var(--tx-3);margin-bottom:7px}
+  .tokmap .tm-head b{color:var(--tx);font-weight:640}
+  .tokmap .tm-head b.bad{color:var(--bad)}
+  .tokmap .tm-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px}
+  .tokmap .tm-row:last-child{margin-bottom:0}
+  .tok{
+    display:inline-flex;flex-direction:column;align-items:center;gap:1px;
+    min-width:26px;padding:3px 5px;border-radius:6px;
+    background:#111621;border:1px solid var(--line);
+  }
+  .tok .c{font-size:13px;line-height:1.2;color:#dfe7f5}
+  .tok .i{font-size:9.5px;color:var(--tx-3);font-variant-numeric:tabular-nums}
+  .tok.oov{background:rgba(255,107,107,.13);border-color:rgba(255,107,107,.5)}
+  .tok.oov .c{color:#ff8f8f}
+  .tok.oov .i{color:#ff8f8f}
+  .tokmap .tm-note{
+    margin-top:7px;padding-top:7px;border-top:1px dashed var(--line-2);
+    color:var(--warn);font-size:11px;line-height:1.65;
+  }
+  .tokmap .tm-ids{color:var(--tx-3);font-size:10.5px;font-variant-numeric:tabular-nums;word-break:break-all}
+
   .snap{border-left:2px solid var(--line-2);padding:0 0 0 11px;margin-bottom:11px}
   .snap:last-child{margin-bottom:0}
   .snap .h{font-size:11px;color:var(--tx-3);letter-spacing:.3px;margin-bottom:3px;font-variant-numeric:tabular-nums}
@@ -221,6 +247,7 @@
     <div class="stat"><div class="k">结构</div><div class="v" id="sStruct">—</div></div>
     <div class="stat"><div class="k">当前损失</div><div class="v" id="sLoss">—</div></div>
     <div class="stat"><div class="k">训练速度</div><div class="v" id="sSpeed">—</div></div>
+    <div class="stat"><div class="k">随机种子</div><div class="v" id="sSeed">—</div></div>
   </div>
 
   <main>
@@ -297,6 +324,17 @@
             <button class="ghost" id="bReset" disabled>重置</button>
             <button class="ghost" id="bGrad">梯度检查</button>
           </div>
+          <div class="field" style="margin-top:11px">
+            <label>随机种子 <span class="hint">固定种子 = 训练结果完全可复现</span></label>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="number" id="iSeed" min="0" step="1" value="42" style="flex:1">
+              <button class="ghost" id="bSeedRand" style="white-space:nowrap">随机</button>
+            </div>
+            <div class="hint" style="margin-top:5px">
+              初始化 / 训练批次 / 生成采样是三条<b>互相独立</b>的随机流。
+              所以中途多生成几次快照，也不会改变后续训练用到的数据。
+            </div>
+          </div>
           <div class="prog-wrap">
             <div class="prog"><i id="progBar"></i></div>
             <div class="prog-meta">
@@ -321,7 +359,7 @@
             <span style="color:#5b9dff">■</span> 平滑（EMA）&nbsp;&nbsp;
             <span style="color:#39445a">■</span> 每步原始损失&nbsp;&nbsp;
             <span style="color:#3ddc97">■</span> 快照点&nbsp;&nbsp;
-            <span style="color:#2dd4a7">▨</span> 生成质量甜蜜点
+            <span style="color:#2dd4a7">▨</span> 本次实测观察区间（非通用阈值）
           </div>
           <div class="notice" id="lossHint" style="display:none;margin-top:10px"></div>
         </div>
@@ -345,6 +383,9 @@
           <div class="field">
             <label>提示词<span class="desc">模型会接着往下写</span></label>
             <input type="text" id="gPrompt" value="新长安的雨下了" >
+            <div class="tokmap" id="tokMap">
+              <span class="muted">建好模型后，这里会显示每个字对应的 token id，以及有几个字不在词表内。</span>
+            </div>
           </div>
           <div class="grid3">
             <div class="field">
@@ -492,6 +533,7 @@ function initCorpusSelect() {
       var first = PROMPTS[S.corpusKey][0];
       $('gPrompt').value = first;
       $('aText').value = CORPUS[S.corpusKey].text.slice(0, 11);
+      updateTokenMap();
     }
   });
 }
@@ -690,7 +732,7 @@ function drawLoss() {
     if (yBot - yTop > 26) {
       g.textAlign = 'right'; g.textBaseline = 'middle'; g.fillStyle = 'rgba(45,212,167,.75)';
       g.font = '10px sans-serif';
-      g.fillText('甜蜜点', W - padR - 4, (yTop + yBot) / 2);
+      g.fillText('观察区间', W - padR - 4, (yTop + yBot) / 2);
     }
   }
 
@@ -734,10 +776,13 @@ function drawLoss() {
 }
 
 var V_REF = 300;
-// 生成质量的"甜蜜点"区间（字符级交叉熵）。
-// 依据本项目实测：loss > 3.5 还在乱码；2.5~3.5 开始成词；
-// 0.8~2.5 能写出通顺且有风格的句子；< 0.8 基本是把语料背下来了，
-// 采样时一旦偏离记忆路径就崩成碎片，反而更难看。
+// 【历史观察区间 —— 不是通用阈值，也不作为自动停止依据】
+// 本项目在「2668 字科幻语料 / 5.5 万参数 / 400 步」这一组特定条件下观察到：
+// loss > 3.5 还在乱码；2.5~3.5 开始成词；0.8~2.5 能写出通顺句子；
+// < 0.8 基本是把语料背下来了，采样一旦偏离记忆路径就崩成碎片。
+// 换语料、换模型规模、换训练步数，这个区间都会整体移动。
+// 依据 PRD：判断生成质量应看验证损失 + 重复率 + 复制比例 + 固定提示词样本，
+// 而不是某一个 loss 数值。
 var SWEET = [0.8, 2.5];
 
 function updateLossHint() {
@@ -745,24 +790,28 @@ function updateLossHint() {
   if (!S.smooth.length) { el.style.display = 'none'; return; }
   var v = S.smooth[S.smooth.length - 1];
   var txt, cls = 'notice';
+  var note = '<div class="muted" style="margin-top:6px;font-size:12px">' +
+    '上面这些区间来自本项目<strong>一次</strong>实测（2668 字语料 / 5.5 万参数 / 400 步），' +
+    '不是通用阈值，换语料或换模型规模都会变。' +
+    '要不要停，请以右边的实际输出判断 —— 别只看这条提示。</div>';
   if (v > 4.0) {
     txt = '当前 loss ' + v.toFixed(2) + ' —— 还在<strong>乱码阶段</strong>，模型只能吐出随机汉字。继续训练。';
   } else if (v > 3.0) {
     txt = '当前 loss ' + v.toFixed(2) + ' —— 开始出现<strong>真正的词</strong>（"的""了""他"），但句子结构还没成形。';
   } else if (v > SWEET[1]) {
-    txt = '当前 loss ' + v.toFixed(2) + ' —— <strong>正在成形</strong>，已经能凑出像样的短句。再练一点就进入甜蜜点。';
+    txt = '当前 loss ' + v.toFixed(2) + ' —— <strong>正在成形</strong>，已经能凑出像样的短句。';
   } else if (v >= SWEET[0]) {
     cls = 'notice ok';
-    txt = '当前 loss ' + v.toFixed(2) + ' —— 处在<strong>甜蜜点</strong>：已会造句、还没把语料背死，' +
-          '生成效果最好。建议就停在这里，去右边点「生成」。';
+    txt = '当前 loss ' + v.toFixed(2) + ' —— 落在那次实测的<strong>观察区间</strong>内，' +
+          '当时这个范围输出的句子最通顺。可以点右边「生成」试试。';
   } else {
-    txt = '当前 loss ' + v.toFixed(2) + ' —— 已经<strong>低于甜蜜点</strong>：模型开始逐字背课文了。' +
-          '这时它能把语料原句吐出来，但采样稍有偏离就碎成拼接片段，' +
-          '换一个没见过的提示词基本写不下去。<strong>想让它"会写"而不是"会背"，减少训练步数即可。</strong>';
+    txt = '当前 loss ' + v.toFixed(2) + ' —— 已低于观察区间。那次实验中模型开始逐字背课文：' +
+          '能吐出语料原句，但采样稍有偏离就碎成拼接片段，' +
+          '换没见过的提示词基本写不下去。<strong>这是历史观察，不等于"一定过拟合"。</strong>';
   }
   el.className = cls;
   el.style.display = '';
-  el.innerHTML = txt;
+  el.innerHTML = txt + note;
 }
 
 /* ------------------------------------------------------------------ */
@@ -777,8 +826,14 @@ function buildModel() {
 
   S.vocab = K.buildVocab(text);
   S.ids = K.encode(text, S.vocab.stoi);
+  S.vocabKey = S.corpusKey;   // 记住这套词表是从哪个语料建的（切语料后要提示刷新）
   S.cfg = { ctx: ctx, d: d, layers: L, heads: H, ffMul: 4 };
-  S.model = new K.MiniLM(S.vocab.size, S.cfg);
+  var seed = parseInt($('iSeed').value, 10);
+  if (!isFinite(seed) || seed < 0) seed = (Math.random() * 4294967296) >>> 0;
+  S.model = new K.MiniLM(S.vocab.size, S.cfg, { seed: seed });
+  S.seed = S.model.seed;
+  $('iSeed').value = S.seed;
+  $('sSeed').textContent = S.seed;
   V_REF = S.vocab.size;
   S.batch = +$('fBatch').value;
   S.lr = 0.001 * (+$('fLr').value);
@@ -789,6 +844,7 @@ function buildModel() {
   $('sStruct').textContent = ctx + '/' + d + '/' + L + '/' + H;
   $('pTotal').textContent = S.steps;
   structTable();
+  updateTokenMap();   // 词表刚建好，立刻把当前提示词的 token 映射显示出来
   return true;
 }
 
@@ -997,6 +1053,60 @@ function runGenerate3() {
             escapeHtml(txt) + '</div>';
   });
   $('genOut').innerHTML = html;
+}
+
+/* ------------------------------------------------------------------ */
+/* 提示词 → token 映射 + 未登录字披露                                    */
+/* ------------------------------------------------------------------ */
+/* 字符级模型遇到词表外的字会静默丢弃 —— 用户以为自己输了 8 个字，模型其实
+   只看到 4 个。这个黑盒必须打开：这里逐字显示 token id，并高亮未登录字。 */
+function updateTokenMap() {
+  var box = $('tokMap');
+  if (!box) return;
+  var prompt = $('gPrompt').value || '';
+
+  if (!S.vocab) {
+    box.innerHTML = '<span class="muted">建好模型后，这里会显示每个字对应的 token id，' +
+      '以及有几个字不在词表内。</span>';
+    return;
+  }
+  if (!prompt) {
+    box.innerHTML = '<span class="muted">输入提示词后，这里显示逐字 token 映射。</span>';
+    return;
+  }
+
+  var stoi = S.vocab.stoi;
+  var oov = 0, kept = [], cells = '';
+  for (var i = 0; i < prompt.length; i++) {
+    var ch = prompt[i];
+    var known = stoi.has(ch);
+    var id = known ? stoi.get(ch) : 0;
+    if (!known) oov++; else kept.push(ch);
+    cells += '<span class="tok' + (known ? '' : ' oov') + '">' +
+      '<span class="c">' + escapeHtml(ch === ' ' ? '␣' : ch) + '</span>' +
+      '<span class="i">' + (known ? id : 'OOV') + '</span></span>';
+  }
+
+  var ids = K.encode(prompt, stoi);   // 模型真正拿到的输入：未登录字已被映射成 0
+  var stale = S.corpusKey && S.vocabKey && S.corpusKey !== S.vocabKey;
+  var html = '<div class="tm-head">共 <b>' + prompt.length + '</b> 字 · 词表 V=' + S.vocab.size +
+    (oov > 0
+      ? ' · 其中 <b class="bad">' + oov + ' 个不在词表内</b>（红色）'
+      : ' · <b>全部在词表内</b>') +
+    '</div>' +
+    '<div class="tm-row">' + cells + '</div>' +
+    '<div class="tm-ids">模型实际输入 id：[ ' + ids.join(', ') + ' ]</div>';
+
+  if (oov > 0) {
+    html += '<div class="tm-note">模型只认得 <b>' + kept.join('') + '</b> 这 ' +
+      (prompt.length - oov) + ' 个字，未登录字被<b>静默丢弃</b>了（映射成 0 后跳过）。' +
+      '所以生成结果不能当作完整语义的泛化证据 —— 想测泛化就换个全在词表内的提示词。</div>';
+  }
+  if (stale) {
+    html += '<div class="tm-note">注意：语料已切换，当前词表还是<b>上一个语料</b>建的。' +
+      '点「开始训练」重建模型后这里的判定才准确。</div>';
+  }
+  box.innerHTML = html;
 }
 
 function escapeHtml(s) {
@@ -1218,9 +1328,16 @@ function init() {
   $('bPause').addEventListener('click', togglePause);
   $('bReset').addEventListener('click', function () { resetTraining(); });
   $('bGrad').addEventListener('click', runGradCheck);
+  $('bSeedRand').addEventListener('click', function () {
+    var s = (Math.random() * 4294967296) >>> 0;
+    $('iSeed').value = s;
+    if (S.model) { S.model.setSeed(s); S.seed = s; $('sSeed').textContent = s; }
+  });
   $('bGen').addEventListener('click', runGenerate);
   $('bGen3').addEventListener('click', runGenerate3);
   $('bAttn').addEventListener('click', refreshAttention);
+  // 提示词一改就重算 token 映射，让"有几个字没被模型看到"实时可见
+  $('gPrompt').addEventListener('input', updateTokenMap);
 
   renderPromptChips();
   refreshCorpusMeta();

@@ -20,6 +20,11 @@ var path = require('path');
 var kit = require('./minilm.js');
 var CORPUS = require('./corpus.js');
 
+// 评估协议、统计基线、生成质量指标 —— 三处共用同一份定义，避免模型和基线各算一套
+var PROTO = require('./eval/protocol.js');
+var BASE = require('./eval/baselines.js');
+var M = require('./eval/metrics.js');
+
 var argv = process.argv.slice(2);
 function argVal(name, dft) {
   var i = argv.indexOf('--' + name);
@@ -50,6 +55,16 @@ var OOD_PROMPTS = {
 
 var out = [];
 function w(s) { out.push(s); console.log(s); }
+
+/** 带符号、固定一位小数 */
+function sgn(x) { return (x >= 0 ? '+' : '−') + Math.abs(x).toFixed(1); }
+
+/** 百分点差值的判读。±2pt 以内视为打平 —— 因为不同随机种子本身就会抖动几个点 */
+function judgePt(d) {
+  if (d > 2) return '明显超过，模型确实用上了比「相邻字频次」更多的信息';
+  if (d > -2) return '**基本打平** —— 模型没明显超出这个纯统计基线';
+  return '**低于** —— 模型不如这个纯统计基线';
+}
 
 /* ------------------------------------------------------------------ */
 
@@ -122,42 +137,62 @@ function trainCorpus(key) {
   });
   w('');
 
-  /* ---- 留出集准确率 ---- */
-  var top1 = 0, top5 = 0, total = 0;
-  for (var s = 0; s + CFG.ctx + 1 <= testIds.length; s += CFG.ctx) {
-    var chunk = testIds.slice(s, s + CFG.ctx);
-    var tgt = testIds.slice(s + 1, s + 1 + CFG.ctx);
+  /* ---- 留出集评估（模型与统计基线逐位对齐）---- */
+  // 位置切分、可见上文长度全部走 eval/protocol.js，和基线共用，不可能对不上。
+  // 模型侧按窗口 forward（一次算 32 个位置），再逐位算 log-softmax 交给累计器。
+  var acc = new PROTO.Acc();
+  var lpBuf = new Float64Array(vocab.size);
+  PROTO.forEachWindow(testIds, CFG.ctx, function (chunk, tgt) {
     model.forward(chunk, tgt, CFG.ctx);
     var logits = model.cache.logits;
     for (var i = 0; i < CFG.ctx; i++) {
-      var off = i * vocab.size, best = -Infinity, bi = 0;
-      var arr = [];
-      for (var v = 0; v < vocab.size; v++) {
-        var lg = logits[off + v];
-        arr.push({ v: v, l: lg });
-        if (lg > best) { best = lg; bi = v; }
-      }
-      total++;
-      if (bi === tgt[i]) top1++;
-      arr.sort(function (a, b) { return b.l - a.l; });
-      for (var k = 0; k < 5; k++) if (arr[k].v === tgt[i]) { top5++; break; }
+      var off = i * vocab.size, v;
+      var mx = -Infinity;
+      for (v = 0; v < vocab.size; v++) if (logits[off + v] > mx) mx = logits[off + v];
+      var sum = 0;
+      for (v = 0; v < vocab.size; v++) { var e = Math.exp(logits[off + v] - mx); lpBuf[v] = e; sum += e; }
+      var lsum = Math.log(sum);
+      for (v = 0; v < vocab.size; v++) lpBuf[v] = logits[off + v] - mx - lsum;   // log-softmax
+      acc.add(lpBuf, tgt[i]);
     }
-  }
+  });
+  var ms = acc.summary();
+  var modelRow = { top1: ms.top1, top5: ms.top5, nll: ms.nll, ppl: ms.ppl };
 
-  // 随机基线
+  // 统计基线：只在 trainIds 上拟合；评估位置 / 可见上文 / 词表与模型逐位一致
+  var baseRes = BASE.runBaselines(trainIds, testIds, { ctx: CFG.ctx, V: vocab.size });
+
   var rand1 = 100 / vocab.size;
   w('### 留出集下一字预测准确率');
   w('');
   w('> 语料后 10%（' + testIds.length + ' 字）**从未参加训练**，用它对模型做纯盲测。');
+  w('>');
+  w('> **这张表是本报告最重要的一张。** 「比随机猜测高 124 倍」看着唬人，但随机猜测');
+  w('> 只是 1/V 的数学下限，不是及格线。真正的及格线是 bigram / trigram —— 两个');
+  w('> **完全不懂语法、只会数相邻字出现多少次**的统计模型。模型赢不了它们，5.5 万');
+  w('> 参数和 400 步训练就没有换来结构知识，只是把「数频次」这件事干得更贵。');
   w('');
-  w('| 指标 | 模型 | 随机猜测基线 | 提升倍数 |');
-  w('|---|---|---|---|');
-  w('| Top-1 准确率 | **' + (100 * top1 / total).toFixed(1) + '%** | ' + rand1.toFixed(2) + '% | ' +
-    (top1 / total * vocab.size).toFixed(1) + '× |');
-  w('| Top-5 准确率 | **' + (100 * top5 / total).toFixed(1) + '%** | ' + (5 * rand1).toFixed(2) + '% | ' +
-    (top5 / total / (5 / vocab.size)).toFixed(1) + '× |');
+  w(BASE.mdTable(baseRes, modelRow));
   w('');
-  w('（共评估 ' + total + ' 个位置）');
+  w('共评估 ' + ms.n + ' 个位置。NLL 用自然对数，与训练 loss 同量纲；困惑度 = e^NLL。');
+  w('随机猜测 Top-1 = ' + rand1.toFixed(2) + '%（1/V，V=' + vocab.size + '）。');
+  w('');
+
+  var bBig = baseRes[1], bTri = baseRes[2];
+  var dBig = ms.top1 - bBig.top1, dTri = ms.top1 - bTri.top1, dNll = ms.nll - bTri.nll;
+  w('**判定**：');
+  w('');
+  w('| 对比 | 差值 | 读法 |');
+  w('|---|---|---|');
+  w('| 模型 − unigram | ' + sgn(ms.top1 - baseRes[0].top1) + ' pt | 远超字频基线，说明模型确实用上了上下文 |');
+  w('| 模型 − bigram | ' + sgn(dBig) + ' pt | ' + judgePt(dBig) + ' |');
+  w('| 模型 − trigram | ' + sgn(dTri) + ' pt | ' + judgePt(dTri) + ' |');
+  w('| 模型 NLL − trigram NLL | ' + sgn(dNll) + ' | ' +
+    (dNll < -0.05 ? '概率估计更准（越低越好）'
+      : dNll < 0.05 ? '概率估计基本相当'
+        : '**概率估计更差**（越低越好）') + ' |');
+  w('');
+  w(BASE.mdBackoff(baseRes));
   w('');
 
   /* ---- 语料内提示词生成 ---- */
@@ -182,22 +217,74 @@ function trainCorpus(key) {
   w('');
   OOD_PROMPTS[key].forEach(function (p) {
     // 统计有多少字不在词表内——字符级模型会把它们静默丢弃，必须显式披露
-    var oov = 0;
-    for (var oi = 0; oi < p.length; oi++) if (!(p[oi] in vocab.stoi)) oov++;
+    var oi2 = M.oovInfo(p, vocab.stoi);
     var pid = kit.encode(p, vocab.stoi);
     var g = model.generate(pid, { maxNew: 60, temp: 0.8, topk: 8, repPenalty: 1.15 });
     var full = kit.decode(g.ids, vocab.itos).replace(/\n/g, ' ');
     w('- `' + p + '` → ' + full);
-    if (oov > 0) {
-      w('  - **注意**：这 ' + p.length + ' 个字里有 **' + oov + ' 个不在词表内**，' +
-        '模型实际只看到了 `' + p.split('').filter(function (ch) { return ch in vocab.stoi; }).join('') +
-        '`。所以下面这段输出**不能**当作完整语义的泛化证据。');
+    if (oi2.oov > 0) {
+      w('  - **注意**：这 ' + oi2.total + ' 个字里有 **' + oi2.oov + ' 个不在词表内**（' +
+        oi2.oovUnique.map(function (c) { return '`' + c + '`'; }).join(' ') + '），' +
+        '模型实际只看到了 `' + oi2.kept + '`。所以下面这段输出**不能**当作完整语义的泛化证据。');
     }
     var trace = g.trace[0].candidates.slice(0, 3).map(function (c) {
       return "'" + (vocab.itos[c.id] || '?') + "'" + (c.p * 100).toFixed(0) + '%';
     }).join(' ');
     w('  - 第一个字的候选：' + trace);
   });
+  w('');
+
+  /* ---- 生成文本质量指标 ---- */
+  // Top-1 只衡量"猜下一个字准不准"，衡量不了"生成的东西能不能读"。分开测：
+  //   重复率  → 自己跟自己重复到什么程度（复读机检测）
+  //   重合度  → 有多少是从训练集原样搬来的（抄袭检测）
+  var trainText = kit.decode(trainIds, vocab.itos);
+  var gRows = [];
+  IN_PROMPTS[key].forEach(function (p) {
+    var gg = model.generate(kit.encode(p, vocab.stoi), { maxNew: 80, temp: 0.8, topk: 8, repPenalty: 1.15 });
+    var f = kit.decode(gg.ids, vocab.itos).replace(/\n/g, ' ');
+    var body = f.indexOf(p) === 0 ? f.slice(p.length) : f;
+    if (!body.length) return;
+    gRows.push({
+      p: p, body: body,
+      d1: M.distinctN(body, 1), d2: M.distinctN(body, 2),
+      rep4: M.repeatRate(body, 4),
+      ov8: M.overlapRate(body, trainText, 8),
+      lcs: M.longestCommonSubstring(body, trainText)
+    });
+  });
+  function mean(a) { return a.reduce(function (x, y) { return x + y; }, 0) / (a.length || 1); }
+  var mD2 = mean(gRows.map(function (r) { return r.d2; }));
+  var mRep = mean(gRows.map(function (r) { return r.rep4; }));
+  var mOv = mean(gRows.map(function (r) { return r.ov8; }));
+  var maxLcs = gRows.reduce(function (m, r) { return r.lcs.len > m.len ? r.lcs : m; }, { len: 0, str: '' });
+
+  w('### 生成文本质量指标（温度 0.8，语料内 5 个提示词）');
+  w('');
+  w('> 这两项和「猜得准不准」是两回事，必须分开看：');
+  w('>');
+  w('> - **4-gram 重复率** ↓：生成文本自己跟自己重复的比例，越高越复读机');
+  w('> - **distinct-2** ↑：不重复二元组占比，越低说明用词越单调');
+  w('> - **8-gram 训练集重合率**：生成内容里能在训练集原样找到的比例，越高越像在背');
+  w('> - **最长公共子串**：与训练集一字不差的最长片段 —— 这是「回放」最硬的证据');
+  w('');
+  w('| 提示词 | 生成正文（节选） | distinct-2 ↑ | 4-gram 重复率 ↓ | 8-gram 重合率 | 最长公共子串 |');
+  w('|---|---|---|---|---|---|');
+  gRows.forEach(function (r) {
+    w('| `' + r.p + '` | ' + r.body.slice(0, 24) + (r.body.length > 24 ? '…' : '') + ' | ' +
+      r.d2.toFixed(2) + ' | ' + (r.rep4 * 100).toFixed(1) + '% | ' + (r.ov8 * 100).toFixed(1) + '% | ' +
+      r.lcs.len + ' 字 |');
+  });
+  w('| **均值** | — | **' + mD2.toFixed(2) + '** | **' + (mRep * 100).toFixed(1) + '%** | **' +
+    (mOv * 100).toFixed(1) + '%** | 最长 **' + maxLcs.len + ' 字** |');
+  w('');
+  if (maxLcs.len >= 8) {
+    w('**最长公共子串原文**：`' + maxLcs.str + '` —— ' + maxLcs.len +
+      ' 个字与训练集一字不差。这个长度直接说明它是在回放还是在改写。');
+    w('');
+  }
+  w('读法：**高重合 + 低重复** = 正常借用，在用学到的句式重组；' +
+    '**高重合 + 高重复** = 复读训练集片段；**低重合 + 高重复** = 崩成乱码绕圈。');
   w('');
 
   /* ---- 候选分布 ---- */
@@ -212,7 +299,12 @@ function trainCorpus(key) {
   });
   w('');
 
-  return { top1: 100 * top1 / total, top5: 100 * top5 / total, loss: rows[rows.length - 1].loss, rows: rows };
+  return {
+    top1: ms.top1, top5: ms.top5, nll: ms.nll, ppl: ms.ppl,
+    loss: rows[rows.length - 1].loss, rows: rows,
+    baselines: baseRes,
+    gen: { d2: mD2, rep4: mRep, ov8: mOv, lcs: maxLcs.len }
+  };
 }
 
 /* ------------------------------------------------------------------ */
@@ -224,6 +316,11 @@ var HEAD = [
   '> 生成时间：' + new Date().toISOString().replace('T', ' ').slice(0, 19) + ' (UTC)',
   '> 运行模式：' + (QUICK ? '快速' : '标准') + ' · 每段语料 ' + STEPS + ' 步',
   '> 随机种子：' + (SEED == null ? '未指定 —— 每次运行自动取新值，**不可复现**；各段表格记录了实际值' : SEED),
+  '',
+  '> **读这份证据前请注意**：本文件是**单次运行**的结果。留出集 Top-1 在不同随机种子下',
+  '> 会波动几个百分点，单次数字不能用来比较实现差异或宣称能力。',
+  '> **量化结论请以 `py/align_report.md` 为准**（多种子、分布对分布、带 σ）。',
+  '> 本文件的价值在于定性证据：训练快照、温度对比、语料外提示词、候选分布。',
   '',
   '配置与网页工具 `index.html` 的默认档完全一致：' +
   '`ctx=32 d=40 layers=2 heads=4 ffMul=4 batch=' + BATCH + ' lr=' + LR + '`，' +
@@ -242,14 +339,30 @@ keys.forEach(function (k) {
   w('\n---');
 });
 
-// 汇总表
+// 汇总表 —— 基线列是重点：模型 vs bigram / trigram，而不是 vs 随机猜测
 var sumLines = ['', '## 汇总', '',
-  '| 语料 | 最终损失 | 留出集 Top-1 | 留出集 Top-5 | 随机基线 Top-1 |', '|---|---|---|---|---|'];
+  '| 语料 | 最终损失 | 模型 Top-1 | bigram | trigram | 模型−trigram | 模型 NLL | trigram NLL |',
+  '|---|---|---|---|---|---|---|---|'];
 summary.forEach(function (s) {
-  sumLines.push('| ' + s.name + ' | ' + s.r.loss.toFixed(3) + ' | ' +
-    s.r.top1.toFixed(1) + '% | ' + s.r.top5.toFixed(1) + '% | ' +
-    (100 / (CORPUS[s.key].text ? new Set(CORPUS[s.key].text.split('')).size + 1 : 1)).toFixed(2) + '% |');
+  var b = s.r.baselines || [];
+  var bi = b[1], tr = b[2];
+  sumLines.push('| ' + s.name + ' | ' + s.r.loss.toFixed(3) + ' | **' + s.r.top1.toFixed(1) + '%** | ' +
+    (bi ? bi.top1.toFixed(1) + '%' : '—') + ' | ' + (tr ? tr.top1.toFixed(1) + '%' : '—') + ' | ' +
+    (tr ? sgn(s.r.top1 - tr.top1) + ' pt' : '—') + ' | ' + s.r.nll.toFixed(3) + ' | ' +
+    (tr ? tr.nll.toFixed(3) : '—') + ' |');
 });
+sumLines.push('');
+sumLines.push('| 语料 | distinct-2 ↑ | 4-gram 重复率 ↓ | 8-gram 训练集重合率 | 最长公共子串 |');
+sumLines.push('|---|---|---|---|---|');
+summary.forEach(function (s) {
+  var g = s.r.gen;
+  sumLines.push('| ' + s.name + ' | ' + g.d2.toFixed(2) + ' | ' + (g.rep4 * 100).toFixed(1) + '% | ' +
+    (g.ov8 * 100).toFixed(1) + '% | ' + g.lcs + ' 字 |');
+});
+sumLines.push('');
+sumLines.push('> **怎么读**：「模型−trigram」为负，说明模型**输给了一个只看前两个字的');
+sumLines.push('> 统计模型**。这不是实现 bug，是这个训练预算下的真实水平 —— 语料只有两三千字、');
+sumLines.push('> 400 步，Transformer 的长处（长程依赖）根本没机会发挥。');
 sumLines.push('');
 w(sumLines.join('\n'));
 

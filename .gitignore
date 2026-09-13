@@ -4,3 +4,9 @@ node_modules/
 Thumbs.db
 __pycache__/
 *.pyc
+
+# 跑测试时的临时探针文件（退出码 / git 状态转储），不入库
+dev/exit_*.txt
+dev/g_*.txt
+dev/e.txt
+dev/sz.txt

@@ -7,7 +7,7 @@
 #   python align.py --js-seeds 42 7 # 扩充 JS 侧种子（调 py/js_seed_run.js）
 #   python align.py --corpus scifi  # 只处理某段语料
 #
-# 为什么是"分布对分布"：test_novel.js 用不可播种的 Math.random，JS 参考值只是
+# 为什么是"分布对分布"：早期 minilm.js 用不可播种的 Math.random，JS 参考值只是
 # 单次抽样；单次 Top-1 对单次 Top-1 的差，无法与训练噪声区分。所以两侧都跑
 # 多种子，比较均值与波动。判据（M0）：
 #   ① 损失曲线：两侧多种子均值逐步重合（|Δ| < 0.75）
@@ -101,7 +101,8 @@ def load_side(key, side, seeds, steps):
 
 def build_report(py_runs, js_runs, steps):
     lines = ['# L0 平移验证：PyTorch 复刻 vs minilm.js（分布对分布）', '']
-    lines.append('- 两侧各自跑多种子（JS 侧用可播种 PRNG 替换 Math.random，训练/评测协议逐行一致）')
+    lines.append('- 两侧各自跑多种子（JS 侧用 minilm.js **原生种子**：'
+                 'init / batch / sample 三条互相独立的随机流；训练/评测协议逐行一致）')
     lines.append(f'- 步数 {steps}，batch=8，lr=0.004，其余配置与网页默认档一致')
     lines.append('- 判据①：损失曲线两侧多种子均值逐步重合（|Δ| < 0.75）')
     lines.append('- 判据②：Top-1 / Top-5 的均值差 ≤ 2×σ_pool（σ_pool=√(σ_js²+σ_py²)）'

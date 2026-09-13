@@ -1,0 +1,70 @@
+﻿ M LOG.md
+ M README.md
+ M docs/TODO_NOVEL_MODEL_LEARNING_V1.md
+ M index.html
+ M py/align.py
+ M py/align_report.md
+ M py/js_seed_run.js
+ M py/runs/js_scifi_s2026_n400.json
+ M py/runs/js_scifi_s42_n400.json
+ M py/runs/js_scifi_s7_n400.json
+ M py/runs/js_urban_s2026_n400.json
+ M py/runs/js_urban_s42_n400.json
+ M py/runs/js_urban_s7_n400.json
+ M py/runs/js_wuxia_s2026_n400.json
+ M py/runs/js_wuxia_s42_n400.json
+ M py/runs/js_wuxia_s7_n400.json
+ M report_evidence.md
+ M test_novel.js
+ M ui-src.html
+ M uidom.js
+ M "\344\270\255\346\226\207\345\260\217\350\257\264\347\224\237\346\210\220\346\265\213\350\257\225\346\212\245\345\221\212.md"
+ M "\345\260\217\346\250\241\345\236\213\345\206\231\345\260\217\350\257\264_\344\273\216\351\233\266\345\255\246\344\271\240\346\226\271\346\241\210_2026-09.md"
+?? dev/e.txt
+?? dev/evidence_new.md
+?? dev/exit_all.txt
+?? dev/exit_b2.txt
+?? dev/exit_b3.txt
+?? dev/exit_b4.txt
+?? dev/exit_baselines.txt
+?? dev/exit_te.txt
+?? dev/g2.txt
+?? dev/g_branch.txt
+?? dev/g_log.txt
+?? dev/g_remote.txt
+?? dev/g_status.txt
+?? dev/js_runs_oldprotocol/
+?? dev/out_align.txt
+?? dev/out_align2.txt
+?? dev/out_baselines.txt
+?? dev/out_build.txt
+?? dev/out_evidence.txt
+?? dev/out_rng3.txt
+?? dev/out_seedtest.txt
+?? dev/out_seedtest2.txt
+?? dev/out_smoke2.txt
+?? dev/out_testeval.txt
+?? dev/out_tn.txt
+?? dev/out_tn_full.txt
+?? dev/out_uidom2.txt
+?? dev/out_uidom3.txt
+?? dev/proc3.txt
+?? dev/quick_evidence.md
+?? dev/r2_rng.txt
+?? dev/r2_smoke.txt
+?? dev/r2_uidom.txt
+?? dev/r_base.txt
+?? dev/r_build.txt
+?? dev/r_eval.txt
+?? dev/r_grad.txt
+?? dev/r_rng.txt
+?? dev/r_rng3.txt
+?? dev/r_smoke.txt
+?? dev/r_smoke3.txt
+?? dev/r_uidom.txt
+?? dev/r_uidom3.txt
+?? dev/report_evidence_prev.md
+?? dev/seedtest.md
+?? dev/seedtest2.md
+?? dev/sz.txt
+?? eval/

@@ -286,6 +286,32 @@ try {
 } catch (e) { slErr = e; }
 ok(!slErr, '切换层/头的滑块回调无异常', slErr ? String(slErr.stack).split('\n')[1] : '');
 
+/* ---- 提示词 → token 映射 / 未登录字披露 ---- */
+var tmBox = sandbox.document.getElementById('tokMap');
+var tmErr = null;
+try {
+  sandbox.document.getElementById('gPrompt').value = '苏念说，我';
+  sandbox.document.getElementById('gPrompt').fire('input');
+} catch (e) { tmErr = e; }
+ok(!tmErr, '输入提示词触发 token 映射无异常', tmErr ? String(tmErr.stack).split('\n')[1] : '');
+var tmHtml = tmBox.innerHTML;
+ok(tmHtml.indexOf('class="tok"') >= 0, 'token 映射已渲染逐字格子');
+ok(tmHtml.indexOf('全部在词表内') >= 0, '语料内提示词 → 判定为全部在词表内');
+ok(tmHtml.indexOf('模型实际输入 id') >= 0, '显示了模型实际拿到的 id 序列');
+
+// 故意塞进词表外的字：字符级模型会静默丢弃，这里必须显式告警
+var oovErr = null;
+try {
+  sandbox.document.getElementById('gPrompt').value = '警察敲了敲门，';
+  sandbox.document.getElementById('gPrompt').fire('input');
+} catch (e) { oovErr = e; }
+ok(!oovErr, '含未登录字的提示词无异常', oovErr ? String(oovErr.stack).split('\n')[1] : '');
+var oovHtml = tmBox.innerHTML;
+var oovCnt = (oovHtml.match(/class="tok oov"/g) || []).length;
+ok(oovCnt === 4, '「警察敲了敲门，」标出 4 个未登录字（警/察/敲/敲）', '(' + oovCnt + ' 个)');
+ok(oovHtml.indexOf('静默丢弃') >= 0, '未登录字给出了「静默丢弃」警示');
+ok(oovHtml.indexOf('了门，') >= 0, '警示里列出了模型实际看到的字（了门，）');
+
 // 语料切换
 var swErr = null;
 try {

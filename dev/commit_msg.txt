@@ -1,0 +1,31 @@
+P0 完成：统计基线、共享评估协议、生成指标、UI 未登录字披露
+
+基线结果推翻了此前的结论，这是本次提交最重要的内容：
+
+  模型 Top-1 三语料全部未超过 trigram（科幻 34.0% vs 41.4%，
+  武侠 20.3% vs 22.9%，都市 40.2% vs 41.0%）。武侠留出集困惑度
+  284.9，比按字频瞎猜（165.4）还差。根因是过拟合：
+  5.5 万参数记 1900~2400 训练字，约 29 参数/字。
+
+  此前报告写「是随机猜测的 73~132 倍」——随机猜测只是数学下限，
+  不是及格线。已改为以 bigram/trigram 为及格线。
+  旧证据另存 dev/report_evidence_prev.md，可追溯。
+
+新增：
+- eval/protocol.js   评估协议唯一定义处（切分/窗口/可见上文/指标累计）
+                     forEachPosition 建在 forEachWindow 之上，模型与基线同源
+- eval/baselines.js  unigram + 加 alpha 平滑 bigram/trigram，带回退
+                     alpha 在训练集尾部开发集上选，不在留出集上挑
+- eval/metrics.js    重复率 / distinct-N / 训练集重合率 / 最长公共子串 / OOV
+- eval/fixtures/     5 个纯 ASCII 手算样本，期望值写在 README 里可纸笔推
+- eval/test_eval.js  58 项断言，验证指标本身没算错
+
+改动：
+- test_novel.js      评估改走 protocol.js；新增留出集 NLL/困惑度、
+                     distinct-2、4-gram 重复率、8-gram 重合率、最长公共子串；
+                     基线直接进同一张表并给出判定
+- ui-src.html        提示词下方新增 tokMap 面板：逐字 token id、
+                     未登录字红色高亮、模型实际输入 id、「静默丢弃」警示
+- uidom.js           新增 8 项 token 映射断言（含「警察敲了敲门，」→ 4 OOV）
+
+回归：smoke 23/23 · uidom 41/41 · test_rng 11/11 · eval/test_eval 58/58

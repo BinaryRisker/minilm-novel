@@ -1,9 +1,12 @@
 /* ============================================================================
  * js_seed_run.js — 给 minilm.js 侧做"多种子"运行（L0 对齐验证的另一半）
  * ----------------------------------------------------------------------------
- * 背景：test_novel.js 用的是 Math.random（不可播种），所以 JS 参考值只是
- * JS 分布里的一个抽样。本脚本用可播种的 mulberry32 替换 Math.random，
- * 让 JS 侧也能跑多种子，与 PyTorch 侧做"分布对分布"的比较。
+ * 背景：早期 minilm.js 用 Math.random（不可播种），JS 参考值只是 JS 分布里的
+ * 一个抽样。现在 minilm.js 原生支持种子（三条独立流 init / batch / sample），
+ * 本脚本改用官方 API：new MiniLM(V, CFG, { seed }) + makeBatch(..., m.rng.batch)。
+ *
+ * 【协议变更 2026-09-13 17:55】此前用 "Math.random = mulberry32(seed)" 猴子补丁
+ * 跑出的 js_*.json 与新协议不等价（init 与 batch 的派生路径不同），需按新协议重跑。
  *
  * 训练与评测逻辑逐行复制自 test_novel.js 的 trainCorpus（仅保留损失快照
  * 与留出集评测，砍掉生成部分），保证协议完全一致。
@@ -15,16 +18,8 @@
 const fs = require('fs');
 const path = require('path');
 
-// ---- 可播种 PRNG：mulberry32 ----
-function mulberry32(a) {
-  return function () {
-    a |= 0; a = (a + 0x6D2B79F5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-Math.random = mulberry32(parseInt(process.argv[3], 10));
+// 种子由 minilm.js 原生支持（init / batch / sample 三条独立流），
+// 不再替换全局 Math.random —— 那样会让三条流共用同一条，破坏隔离性。
 
 const kit = require('../minilm.js');
 const CORPUS = require('../corpus.js');
@@ -42,7 +37,7 @@ const BATCH = 8, LR = 0.004, STEPS = 400;
   const trainIds = ids.slice(0, split);
   const testIds = ids.slice(split);
 
-  const model = new kit.MiniLM(vocab.size, CFG);
+  const model = new kit.MiniLM(vocab.size, CFG, { seed: seed });
   const warmup = Math.max(10, Math.floor(STEPS * 0.15));
 
   const t0 = Date.now();
@@ -51,7 +46,7 @@ const BATCH = 8, LR = 0.004, STEPS = 400;
   let lossAcc = 0, lossN = 0;
 
   for (let step = 0; step < STEPS; step++) {
-    const batch = kit.makeBatch(trainIds, BATCH, CFG.ctx);
+    const batch = kit.makeBatch(trainIds, BATCH, CFG.ctx, model.rng.batch);
     model.zeroGrad();
     const r = model.forward(batch.tokens, batch.targets);
     model.backward();
