@@ -43,7 +43,11 @@
 - 实验日志与内容素材库：`LOG.md`
 - **当前位置**：JS 实验台完成并全量验证；**L0 已通过**（2026-09-13）——PyTorch 复刻版与手写 JS 版
   在多种子对比下不可区分（损失曲线偏差 ≤0.030，Top-1 均值差在种子噪声内，见 `py/align_report.md`）；
-  下一站 **L3 数据工程**：百万字级中文小说语料管线 + 「大纲 → 正文」配对数据
+  正在做 **L3 数据工程**：语料已达 **1091 部 / 2682 万字**（公版 + 开放许可，见 `data/sources.json`），
+  2026-09-14 起用**按作品切分**的 `data/splits/{train,val,test}.txt` 替代旧的「整桶连续 90/10」口径
+  （旧切分会把同一部作品劈进 train 和 test；新口径 train/val/test 不跨作品，见 `py/data/build_splits.py`、
+  `train.py --splits`）。**下一步**：把 `sweep_data_scale.py` / `eval_story.py` 迁到新口径，再启动
+  「大纲 → 正文」配对数据。
 
 ---
 

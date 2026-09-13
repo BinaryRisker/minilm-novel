@@ -19,6 +19,8 @@ dev/sz.txt
 # 入库的是聚合后的 py/data/corpus.json 与审计 data/sources.json
 data/raw/
 data/processed/
+# 按作品切分的训练语料（可由 py/data/build_splits.py 重建），只入库 data/split_report.json 审计
+data/splits/*.txt
 
 # 语料来源探索的临时探针（古腾堡 / 汉川草庐 / 维基文库的中间产物）
 dev/gb_zh.html

@@ -196,6 +196,32 @@ def train(text, steps=400, batch=8, lr=0.004, seed=1234, cfg=None,
 
 
 @torch.no_grad()
+def eval_ids(model, ids, ctx=None):
+    """在**显式给定**的 id 序列上评测 top-1/top-5（32 字窗口逐位置，与 holdout_eval 同口径）。
+    与 holdout_eval 的区别：不自己切 90/10、不重建词表——用于「按作品切分」的
+    train/val/test（data/splits/*.txt）。ids 一般由 encode(test_text, 训练集 stoi) 得到。"""
+    ctx = ctx or model.cfg['ctx']
+    model.eval()
+    top1 = top5 = total = 0
+    s = 0
+    while s + ctx + 1 <= len(ids):
+        chunk = torch.tensor([ids[s:s + ctx]], dtype=torch.long)
+        tgt = ids[s + 1:s + 1 + ctx]
+        with torch.no_grad():
+            logits, _ = model(chunk)
+        topv, topi = logits[0].topk(5)
+        for i in range(ctx):
+            pred = topi[i].tolist()
+            total += 1
+            if pred[0] == tgt[i]:
+                top1 += 1
+            if tgt[i] in pred:
+                top5 += 1
+        s += ctx
+    return {'top1': 100 * top1 / total if total else 0.0,
+            'top5': 100 * top5 / total if total else 0.0, 'n': total}
+
+
 def holdout_eval(model, text, seed=1234, min_freq=1, max_vocab=None):
     """复刻 test_novel.js 的留出集评测：后 10% 分成 32 字窗口逐位置测 top-k。"""
     torch.manual_seed(seed)

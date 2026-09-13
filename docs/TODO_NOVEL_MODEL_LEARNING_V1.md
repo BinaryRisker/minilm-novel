@@ -56,11 +56,15 @@
 - [ ] 准备数百个短故事作管线探索集；先查质量与多样性，再决定扩充规模，不预设它足够训练好模型。 ⏳ 需要人工创作/收集
 - [x] 新增 py/tokenizer.py：学习版 BPE 或成熟字节回退 tokenizer；只用训练数据拟合。测试常用中文、罕见字、emoji、空白及特殊标记。 ✅ 2026-09-13
 - [x] 在 py/tests/test_tokenizer.py 中验证普通文本 encode/decode 往返；明确 Unicode 归一化规则与特殊 token 处理。 ✅ 2026-09-13 4 项断言通过
+- [x] 初步做同架构下数据量实验，再做规模实验。不要把参数、数据量与训练时长同时变化的结果解释为单因素收益。 ✅ 2026-09-13 `py/sweep_data_scale.py`；结论：4 尺寸 × 3 语料 × 1 种子，模型均未超过 trigram
 - [x] 新增 configs/：固定一个基础配置；记录字符模型和子词模型的 vocab、参数分布与训练 token 数，禁止直接比较二者 PPL。 ✅ 2026-09-13 configs/base.json + configs/baseline_model.json
 - [x] 新增 py/benchmark.py：预热后测实际训练 tokens/s、内存、验证开销，输出估算所需字段；租卡前先提出可核算的小试跑范围。 ✅ 2026-09-13
-- [x] 初步做同架构下数据量实验，再做规模实验。不要把参数、数据量与训练时长同时变化的结果解释为单因素收益。 ✅ 2026-09-13 `py/sweep_data_scale.py`；结论：4 尺寸 × 3 语料 × 1 种子，模型均未超过 trigram
+- [x] 封堵 train/test 泄漏：新增 `py/data/build_splits.py`（按作品整篇切分 → `data/splits/{train,val,test}.txt` + 审计自检），`train.py` 加可选 `--splits`，`minilm_torch.eval_ids()` 供留出评测；`minilm_torch.train` 的连续 90/10 切分保留作 JS 对齐口径。 ✅ 2026-09-14
+- [ ] 把 `sweep_data_scale.py` / `eval_story.py` 迁到 `data/splits/*.txt`（按作品留出），重做规模/质量实验。 ⏳ 待 L3 续
 
 验收：故事家族不跨集合；tokenizer 往返通过；每次运行均可追溯数据；先有吞吐再定扩容。 ✅
+（2026-09-14 补：按作品切分落地——`py/data/build_splits.py` 保证 train/val/test 不跨作品，审计字数守恒；
+旧「连续 90/10」在同规模语料上只劈开 1 部作品，实际泄漏小但结构错误，已改为按作品留出。）
 
 实验报告：`docs/experiments/2026-09-13-sweep-data-scale.md`
 图表：`docs/img/sweep_data_scale.png`

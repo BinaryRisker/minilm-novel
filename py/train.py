@@ -25,7 +25,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 if HERE not in sys.path:
     sys.path.insert(0, HERE)
-from minilm_torch import MiniLM, build_vocab, encode, holdout_eval  # noqa
+from minilm_torch import MiniLM, build_vocab, encode, holdout_eval, eval_ids  # noqa
 
 
 def load_corpus(corpus_name: str) -> str:
@@ -35,6 +35,14 @@ def load_corpus(corpus_name: str) -> str:
     if corpus_name not in c or not c[corpus_name].get('text'):
         raise ValueError(f'语料 {corpus_name} 不存在或为空。可用：{list(c.keys())}')
     return c[corpus_name]['text']
+
+
+def read_split(split_dir: str, name: str) -> str:
+    p = os.path.join(split_dir, name + '.txt')
+    if not os.path.exists(p):
+        raise FileNotFoundError(f'切分语料不存在：{p}（先跑 python py/data/build_splits.py）')
+    with open(p, 'r', encoding='utf-8') as f:
+        return f.read()
 
 
 def save_checkpoint(path: str, model, itos: list, meta: dict):
@@ -59,6 +67,9 @@ def load_checkpoint(path: str, device='cpu'):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--corpus', default='scifi', help='corpus key in py/data/corpus.json')
+    ap.add_argument('--splits', default=None,
+                    help='按作品切分语料目录（py/data/build_splits.py 产出，含 train.txt/val.txt/test.txt）。'
+                         '给定则用「不跨作品」的留出集，词表只在 train 上建立；否则退回 corpus.json 连续 90/10（JS 对齐口径）。')
     ap.add_argument('--steps', type=int, default=400)
     ap.add_argument('--batch', type=int, default=8)
     ap.add_argument('--lr', type=float, default=0.004)
@@ -83,7 +94,13 @@ def main():
         out_dir = os.path.dirname(args.resume)
         seed = meta.get('seed', 1234)
     else:
-        text = load_corpus(args.corpus)
+        split_test_text = None
+        if args.splits:
+            split_dir = args.splits if os.path.isabs(args.splits) else os.path.join(ROOT, args.splits)
+            text = read_split(split_dir, 'train')
+            split_test_text = read_split(split_dir, 'test')
+        else:
+            text = load_corpus(args.corpus)
         cfg = dict(ctx=32, d=40, layers=2, heads=4, ffMul=4)
         if args.cfg:
             cfg.update(json.loads(args.cfg))
@@ -96,7 +113,8 @@ def main():
         itos, stoi = build_vocab(text)
         model = MiniLM(len(itos), cfg).to(args.device)
         meta = {
-            'corpus': args.corpus,
+            'corpus': args.corpus if not args.splits else os.path.basename(split_dir),
+            'splits': args.splits,
             'cfg': cfg,
             'steps': args.steps,
             'batch': args.batch,
@@ -128,9 +146,14 @@ def main():
         log(f'Resuming from step {start_step}; no retraining in this simple script.')
     else:
         ids = encode(text, stoi)
-        split = math.floor(len(ids) * 0.9)
-        train_ids = ids[:split]
-        test_ids = ids[split:]
+        if split_test_text is not None:
+            # 按作品切分：训练集上建的词表直接编码测试集（未见字映射到 0）
+            train_ids = ids
+            test_ids = encode(split_test_text, stoi)
+        else:
+            split = math.floor(len(ids) * 0.9)
+            train_ids = ids[:split]
+            test_ids = ids[split:]
 
         import random
         rng = random.Random(seed)
@@ -165,8 +188,12 @@ def main():
 
         # holdout eval
         from minilm_torch import holdout_eval
-        eval_res = holdout_eval(model.to('cpu'), text, seed=seed)
-        log(f'Holdout: {json.dumps(eval_res, ensure_ascii=False)}')
+        if split_test_text is not None:
+            eval_res = eval_ids(model.to('cpu'), test_ids)
+            log(f'Holdout (按作品切分, 词表仅 train): {json.dumps(eval_res, ensure_ascii=False)}')
+        else:
+            eval_res = holdout_eval(model.to('cpu'), text, seed=seed)
+            log(f'Holdout (连续 90/10, JS 对齐口径): {json.dumps(eval_res, ensure_ascii=False)}')
         meta['eval'] = eval_res
         save_checkpoint(os.path.join(out_dir, 'checkpoint.pt'), model, itos, meta)
         with open(os.path.join(out_dir, 'meta.json'), 'w', encoding='utf-8') as f:

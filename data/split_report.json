@@ -1,0 +1,25 @@
+{
+  "generated_by": "py/data/build_splits.py",
+  "note": "按作品整篇切分（train/val/test 不跨作品）。正文取 data/processed/ 每部全文，非 corpus.json 的截断拼接。chars 为逐作品原文字数之和，file_chars 含作品间 \\n\\n 分隔符。供 L3 之后的质量实验使用；minilm_torch.train 的连续 90/10 切分是 JS 对齐路径，与此无关。",
+  "splits": {
+    "train": {
+      "works": 871,
+      "chars": 20255353,
+      "file_chars": 20257093
+    },
+    "val": {
+      "works": 107,
+      "chars": 2809197,
+      "file_chars": 2809409
+    },
+    "test": {
+      "works": 113,
+      "chars": 3753453,
+      "file_chars": 3753677
+    }
+  },
+  "total_works": 1091,
+  "total_chars": 26818003,
+  "work_chars_sum": 26818003,
+  "ok": true
+}

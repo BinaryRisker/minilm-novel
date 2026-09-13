@@ -403,3 +403,87 @@ id、体积、许可、字段结构，产出 `docs/DATA_CANDIDATES.md`（PRD 要
 3. **四舍五入会造出「假冲突」。** 34.0% 与 33.98% 是同一个数，但分处两篇就会让读者以为有两次实验——**跨篇引用同一个数时，要么统一小数位，要么显式说明关系。**
 
 **边界**：本轮只补「已有记录里的数字」，没有为凑长度新造实验；截图、署名、commit 绑定、失败样本的人工逐句批注仍是【人工项】。
+
+---
+
+## 2026-09-13 · Day 1（续八）· 第一梯队数据源接入管线 + 字符级 vs BPE 对照
+
+**做了**：落实 `docs/DATA_CANDIDATES.md` 的建议——给 `py/data/fetch_corpus.py` 新增 `hf` 源
+（`HF_BOOKS` / `HF_TINYSTORIES` 注册表 + `fetch_huggingface` / `fetch_tinystories`），
+新增 `story` 桶；TinyStories **每篇作为一部独立作品**入册，PRD 要求的"故事家族不跨集合"在切分时天然成立。
+下载 TinyStories 中文全量包 2.6 GB（48 分片，只用第一个分片 `data00_zh.jsonl`，不整包解压），
+全量重跑抓取（4 个源），再跑 `prepare.py --split`。另写 `py/data/bpe_probe.py` 做字符级 vs BPE 对照
+（merges 只用训练段拟合，评测在留出段）。
+
+**数字**（语料版本：**1091 部 / 2682 万字**，corpus.json 24.2 MB）：
+
+- `scifi` 桶：13.2 万 → **1,793,326 字**（空间魔导书与少年魔法师 166 万字，繁转简，CC BY 4.0）
+- `story` 桶（新增）：**1000 篇短故事 / 274,460 字**（TinyStories 中文译文，均长 274 字，CDLA-Sharing-1.0）
+- manifest：**1091 条 story_id**，切分 **train 871 / val 107 / test 113**（2026 万 / 281 万 / 375 万字），
+  审计 0 冲突；story 桶 800/100/100
+- BPE 对照（300 merges，训练段前 10 万字拟合，留出段评测）：
+  - story 桶：**0.679 token/字（有效上下文 ×1.47）**；scifi 桶：0.885（×1.13）
+  - BPE 学到的合并：`他们` `莉莉` `一个` `说："` （story）；`少年` `少女` `魔法` `芙雷德` `！」`（scifi）
+    —— 前 12 个合并几乎全是对话格式与人名
+  - **但 BPE 的 UNK 率 1.2%~1.9%，反而高于字符级的静默丢弃率 0.09%~0.27%**
+
+**意外发现**：
+
+1. **merge 表本身就是最好的可解释性素材。** BPE 在无人监督下先学对话格式（`说："` `。」`）
+   再学人名（`莉莉` `芙雷德`）——"模型该先学什么"，tokenizer 的 merge 表给了一遍答案。
+   这可以单独成为一篇内容。
+2. **"换成 BPE 就解决 OOV"不成立。** 拟合窗口小（10 万字 / 300 merges）时，BPE 的 UNK 率
+   比字符级的丢弃率还高一个数量级。OOV 的正解仍是 PRD P0 的"未知字符可见"（披露），
+   BPE 的收益要等更大的拟合语料与更多 merges 才能兑现。**任何 tokenizer 迁移都必须带这两个数字。**
+3. **在共享仓库里改数据要留版本戳。** 我重跑抓取时，另一条工作线的消融实验正跑在旧版
+   scifi 桶（13.2 万字）上——corpus.json 被我从脚下抽走了。本文所有数字都标了
+   「语料版本 1091 部 / 2682 万字」；此前引用"科幻 13.2 万字"的实验结论对应旧快照，
+   复现时以 `data/processed/` 的逐作品快照与 manifest hash 为准。
+
+**产出**：`fetch_corpus.py`（hf 源）、`py/data/bpe_probe.py`、
+`py/runs/bpe_probe_{story,scifi}.json`、`data/manifest.jsonl`（1091 条）、`data/split_audit.json`
+
+---
+
+## 2026-09-14 · Day 2 · 定时任务首跑：审计对齐 + 封堵 train/test 泄漏
+
+**做了**（00:00 计划任务首跑，全流程自检→修复→推进）：
+
+1. **全量回归**：`test.js --grad` 685/685、`build/smoke/uidom/test_rng/eval` 全绿；
+   `python -m unittest` 13/13；PyTorch↔JS parity 前向 2/2、反向 20/20、裁剪 20/20、Adam 20/20 全 PASS。
+   L0 对齐未破。
+2. **发现并修复审计失真**：`data/sources.json` 与 `py/data/corpus.json` 在 00:06 被上一轮抓取重跑更新到
+   **1091 部 / 2682 万字**，但 `manifest.jsonl`、`split_audit.json` 还停在 21:35 的旧版（90 部 / 2488 万字）——
+   审计与真实数据脱节。重跑 `prepare.py --split`，三件套重新对齐（train 871 / val 107 / test 113，0 冲突）。
+3. **封堵 train/test 泄漏**：旧 `train.py` / `minilm_torch.train` / `baselines` 都在「整桶拼接文本」上
+   按 `len*0.9` **连续切一刀**当留出，同部作品可能被从中间劈开。新增 `py/data/build_splits.py`：
+   读 manifest + `data/processed/` 每部作品全文，**按作品整篇**拼成 `data/splits/{train,val,test}.txt`，
+   并做审计自检（无作品跨集合 + 字数守恒）。给 `train.py` 加**可选** `--splits` 入口（词表只在 train 上建），
+   在 `minilm_torch` 加共享的 `eval_ids()`（不动 `holdout_eval`，保住 JS 对齐路径）。
+
+**数字**：
+
+- 泄漏定量（同一份 2682 万字文本，只换切分规则）：连续 90/10 只有 **1 部作品**（飞龙全传）被边界劈开，
+  约 23.3 万字落入 test；按作品切分 = **0 部跨集合**（构造性保证）。
+  —— 在当前规模下"连续切"的**实际泄漏不大**，但结构上是错的；按作品切分才是对的底座。
+- 端到端验证：`train.py --splits data/splits --steps 200 --seed 42`（ctx32/d40/L2）跑通，
+  留出作品 top-1 = **8.25%**、top-5 = 17.19%（评测位点 375 万）。默认（连续切）路径输出不变，parity 保持。
+- 语料版本戳：1091 部 / 2682 万字，corpus.json 24.2 MB。
+
+**意外发现**：
+
+1. **8-gram 重合率不能当泄漏度量。** 我先用 8-gram train∩test 占比判泄漏，结果反了直觉——按作品切分的重合率
+   （19.7%）比连续切（0.8%）还高：因为公版小说本身共享大量套话（「只见那」「话说」），跨作品也会撞 8-gram。
+   **真正该量的是「有多少部作品被边界劈开」**，不是 n-gram 重合。度量选错会得出相反结论。
+2. **抓取重跑会悄悄让审计过期。** 数据产物（sources/corpus）和审计（manifest/split_audit）分两步写，
+   只重跑前者就出现"审计描述的不是当前数据"。**建议**：把 `prepare.py --split` + `build_splits.py` 并入抓取收尾，
+   或在 CI/自检里比对 `sources.json` 与 `manifest` 的条数/字数是否一致（本次即靠此发现）。
+
+**边界**：本轮只补"切分正确性 + 审计对齐"，没有重训任何正式实验，也没有动 `minilm_torch.train` 的连续切
+（它是 L0 的 JS 逐位对齐路径，切分语义必须与 JS 一致）。`sweep_data_scale.py` / `eval_story.py` 仍走旧口径。
+
+**下一步（L3 继续）**：把 `sweep_data_scale.py`、`eval_story.py` 迁到 `data/splits/*.txt`（按作品留出），
+再启动「大纲 → 正文」配对数据。
+
+**产出**：`py/data/build_splits.py`（+ `data/splits/*.txt`、`data/split_report.json`，均 gitignore）、
+`train.py --splits`、`minilm_torch.eval_ids`、重新对齐的 `data/manifest.jsonl` + `data/split_audit.json`。

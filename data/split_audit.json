@@ -1,18 +1,18 @@
 {
-  "total_works": 90,
-  "total_chars": 24882232,
+  "total_works": 1091,
+  "total_chars": 26818003,
   "splits": {
     "train": {
-      "works": 70,
-      "chars": 18376671
+      "works": 871,
+      "chars": 20255353
     },
     "test": {
-      "works": 13,
-      "chars": 3723741
+      "works": 113,
+      "chars": 3753453
     },
     "val": {
-      "works": 7,
-      "chars": 2781820
+      "works": 107,
+      "chars": 2809197
     }
   },
   "by_bucket": {
@@ -22,8 +22,13 @@
       "val": 3
     },
     "scifi": {
-      "test": 1,
-      "train": 3
+      "train": 4,
+      "test": 1
+    },
+    "story": {
+      "test": 100,
+      "train": 800,
+      "val": 100
     },
     "urban": {
       "train": 20,
@@ -36,7 +41,7 @@
       "val": 2
     }
   },
-  "unique_hashes": 90,
+  "unique_hashes": 1091,
   "issues": [],
   "ok": true
 }
