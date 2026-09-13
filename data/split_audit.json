@@ -1,0 +1,12 @@
+{
+  "total_stories": 3,
+  "splits": {
+    "train": {
+      "stories": 3,
+      "chars": 7360
+    }
+  },
+  "hash_count": 3,
+  "issues": [],
+  "ok": true
+}

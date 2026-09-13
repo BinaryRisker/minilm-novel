@@ -1,31 +1,10 @@
-P0 完成：统计基线、共享评估协议、生成指标、UI 未登录字披露
+P1/P2/P3/P4 骨架完成：PyTorch 对齐、数据量扫描、数据管线、场景评测、内容产物
 
-基线结果推翻了此前的结论，这是本次提交最重要的内容：
-
-  模型 Top-1 三语料全部未超过 trigram（科幻 34.0% vs 41.4%，
-  武侠 20.3% vs 22.9%，都市 40.2% vs 41.0%）。武侠留出集困惑度
-  284.9，比按字频瞎猜（165.4）还差。根因是过拟合：
-  5.5 万参数记 1900~2400 训练字，约 29 参数/字。
-
-  此前报告写「是随机猜测的 73~132 倍」——随机猜测只是数学下限，
-  不是及格线。已改为以 bigram/trigram 为及格线。
-  旧证据另存 dev/report_evidence_prev.md，可追溯。
-
-新增：
-- eval/protocol.js   评估协议唯一定义处（切分/窗口/可见上文/指标累计）
-                     forEachPosition 建在 forEachWindow 之上，模型与基线同源
-- eval/baselines.js  unigram + 加 alpha 平滑 bigram/trigram，带回退
-                     alpha 在训练集尾部开发集上选，不在留出集上挑
-- eval/metrics.js    重复率 / distinct-N / 训练集重合率 / 最长公共子串 / OOV
-- eval/fixtures/     5 个纯 ASCII 手算样本，期望值写在 README 里可纸笔推
-- eval/test_eval.js  58 项断言，验证指标本身没算错
-
-改动：
-- test_novel.js      评估改走 protocol.js；新增留出集 NLL/困惑度、
-                     distinct-2、4-gram 重复率、8-gram 重合率、最长公共子串；
-                     基线直接进同一张表并给出判定
-- ui-src.html        提示词下方新增 tokMap 面板：逐字 token id、
-                     未登录字红色高亮、模型实际输入 id、「静默丢弃」警示
-- uidom.js           新增 8 项 token 映射断言（含「警察敲了敲门，」→ 4 OOV）
-
-回归：smoke 23/23 · uidom 41/41 · test_rng 11/11 · eval/test_eval 58/58
+- P1：修复 verify_parity.py gradient 读取 bug，forward/backward/clip/Adam 全 20 参数 bitwise 对齐
+- P1：新增 dev/export_fixture.js、py/verify_parity.py、py/train.py
+- P2：新增 py/baselines.py、py/sweep_data_scale.py，4 尺寸 × 3 语料数据量扫描完成；结论：模型均未超过 trigram
+- P2：新增 py/benchmark.py、py/tokenizer.py、py/data/prepare.py、data/manifest.jsonl、configs/base.json
+- P3：新增 eval/prompts.jsonl（30 场景）、py/eval_story.py、configs/baseline_model.json
+- P4：新增 docs/experiments/模板.md 及两份实验报告、docs/content/选题表.md、docs/img/sweep_data_scale.png
+- 更新 LOG.md、docs/TODO_NOVEL_MODEL_LEARNING_V1.md、.gitignore
+- 回归通过：node test.js --grad / build.js / smoke.js / uidom.js；python -m unittest discover -s py/tests

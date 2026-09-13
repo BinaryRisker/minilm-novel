@@ -1,0 +1,27 @@
+{
+  "corpus": "scifi",
+  "cfg": {
+    "ctx": 32,
+    "d": 40,
+    "layers": 2,
+    "heads": 4,
+    "ffMul": 4
+  },
+  "steps": 400,
+  "batch": 8,
+  "lr": 0.004,
+  "seed": 1234,
+  "device": "cpu",
+  "train_time_sec": 9.42358136177063,
+  "eval_time_sec": 0.02655959129333496,
+  "avg_loss": 2.2764034393429755,
+  "tokens_total": 102400,
+  "tokens_per_sec": 10866.357074754402,
+  "chars_per_sec": 339.57365858607506,
+  "ms_per_step": 23.558953404426575,
+  "peak_memory_mb": 0.037858009338378906,
+  "current_memory_mb": 0.03090190887451172,
+  "holdout_top1": 34.375,
+  "holdout_top5": 57.03125,
+  "holdout_n": 256
+}

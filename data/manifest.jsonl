@@ -1,0 +1,3 @@
+{"story_id": "scifi_001", "parent_story_id": null, "split": "train", "source": "project original", "title": "科幻 · 记忆之海", "desc": "新长安，一个正在失去记忆的人", "hash": "42f0446c00e35fa4", "chars": 2668, "vocab_size": 364, "license": "unknown", "note": ""}
+{"story_id": "wuxia_002", "parent_story_id": null, "split": "train", "source": "project original", "title": "武侠 · 剑雨楼", "desc": "一场约在雨夜的决斗", "hash": "9041cfd2f522a6dd", "chars": 2125, "vocab_size": 304, "license": "unknown", "note": ""}
+{"story_id": "urban_003", "parent_story_id": null, "split": "train", "source": "project original", "title": "都市 · 深夜面馆", "desc": "只在夜里开门的一家小店", "hash": "1376d308f69873c3", "chars": 2567, "vocab_size": 323, "license": "unknown", "note": ""}

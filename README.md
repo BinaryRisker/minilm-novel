@@ -175,7 +175,7 @@ node build.js && node smoke.js && node uidom.js && node test_rng.js
 | UI 端到端（`uidom.js`） | ✓ 41/41 —— init 装配、训练循环、快照、生成、注意力、token 映射、梯度检查全通 |
 | 随机流（`test_rng.js`） | ✓ 11/11 —— 可复现、种子有效、三条流隔离、状态存恢复 |
 | 指标自测（`eval/test_eval.js`） | ✓ 58/58 —— 平滑概率、回退、重复率、重合度、OOV、评估协议均对上手算值 |
-| 中文小说生成（`test_novel.js`） | 留出集盲测 Top-1 **20%~40%**（详见下一节） |
+| 中文小说生成（`test_novel.js`） | 留出集 Top-1 **20%~40%** —— 但**没跑赢 trigram 基线**，详见下一节 |
 
 ### ⚠️ 但模型打不过 trigram 基线
 

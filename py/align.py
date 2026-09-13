@@ -31,11 +31,11 @@ RUNS = os.path.join(HERE, 'runs')
 CORPUS = json.load(open(os.path.join(HERE, 'data', 'corpus.json'), encoding='utf-8'))
 KEYS = ['scifi', 'wuxia', 'urban']
 
-# test_novel.js 的原始参考值（未播种 Math.random 的单次运行，report_evidence.md）
+# test_novel.js 的单次运行参考值（seed=42，新协议，当前 report_evidence.md）
 JS_ORIG = {
-    'scifi': {'losses': [5.898, 4.450, 2.582, 1.920, 1.643], 'top1': 32.4, 'top5': 57.8},
-    'wuxia': {'losses': [5.694, 4.002, 2.162, 1.597, 1.384], 'top1': 24.0, 'top5': 33.9},
-    'urban': {'losses': [5.742, 4.129, 2.332, 1.732, 1.472], 'top1': 40.6, 'top5': 51.6},
+    'scifi': {'losses': [5.873, 4.429, 2.532, 1.903, 1.629], 'top1': 34.0, 'top5': 55.1},
+    'wuxia': {'losses': [5.715, 3.971, 2.148, 1.572, 1.337], 'top1': 20.3, 'top5': 33.3},
+    'urban': {'losses': [5.747, 4.124, 2.308, 1.740, 1.464], 'top1': 40.2, 'top5': 54.3},
 }
 
 
@@ -144,7 +144,7 @@ def build_report(py_runs, js_runs, steps):
                 f'{pm:.1f}±{ps:.1f}%（n={len(pv)}） | {gap:.1f}pt（2σ={2 * sigma_pool:.1f}） | '
                 f'{"✓" if ok else "✗"} |')
     lines.append('')
-    lines.append('原始单次参考值（test_novel.js，未播种）：'
+    lines.append('单次运行参考值（test_novel.js --seed 42，新协议）：'
                  + '；'.join(f'{CORPUS[k]["name"]} Top-1 {JS_ORIG[k]["top1"]}%'
                              f'（两侧分布内）' if _within(stats, k, 'top1', JS_ORIG[k]['top1'])
                              else f'{CORPUS[k]["name"]} Top-1 {JS_ORIG[k]["top1"]}%' for k in KEYS)

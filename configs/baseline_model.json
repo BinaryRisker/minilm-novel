@@ -1,0 +1,27 @@
+{
+  "name": "",
+  "desc": "外部基座模型对照组（待选型后填写）。P3 要求明确记录精确版本、tokenizer、精度和运行环境。",
+  "model": {
+    "repo_id": "",
+    "revision": "",
+    "parameters": null,
+    "context_length": null,
+    "precision": "",
+    "license": ""
+  },
+  "tokenizer": {
+    "type": "",
+    "vocab_size": null,
+    "special_tokens": []
+  },
+  "runtime": {
+    "device": "",
+    "framework": "",
+    "version": ""
+  },
+  "notes": [
+    "人工项：选型后逐项填写，禁止空字段直接比较",
+    "与本项目自研模型对比时，必须统一 decode 参数（temperature、top-k、repetition penalty 等）",
+    "基座 / 基座+编排 / SFT / SFT+编排 的结果要分列"
+  ]
+}

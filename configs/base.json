@@ -1,0 +1,31 @@
+{
+  "name": "minilm-base-char",
+  "desc": "字符级 MiniLM 基础配置，5.5 万参数，用于本地数据量与规模实验",
+  "model": {
+    "ctx": 32,
+    "d": 40,
+    "layers": 2,
+    "heads": 4,
+    "ffMul": 4
+  },
+  "train": {
+    "steps": 400,
+    "batch": 8,
+    "lr": 0.004,
+    "seed": 1234,
+    "clip_norm": 1.0,
+    "optimizer": "Adam",
+    "betas": [0.9, 0.999],
+    "eps": 1e-8
+  },
+  "tokenizer": {
+    "type": "char",
+    "vocab_size": null,
+    "oov_token": "\u0000",
+    "note": "词表大小由训练语料决定，配置里不硬编码"
+  },
+  "notes": [
+    "该配置是 PRD P2 的本地实验基线；租卡或大规模训练前先用 benchmark.py 测吞吐",
+    "禁止直接用本配置与 BPE/tokenizer 子词模型的 PPL 比较"
+  ]
+}
