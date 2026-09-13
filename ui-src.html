@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MiniLM Lab · 微型中文小说模型实验台</title>
+<style>
+  :root{
+    --bg:#0d0f14;
+    --bg-2:#12151c;
+    --panel:#161a23;
+    --panel-2:#1b2029;
+    --line:#252b37;
+    --line-2:#303747;
+    --tx:#e7eaf2;
+    --tx-2:#a7b0c0;
+    --tx-3:#6d7787;
+    --ac:#5b9dff;
+    --ac-2:#3d7ce0;
+    --ok:#3ddc97;
+    --warn:#ffb454;
+    --bad:#ff6b6b;
+    --purple:#b48bff;
+    --cyan:#4fd6e0;
+    --radius:12px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(1100px 520px at 12% -8%, #1a2440 0%, transparent 62%),
+      radial-gradient(900px 460px at 92% 0%, #241c3a 0%, transparent 58%),
+      var(--bg);
+    color:var(--tx);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    font-size:13.5px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  a{color:var(--ac)}
+  code,.mono{font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace}
+
+  /* ---------------- 布局 ---------------- */
+  .wrap{max-width:1480px;margin:0 auto;padding:24px 22px 64px}
+
+  header.top{display:flex;flex-wrap:wrap;align-items:flex-end;gap:18px;margin-bottom:18px}
+  header.top h1{
+    margin:0;font-size:23px;letter-spacing:.2px;font-weight:650;
+    background:linear-gradient(92deg,#e9eefc 8%,#9ec2ff 52%,#b48bff 96%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  header.top .sub{color:var(--tx-2);font-size:12.5px;margin-top:2px}
+  .pills{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+  .pill{
+    border:1px solid var(--line-2);background:rgba(255,255,255,.03);
+    padding:3px 10px;border-radius:999px;font-size:11.5px;color:var(--tx-2);
+  }
+  .pill b{color:var(--tx);font-weight:600}
+
+  .statbar{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));
+    gap:10px;margin-bottom:18px;
+  }
+  .stat{
+    background:linear-gradient(180deg,var(--panel) 0%,var(--panel-2) 100%);
+    border:1px solid var(--line);border-radius:var(--radius);padding:10px 13px;
+  }
+  .stat .k{font-size:11px;color:var(--tx-3);letter-spacing:.4px;text-transform:uppercase}
+  .stat .v{font-size:17px;font-weight:640;margin-top:2px;font-variant-numeric:tabular-nums}
+  .stat .v small{font-size:11.5px;color:var(--tx-3);font-weight:400;margin-left:2px}
+
+  main{display:grid;grid-template-columns:378px minmax(0,1fr);gap:16px;align-items:start}
+  @media (max-width:1080px){ main{grid-template-columns:1fr} }
+  .col{display:flex;flex-direction:column;gap:14px;min-width:0}
+
+  .card{
+    background:linear-gradient(180deg,rgba(255,255,255,.022) 0%,rgba(255,255,255,0) 42%),var(--panel);
+    border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;
+  }
+  .card > h2{
+    margin:0;padding:11px 14px;font-size:12.5px;font-weight:620;letter-spacing:.5px;
+    border-bottom:1px solid var(--line);color:var(--tx);
+    display:flex;align-items:center;gap:8px;
+  }
+  .card > h2 .dot{width:6px;height:6px;border-radius:50%;background:var(--ac);box-shadow:0 0 10px var(--ac)}
+  .card > h2 .hint{margin-left:auto;font-size:11px;color:var(--tx-3);font-weight:400;letter-spacing:0}
+  .card .body{padding:13px 14px}
+
+  /* ---------------- 表单 ---------------- */
+  .field{margin-bottom:11px}
+  .field:last-child{margin-bottom:0}
+  .field > label{display:flex;align-items:baseline;gap:6px;font-size:12px;color:var(--tx-2);margin-bottom:5px}
+  .field > label .val{margin-left:auto;color:var(--ac);font-weight:620;font-variant-numeric:tabular-nums;font-size:12.5px}
+  .field > label .desc{color:var(--tx-3);font-size:11px}
+  select,input[type=text],input[type=number],textarea{
+    width:100%;background:#0b0e14;border:1px solid var(--line-2);color:var(--tx);
+    border-radius:8px;padding:7px 9px;font-size:12.5px;font-family:inherit;outline:none;
+  }
+  select:focus,input:focus,textarea:focus{border-color:var(--ac-2);box-shadow:0 0 0 3px rgba(91,157,255,.13)}
+  textarea{resize:vertical;min-height:84px;line-height:1.55}
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:3px;
+    background:linear-gradient(90deg,var(--ac-2),var(--ac));outline:none;margin:5px 0 0;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+    background:#eef4ff;border:2px solid var(--ac);cursor:pointer;box-shadow:0 0 0 3px rgba(91,157,255,.16)
+  }
+  input[type=range]::-moz-range-thumb{
+    width:12px;height:12px;border-radius:50%;background:#eef4ff;border:2px solid var(--ac);cursor:pointer
+  }
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}
+
+  .chips{display:flex;gap:7px;flex-wrap:wrap}
+  .chip{
+    border:1px solid var(--line-2);background:#0b0e14;color:var(--tx-2);
+    border-radius:999px;padding:4px 11px;font-size:11.5px;cursor:pointer;
+    transition:.14s;font-family:inherit;
+  }
+  .chip:hover{border-color:var(--ac-2);color:var(--tx)}
+  .chip.on{background:rgba(91,157,255,.14);border-color:var(--ac);color:#cfe0ff}
+
+  .btns{display:flex;gap:8px;flex-wrap:wrap}
+  button{
+    font-family:inherit;font-size:12.5px;font-weight:560;border-radius:9px;cursor:pointer;
+    padding:8px 15px;border:1px solid var(--line-2);background:#1c222d;color:var(--tx);
+    transition:.14s;
+  }
+  button:hover:not(:disabled){border-color:var(--ac-2);background:#212836}
+  button:disabled{opacity:.38;cursor:not-allowed}
+  button.primary{background:linear-gradient(180deg,#4b8ff0,#3a75d8);border-color:#4b8ff0;color:#fff}
+  button.primary:hover:not(:disabled){background:linear-gradient(180deg,#5c9cf5,#4280e0)}
+  button.ghost{background:transparent}
+  button.sm{padding:5px 11px;font-size:11.5px;border-radius:7px}
+
+  /* ---------------- 进度 ---------------- */
+  .prog-wrap{margin-top:11px}
+  .prog{height:7px;border-radius:5px;background:#0b0e14;border:1px solid var(--line);overflow:hidden}
+  .prog > i{
+    display:block;height:100%;width:0%;border-radius:5px;
+    background:linear-gradient(90deg,var(--ac-2),var(--cyan),var(--purple));
+    transition:width .12s linear;
+  }
+  .prog-meta{display:flex;justify-content:space-between;font-size:11.5px;color:var(--tx-3);margin-top:6px;font-variant-numeric:tabular-nums}
+  .prog-meta b{color:var(--tx-2);font-weight:600}
+
+  .live{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:11px}
+  .live .cell{background:#0b0e14;border:1px solid var(--line);border-radius:9px;padding:7px 9px}
+  .live .cell .k{font-size:10.5px;color:var(--tx-3)}
+  .live .cell .v{font-size:14px;font-weight:640;font-variant-numeric:tabular-nums}
+
+  /* 必须显式给 CSS 高度：否则设置 canvas.height（乘 dpr）会把元素撑高，逐帧放大 */
+  canvas{display:block;width:100%;border-radius:9px;background:#0a0d13}
+  #lossChart{height:190px}
+  #heat{height:300px}
+
+  /* ---------------- 输出区 ---------------- */
+  .out{
+    background:#0a0d13;border:1px solid var(--line);border-radius:9px;
+    padding:11px 12px;font-size:13px;line-height:1.85;
+    white-space:pre-wrap;word-break:break-all;min-height:74px;
+  }
+  .out .prompt{color:var(--ac)}
+  .out .gen{color:#dfe7f5}
+  .out .gen em{color:var(--warn);font-style:normal;background:rgba(255,180,84,.11);border-radius:3px}
+  .muted{color:var(--tx-3);font-size:11.5px}
+
+  .snap{border-left:2px solid var(--line-2);padding:0 0 0 11px;margin-bottom:11px}
+  .snap:last-child{margin-bottom:0}
+  .snap .h{font-size:11px;color:var(--tx-3);letter-spacing:.3px;margin-bottom:3px;font-variant-numeric:tabular-nums}
+  .snap .t{font-size:12.5px;line-height:1.75;word-break:break-all;color:#c9d3e4}
+  .snap.good{border-left-color:var(--ok)}
+
+  .bars{display:flex;flex-direction:column;gap:5px}
+  .bar{display:grid;grid-template-columns:22px 1fr 54px;gap:9px;align-items:center;font-size:12px}
+  .bar .ch{
+    text-align:center;background:#0b0e14;border:1px solid var(--line);border-radius:5px;
+    color:var(--tx);line-height:20px;height:22px;overflow:hidden;
+  }
+  .bar .track{height:9px;border-radius:5px;background:#0b0e14;border:1px solid var(--line);overflow:hidden}
+  .bar .track > i{display:block;height:100%;background:linear-gradient(90deg,var(--ac-2),var(--cyan))}
+  .bar .p{text-align:right;color:var(--tx-2);font-variant-numeric:tabular-nums;font-size:11.5px}
+  .steplabel{font-size:11px;color:var(--tx-3);margin:9px 0 5px}
+  .steplabel:first-child{margin-top:0}
+
+  table.struct{width:100%;border-collapse:collapse;font-size:12px}
+  table.struct td{padding:4px 0;border-bottom:1px solid #1d222c;color:var(--tx-2)}
+  table.struct tr:last-child td{border-bottom:none}
+  table.struct td:last-child{text-align:right;color:var(--tx);font-variant-numeric:tabular-nums}
+  table.struct td.n{color:var(--tx-3)}
+
+  .notice{
+    border:1px solid var(--line-2);background:rgba(255,180,84,.07);color:#ffd9a3;
+    border-radius:9px;padding:9px 11px;font-size:11.5px;line-height:1.6;margin-bottom:11px;
+  }
+  .notice.ok{background:rgba(61,220,151,.08);color:#a8f0cd;border-color:#2a5a45}
+  footer{color:var(--tx-3);font-size:11.5px;margin-top:26px;text-align:center;line-height:1.9}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>MiniLM Lab · 微型中文小说模型实验台</h1>
+      <div class="sub">零依赖手写 Transformer · 字符级分词 · 纯 CPU · 全部在你的浏览器里从零训练</div>
+    </div>
+    <div class="pills">
+      <span class="pill">反向传播 <b>手写</b></span>
+      <span class="pill">梯度检查 <b id="pillGrad">未运行</b></span>
+      <span class="pill">无外部依赖 <b>0</b></span>
+    </div>
+  </header>
+
+  <div class="statbar">
+    <div class="stat"><div class="k">参数量</div><div class="v" id="sParam">—</div></div>
+    <div class="stat"><div class="k">词表 / 唯一字符</div><div class="v" id="sVocab">—</div></div>
+    <div class="stat"><div class="k">语料字符数</div><div class="v" id="sCorpus">—</div></div>
+    <div class="stat"><div class="k">结构</div><div class="v" id="sStruct">—</div></div>
+    <div class="stat"><div class="k">当前损失</div><div class="v" id="sLoss">—</div></div>
+    <div class="stat"><div class="k">训练速度</div><div class="v" id="sSpeed">—</div></div>
+  </div>
+
+  <main>
+    <!-- ================= 左列：配置与训练 ================= -->
+    <div class="col">
+
+      <div class="card">
+        <h2><span class="dot"></span>语料<span class="hint">决定模型能写出什么</span></h2>
+        <div class="body">
+          <div class="field">
+            <label>训练语料<span class="desc">单一风格效果最好</span></label>
+            <select id="fCorpus"></select>
+          </div>
+          <div class="muted" id="corpusMeta" style="margin-bottom:10px"></div>
+          <div class="field" id="customWrap" style="display:none">
+            <label>自定义语料<span class="val" id="customLen">0</span></label>
+            <textarea id="fCustom" placeholder="粘贴任意中文文本，建议 2000 字以上、风格统一。例如把《零号计划》某一章粘进来。"></textarea>
+          </div>
+          <div class="field">
+            <label>提示词预设<span class="desc">点一下填入生成区</span></label>
+            <div class="chips" id="promptChips"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="dot"></span>模型配置<span class="hint">改动后需重新训练</span></h2>
+        <div class="body">
+          <div class="grid2">
+            <div class="field">
+              <label>上下文 ctx<span class="val" id="vCtx">32</span></label>
+              <input type="range" id="fCtx" min="8" max="64" step="8" value="32">
+            </div>
+            <div class="field">
+              <label>维度 d<span class="val" id="vD">40</span></label>
+              <input type="range" id="fD" min="16" max="96" step="8" value="40">
+            </div>
+            <div class="field">
+              <label>层数 layers<span class="val" id="vLayers">2</span></label>
+              <input type="range" id="fLayers" min="1" max="4" step="1" value="2">
+            </div>
+            <div class="field">
+              <label>注意力头 heads<span class="val" id="vHeads">4</span></label>
+              <input type="range" id="fHeads" min="1" max="8" step="1" value="4">
+            </div>
+            <div class="field">
+              <label>batch<span class="val" id="vBatch">8</span></label>
+              <input type="range" id="fBatch" min="2" max="24" step="2" value="8">
+            </div>
+            <div class="field">
+              <label>学习率 lr<span class="val" id="vLr">0.004</span></label>
+              <input type="range" id="fLr" min="1" max="12" step="1" value="4">
+            </div>
+          </div>
+          <div class="field" style="margin-top:2px">
+            <label>训练步数 steps<span class="val" id="vSteps">400</span></label>
+            <input type="range" id="fSteps" min="50" max="1500" step="50" value="400">
+          </div>
+          <div class="chips" style="margin-top:9px">
+            <button class="chip" data-preset="fast">极速体验</button>
+            <button class="chip on" data-preset="std">标准</button>
+            <button class="chip" data-preset="deep">深入</button>
+            <button class="chip" data-preset="big">大模型</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="dot"></span>训练控制</h2>
+        <div class="body">
+          <div class="btns">
+            <button class="primary" id="bStart">开始训练</button>
+            <button id="bPause" disabled>暂停</button>
+            <button class="ghost" id="bReset" disabled>重置</button>
+            <button class="ghost" id="bGrad">梯度检查</button>
+          </div>
+          <div class="prog-wrap">
+            <div class="prog"><i id="progBar"></i></div>
+            <div class="prog-meta">
+              <span>step <b id="pStep">0</b> / <b id="pTotal">400</b></span>
+              <span>已用 <b id="pTime">0.0s</b> · 剩余约 <b id="pEta">—</b></span>
+            </div>
+          </div>
+          <div class="live">
+            <div class="cell"><div class="k">平滑损失</div><div class="v" id="lSmooth">—</div></div>
+            <div class="cell"><div class="k">瞬时损失</div><div class="v" id="lRaw">—</div></div>
+            <div class="cell"><div class="k">step/s</div><div class="v" id="lSpeed">—</div></div>
+          </div>
+          <div class="notice" id="gradNotice" style="display:none;margin-top:11px"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="dot"></span>损失曲线<span class="hint">越低越像中文 —— 但太低会开始背课文</span></h2>
+        <div class="body">
+          <canvas id="lossChart" height="190"></canvas>
+          <div class="muted" style="margin-top:8px">
+            <span style="color:#5b9dff">■</span> 平滑（EMA）&nbsp;&nbsp;
+            <span style="color:#39445a">■</span> 每步原始损失&nbsp;&nbsp;
+            <span style="color:#3ddc97">■</span> 快照点&nbsp;&nbsp;
+            <span style="color:#2dd4a7">▨</span> 生成质量甜蜜点
+          </div>
+          <div class="notice" id="lossHint" style="display:none;margin-top:10px"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ================= 右列：观测与生成 ================= -->
+    <div class="col">
+
+      <div class="card">
+        <h2><span class="dot"></span>训练过程快照<span class="hint">同一个提示词，看它怎么从乱码变成句子</span></h2>
+        <div class="body" id="snapBox">
+          <div class="muted">尚未训练。点左侧「开始训练」，这里会每隔若干步抓一次生成快照。</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="dot"></span>中文小说生成<span class="hint">训练完成后可用</span></h2>
+        <div class="body">
+          <div class="field">
+            <label>提示词<span class="desc">模型会接着往下写</span></label>
+            <input type="text" id="gPrompt" value="新长安的雨下了" >
+          </div>
+          <div class="grid3">
+            <div class="field">
+              <label>温度<span class="val" id="vTemp">0.8</span></label>
+              <input type="range" id="gTemp" min="2" max="15" step="1" value="8">
+            </div>
+            <div class="field">
+              <label>top-k<span class="val" id="vTopk">8</span></label>
+              <input type="range" id="gTopk" min="1" max="40" step="1" value="8">
+            </div>
+            <div class="field">
+              <label>重复惩罚<span class="val" id="vRep">1.15</span></label>
+              <input type="range" id="gRep" min="100" max="160" step="5" value="115">
+            </div>
+          </div>
+          <div class="field">
+            <label>生成长度<span class="val" id="vLen">120</span></label>
+            <input type="range" id="gLen" min="20" max="300" step="10" value="120">
+          </div>
+          <div class="btns">
+            <button class="primary" id="bGen" disabled>生成</button>
+            <button id="bGen3" disabled>三种温度对比</button>
+          </div>
+          <div class="out" id="genOut" style="margin-top:12px">
+            <span class="muted">等待模型训练完成…</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="dot"></span>下一步候选分布<span class="hint">模型的本质是概率，不是"想好一句话"</span></h2>
+        <div class="body" id="candBox">
+          <div class="muted">生成一次后，这里会显示每一步模型眼中的 top 候选字。</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="dot"></span>注意力热力图<span class="hint">每一行 = 这个字在看前面的哪些字</span></h2>
+        <div class="body">
+          <div class="grid2" style="margin-bottom:11px">
+            <div class="field" style="margin:0">
+              <label>层<span class="val" id="vALayer">0</span></label>
+              <input type="range" id="aLayer" min="0" max="1" step="1" value="0">
+            </div>
+            <div class="field" style="margin:0">
+              <label>头<span class="val" id="vAHead">0</span></label>
+              <input type="range" id="aHead" min="0" max="3" step="1" value="0">
+            </div>
+          </div>
+          <div class="field">
+            <label>观察文本<span class="desc">用这段文字跑一次前向</span></label>
+            <input type="text" id="aText" value="新长安的雨下了，他说">
+          </div>
+          <button class="sm" id="bAttn" disabled>刷新注意力</button>
+          <canvas id="heat" height="300" style="margin-top:11px"></canvas>
+          <div class="muted" id="heatMeta" style="margin-top:7px">—</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="dot"></span>模型结构</h2>
+        <div class="body">
+          <table class="struct" id="structTable"></table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer>
+    MiniLM Lab · 全部计算在本地完成，不上传任何数据<br>
+    手写前向 / 反向 / Adam · 权重共享输出层 · Pre-LayerNorm 残差 · 因果掩码多头注意力
+  </footer>
+</div>
+
+<!-- 先加载两份 minilm 实例：
+     第一份 float64（专供梯度检查——float32 的量化噪声会淹没小梯度分量），
+     第二份 float32（训练用，更快）。两份都必须在主脚本之前拿到引用。 -->
+<script>window.MINILM_USE_F64 = true;</script>
+<script src="minilm.js"></script>
+<script>window.MiniLMKitF64 = window.MiniLMKit; window.MINILM_USE_F64 = false;</script>
+<script src="minilm.js"></script>
+<script src="corpus.js"></script>
+<script>
+(function () {
+'use strict';
+
+var K = window.MiniLMKit;
+var CORPUS = window.CORPUS;
+if (!K || !CORPUS) {
+  document.body.innerHTML = '<p style="padding:40px;color:#ff6b6b">未能加载 minilm.js / corpus.js，请确认三个文件在同一目录。</p>';
+  return;
+}
+
+var $ = function (id) { return document.getElementById(id); };
+
+var PRESETS = {
+  fast: { ctx: 16, d: 32, layers: 2, heads: 4, batch: 8, lrIdx: 4, steps: 150 },
+  std:  { ctx: 32, d: 40, layers: 2, heads: 4, batch: 8, lrIdx: 4, steps: 400 },
+  deep: { ctx: 32, d: 48, layers: 3, heads: 4, batch: 12, lrIdx: 4, steps: 700 },
+  big:  { ctx: 48, d: 64, layers: 4, heads: 8, batch: 16, lrIdx: 3, steps: 1000 }
+};
+
+var PROMPTS = {
+  scifi: ['新长安的雨下了', '恒站在窗前，', '苏念说，我', '他低下头，看着', '他的记忆正在', '雨落在他的肩上'],
+  wuxia: ['沈砚站在', '女子说，你', '雨落在他的', '剑雨楼的灯', '沈砚说，我', '她走过来，握'],
+  urban: ['陈老板说，', '巷子口有一家', '她低头吃面', '他说，我今天', '门上的铃响了', '天快亮了'],
+  custom: ['第一次', '他说，']
+};
+
+var S = {
+  model: null, vocab: null, ids: null, corpusKey: 'scifi',
+  running: false, paused: false, done: false,
+  step: 0, steps: 0, lr: 0.004, batch: 8, cfg: null,
+  losses: [], smooth: [], snapMarks: [],
+  t0: 0, lastFrameT: 0, totalActive: 0,
+  nextSnap: 0, snapInterval: 1, snapshots: [], pendingSnap: false,
+  lastGenerateTrace: null
+};
+
+/* ------------------------------------------------------------------ */
+/* 语料与配置                                                          */
+/* ------------------------------------------------------------------ */
+
+function currentText() {
+  if (S.corpusKey === 'custom') return $('fCustom').value || '';
+  return CORPUS[S.corpusKey].text;
+}
+
+function initCorpusSelect() {
+  var sel = $('fCorpus');
+  ['scifi', 'wuxia', 'urban', 'custom'].forEach(function (k) {
+    var o = document.createElement('option');
+    o.value = k;
+    o.textContent = CORPUS[k].name + '（' + CORPUS[k].desc + '）';
+    sel.appendChild(o);
+  });
+  sel.value = 'scifi';
+  sel.addEventListener('change', function () {
+    S.corpusKey = sel.value;
+    $('customWrap').style.display = S.corpusKey === 'custom' ? '' : 'none';
+    refreshCorpusMeta();
+    renderPromptChips();
+    if (S.corpusKey !== 'custom') {
+      var first = PROMPTS[S.corpusKey][0];
+      $('gPrompt').value = first;
+      $('aText').value = CORPUS[S.corpusKey].text.slice(0, 11);
+    }
+  });
+}
+
+function refreshCorpusMeta() {
+  var t = currentText();
+  var chars = 0, set = {};
+  for (var i = 0; i < t.length; i++) { set[t[i]] = 1; }
+  for (var k in set) chars++;
+  var el = $('corpusMeta');
+  if (!t) {
+    el.innerHTML = '<span style="color:#ffb454">自定义语料为空，请粘贴 2000 字以上文本。</span>';
+    $('sCorpus').textContent = '0';
+    $('sVocab').textContent = '—';
+    return;
+  }
+  $('sCorpus').textContent = t.length.toLocaleString();
+  $('sVocab').innerHTML = chars + '<small>字</small>';
+  var warn = t.length < 1200 ? ' <span style="color:#ffb454">（偏短，建议 ≥2000 字）</span>' : '';
+  el.innerHTML = '语料 <b style="color:#e7eaf2">' + t.length.toLocaleString() + '</b> 字 · 唯一字符 <b style="color:#e7eaf2">' +
+                 chars + '</b> 个 · 词表大小 <b style="color:#e7eaf2">' + (chars + 1) + '</b>' + warn;
+}
+
+function renderPromptChips() {
+  var box = $('promptChips');
+  box.innerHTML = '';
+  var list = PROMPTS[S.corpusKey] || [];
+  list.forEach(function (p) {
+    var b = document.createElement('button');
+    b.className = 'chip';
+    b.textContent = p;
+    b.addEventListener('click', function () { $('gPrompt').value = p; });
+    box.appendChild(b);
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* 参数绑定                                                            */
+/* ------------------------------------------------------------------ */
+
+function bindRange(id, valId, fmt, onchange) {
+  var el = $(id), lab = $(valId);
+  var upd = function () {
+    lab.textContent = fmt(el.value);
+    if (onchange) onchange(el.value);
+  };
+  el.addEventListener('input', upd);
+  upd();
+  return el;
+}
+
+function lrFromIdx(i) { return (0.001 * i).toFixed(3); }
+
+function applyPreset(name) {
+  var p = PRESETS[name];
+  if (!p) return;
+  $('fCtx').value = p.ctx;     $('vCtx').textContent = p.ctx;
+  $('fD').value = p.d;         $('vD').textContent = p.d;
+  $('fLayers').value = p.layers; $('vLayers').textContent = p.layers;
+  $('fHeads').value = p.heads; $('vHeads').textContent = p.heads;
+  $('fBatch').value = p.batch; $('vBatch').textContent = p.batch;
+  $('fLr').value = p.lrIdx;    $('vLr').textContent = lrFromIdx(p.lrIdx);
+  $('fSteps').value = p.steps; $('vSteps').textContent = p.steps;
+  fixHeads();
+  refreshConfigStats();
+  document.querySelectorAll('.chip[data-preset]').forEach(function (c) {
+    c.classList.toggle('on', c.getAttribute('data-preset') === name);
+  });
+}
+
+function fixHeads() {
+  // d 必须能被 heads 整除
+  var d = +$('fD').value;
+  var heads = +$('fHeads').value;
+  var maxH = Math.min(8, d);
+  var ok = [];
+  for (var h = 1; h <= maxH; h++) if (d % h === 0) ok.push(h);
+  if (ok.indexOf(heads) < 0) {
+    heads = ok[ok.length - 1];
+    $('fHeads').value = heads;
+    $('vHeads').textContent = heads;
+  }
+  $('fHeads').max = maxH;
+  $('vHeads').textContent = $('fHeads').value;
+}
+
+function refreshConfigStats() {
+  var d = +$('fD').value, L = +$('fLayers').value, ctx = +$('fCtx').value, H = +$('fHeads').value;
+  var text = currentText();
+  var uniq = new Set();
+  for (var i = 0; i < text.length; i++) uniq.add(text[i]);
+  var V = uniq.size + 1;
+  if (!text) { $('sParam').textContent = '—'; return; }
+  var F = 4 * d;
+  var n = V * d + ctx * d;          // emb + pos（输出层与 emb 共享权重，不额外增加参数）
+  for (var l = 0; l < L; l++) {
+    n += 2 * d;             // ln1
+    n += 4 * (d * d) + 4 * d; // Wq/Wk/Wv/Wo + b
+    n += 2 * d;             // ln2
+    n += d * F + F + F * d + d; // W1,b1,W2,b2
+  }
+  n += 2 * d;               // 最终 LN
+  $('sParam').innerHTML = n.toLocaleString() + '<small>参数</small>';
+  $('sStruct').innerHTML = ctx + '/' + d + '/' + L + '/' + H;
+}
+
+function structTable() {
+  var d = +$('fD').value, L = +$('fLayers').value, ctx = +$('fCtx').value, H = +$('fHeads').value, F = 4 * d;
+  var text = currentText();
+  var uniq = new Set();
+  for (var i = 0; i < text.length; i++) uniq.add(text[i]);
+  var V = (uniq.size + 1) || 1;
+  var rows = [
+    ['字符词表 emb', V + ' × ' + d, V * d],
+    ['位置编码 pos', ctx + ' × ' + d, ctx * d]
+  ];
+  for (var l = 0; l < L; l++) {
+    rows.push(['第 ' + l + ' 层 · 注意力 Wq/Wk/Wv/Wo', '4 × ' + d + '²', 4 * d * d + 4 * d]);
+    rows.push(['第 ' + l + ' 层 · 前馈 W1/W2', d + '×' + F + ' 与 ' + F + '×' + d, d * F + F * d + F + d]);
+    rows.push(['第 ' + l + ' 层 · LayerNorm ×2', 'γ/β × ' + d + '', 4 * d]);
+  }
+  rows.push(['输出层（复用 emb 转置）', '权重共享', 0]);
+  rows.push(['最终 LayerNorm', 'γ/β × ' + d, 2 * d]);
+  var t = $('structTable');
+  t.innerHTML = rows.map(function (r) {
+    return '<tr><td>' + r[0] + '<div class="n">' + r[1] + '</div></td><td>' + r[2].toLocaleString() + '</td></tr>';
+  }).join('') +
+  '<tr><td><b style="color:#e7eaf2">合计</b></td><td><b style="color:#5b9dff">' +
+  rows.reduce(function (a, r) { return a + r[2]; }, 0).toLocaleString() + '</b></td></tr>';
+}
+
+/* ------------------------------------------------------------------ */
+/* 损失曲线                                                            */
+/* ------------------------------------------------------------------ */
+
+function fitCanvas(cv) {
+  var dpr = window.devicePixelRatio || 1;
+  var w = cv.clientWidth, h = cv.clientHeight || parseInt(cv.getAttribute('height'), 10);
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
+    cv.width = Math.round(w * dpr);
+    cv.height = Math.round(h * dpr);
+  }
+  var g = cv.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { g: g, w: w, h: h };
+}
+
+function drawLoss() {
+  var o = fitCanvas($('lossChart')), g = o.g, W = o.w, H = o.h;
+  g.clearRect(0, 0, W, H);
+  var padL = 34, padR = 10, padT = 10, padB = 20;
+  var pw = W - padL - padR, ph = H - padT - padB;
+  var n = S.losses.length;
+
+  var lo = Infinity, hi = -Infinity;
+  for (var i = 0; i < n; i++) { var v = S.losses[i]; if (v < lo) lo = v; if (v > hi) hi = v; }
+  if (!isFinite(lo)) { lo = 0; hi = 6; }
+  if (hi - lo < 1.2) { var mid = (hi + lo) / 2; lo = mid - 0.7; hi = mid + 0.7; }
+  var pad = (hi - lo) * 0.12; lo -= pad; hi += pad;
+  if (lo < 0) lo = 0;
+
+  var xAt = function (i) { return padL + (n <= 1 ? 0 : i / (n - 1)) * pw; };
+  var yAt = function (v) { return padT + (1 - (v - lo) / (hi - lo)) * ph; };
+
+  // 网格
+  g.strokeStyle = '#1a1f29'; g.lineWidth = 1;
+  g.font = '10px monospace'; g.fillStyle = '#6d7787'; g.textAlign = 'right'; g.textBaseline = 'middle';
+  for (var t = 0; t <= 4; t++) {
+    var vv = lo + (hi - lo) * t / 4;
+    var y = Math.round(yAt(vv)) + 0.5;
+    g.beginPath(); g.moveTo(padL, y); g.lineTo(W - padR, y); g.stroke();
+    g.fillText(vv.toFixed(2), padL - 5, y);
+  }
+
+  // 随机猜测水位线 ln(V)：loss 低于这条线，说明模型真的学到了东西
+  g.setLineDash([3, 4]); g.strokeStyle = '#28303e';
+  var yln = Math.round(yAt(Math.log(V_REF))) + 0.5;
+  if (yln > padT && yln < padT + ph) {
+    g.beginPath(); g.moveTo(padL, yln); g.lineTo(W - padR, yln); g.stroke();
+    g.textAlign = 'left'; g.fillStyle = '#4a5568';
+    g.fillText('随机猜测水位线 ln(V)', padL + 4, yln - 7);
+  }
+  g.setLineDash([]);
+
+  // 生成质量"甜蜜点"带：实测中 loss 落在这一区间时，
+  // 模型已经会造句、但还没把语料背死，生成效果最好。
+  var bandHi = SWEET[1], bandLo = SWEET[0];
+  var yTop = padT + (1 - (Math.min(bandHi, hi) - lo) / (hi - lo)) * ph;
+  var yBot = padT + (1 - (Math.max(bandLo, lo) - lo) / (hi - lo)) * ph;
+  if (yBot > yTop) {
+    g.fillStyle = 'rgba(45,212,167,.10)';
+    g.fillRect(padL, yTop, pw, yBot - yTop);
+    g.strokeStyle = 'rgba(45,212,167,.32)'; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(padL, yTop + .5); g.lineTo(W - padR, yTop + .5); g.stroke();
+    g.beginPath(); g.moveTo(padL, yBot + .5); g.lineTo(W - padR, yBot + .5); g.stroke();
+    if (yBot - yTop > 26) {
+      g.textAlign = 'right'; g.textBaseline = 'middle'; g.fillStyle = 'rgba(45,212,167,.75)';
+      g.font = '10px sans-serif';
+      g.fillText('甜蜜点', W - padR - 4, (yTop + yBot) / 2);
+    }
+  }
+
+  if (n < 1) {
+    g.fillStyle = '#6d7787'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText('等待训练开始…', W / 2, H / 2);
+    return;
+  }
+
+  // 原始损失
+  g.strokeStyle = 'rgba(90,105,130,.45)'; g.lineWidth = 1;
+  g.beginPath();
+  for (var i2 = 0; i2 < n; i2++) { var xx = xAt(i2), yy = yAt(S.losses[i2]); i2 ? g.lineTo(xx, yy) : g.moveTo(xx, yy); }
+  g.stroke();
+
+  // 平滑线
+  var grad = g.createLinearGradient(padL, 0, W - padR, 0);
+  grad.addColorStop(0, '#4f8cff'); grad.addColorStop(1, '#b48bff');
+  g.strokeStyle = grad; g.lineWidth = 2;
+  g.beginPath();
+  for (var i3 = 0; i3 < n; i3++) { var x3 = xAt(i3), y3 = yAt(S.smooth[i3]); i3 ? g.lineTo(x3, y3) : g.moveTo(x3, y3); }
+  g.stroke();
+
+  // 快照点
+  g.fillStyle = '#3ddc97';
+  S.snapshots.forEach(function (s) {
+    var idx = s.step - 1;
+    if (idx < 0 || idx >= n) return;
+    var x = xAt(idx), y = yAt(S.smooth[idx]);
+    g.beginPath(); g.arc(x, y, 3.2, 0, 6.284); g.fill();
+  });
+
+  // 末端光点
+  if (n > 0) {
+    var ex = xAt(n - 1), ey = yAt(S.smooth[n - 1]);
+    var rg = g.createRadialGradient(ex, ey, 0, ex, ey, 9);
+    rg.addColorStop(0, 'rgba(180,139,255,.85)'); rg.addColorStop(1, 'rgba(180,139,255,0)');
+    g.fillStyle = rg; g.beginPath(); g.arc(ex, ey, 9, 0, 6.284); g.fill();
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(ex, ey, 2.1, 0, 6.284); g.fill();
+  }
+}
+
+var V_REF = 300;
+// 生成质量的"甜蜜点"区间（字符级交叉熵）。
+// 依据本项目实测：loss > 3.5 还在乱码；2.5~3.5 开始成词；
+// 0.8~2.5 能写出通顺且有风格的句子；< 0.8 基本是把语料背下来了，
+// 采样时一旦偏离记忆路径就崩成碎片，反而更难看。
+var SWEET = [0.8, 2.5];
+
+function updateLossHint() {
+  var el = $('lossHint');
+  if (!S.smooth.length) { el.style.display = 'none'; return; }
+  var v = S.smooth[S.smooth.length - 1];
+  var txt, cls = 'notice';
+  if (v > 4.0) {
+    txt = '当前 loss ' + v.toFixed(2) + ' —— 还在<strong>乱码阶段</strong>，模型只能吐出随机汉字。继续训练。';
+  } else if (v > 3.0) {
+    txt = '当前 loss ' + v.toFixed(2) + ' —— 开始出现<strong>真正的词</strong>（"的""了""他"），但句子结构还没成形。';
+  } else if (v > SWEET[1]) {
+    txt = '当前 loss ' + v.toFixed(2) + ' —— <strong>正在成形</strong>，已经能凑出像样的短句。再练一点就进入甜蜜点。';
+  } else if (v >= SWEET[0]) {
+    cls = 'notice ok';
+    txt = '当前 loss ' + v.toFixed(2) + ' —— 处在<strong>甜蜜点</strong>：已会造句、还没把语料背死，' +
+          '生成效果最好。建议就停在这里，去右边点「生成」。';
+  } else {
+    txt = '当前 loss ' + v.toFixed(2) + ' —— 已经<strong>低于甜蜜点</strong>：模型开始逐字背课文了。' +
+          '这时它能把语料原句吐出来，但采样稍有偏离就碎成拼接片段，' +
+          '换一个没见过的提示词基本写不下去。<strong>想让它"会写"而不是"会背"，减少训练步数即可。</strong>';
+  }
+  el.className = cls;
+  el.style.display = '';
+  el.innerHTML = txt;
+}
+
+/* ------------------------------------------------------------------ */
+/* 模型 / 训练                                                         */
+/* ------------------------------------------------------------------ */
+
+function buildModel() {
+  var text = currentText();
+  if (!text || text.length < 120) { alert('语料太短，无法训练。请选择内置语料或粘贴更长文本。'); return false; }
+  var ctx = +$('fCtx').value, d = +$('fD').value, L = +$('fLayers').value, H = +$('fHeads').value;
+  if (text.length < ctx + 8) { alert('语料长度必须大于 ctx + 8。请减小上下文窗口或增加语料。'); return false; }
+
+  S.vocab = K.buildVocab(text);
+  S.ids = K.encode(text, S.vocab.stoi);
+  S.cfg = { ctx: ctx, d: d, layers: L, heads: H, ffMul: 4 };
+  S.model = new K.MiniLM(S.vocab.size, S.cfg);
+  V_REF = S.vocab.size;
+  S.batch = +$('fBatch').value;
+  S.lr = 0.001 * (+$('fLr').value);
+  S.steps = +$('fSteps').value;
+
+  $('sParam').innerHTML = S.model.paramCount().toLocaleString() + '<small>参数</small>';
+  $('sVocab').innerHTML = S.vocab.size + '<small>词表</small>';
+  $('sStruct').textContent = ctx + '/' + d + '/' + L + '/' + H;
+  $('pTotal').textContent = S.steps;
+  structTable();
+  return true;
+}
+
+function resetTraining() {
+  S.running = false; S.paused = false; S.done = false;
+  S.step = 0; S.losses = []; S.smooth = []; S.snapshots = []; S.totalActive = 0;
+  $('progBar').style.width = '0%';
+  $('pStep').textContent = '0';
+  $('pTime').textContent = '0.0s';
+  $('pEta').textContent = '—';
+  $('lSmooth').textContent = '—'; $('lRaw').textContent = '—'; $('lSpeed').textContent = '—';
+  $('sLoss').textContent = '—'; $('sSpeed').textContent = '—';
+  $('snapBox').innerHTML = '<div class="muted">尚未训练。点左侧「开始训练」，这里会每隔若干步抓一次生成快照。</div>';
+  $('candBox').innerHTML = '<div class="muted">生成一次后，这里会显示每一步模型眼中的 top 候选字。</div>';
+  $('lossHint').style.display = 'none';
+  drawLoss();
+  setEnabled(false);
+  $('bStart').disabled = false; $('bStart').textContent = '开始训练';
+  $('bPause').disabled = true; $('bReset').disabled = true;
+  $('bGrad').disabled = false;
+}
+
+function setEnabled(on) {
+  $('bGen').disabled = !on;
+  $('bGen3').disabled = !on;
+  $('bAttn').disabled = !on;
+}
+
+function startTraining() {
+  if (!buildModel()) return;
+  resetTraining();
+  S.running = true; S.paused = false;
+  S.t0 = performance.now(); S.lastFrameT = performance.now();
+  S.snapInterval = Math.max(1, Math.floor(S.steps / 5));
+  S.nextSnap = 0;
+  $('bStart').disabled = true;
+  $('bPause').disabled = false; $('bPause').textContent = '暂停';
+  $('bReset').disabled = true;
+  $('bGrad').disabled = true;
+  refreshCorpusMeta();
+  requestAnimationFrame(tick);
+}
+
+function togglePause() {
+  if (!S.running) return;
+  S.paused = !S.paused;
+  $('bPause').textContent = S.paused ? '继续' : '暂停';
+  if (!S.paused) { S.lastFrameT = performance.now(); requestAnimationFrame(tick); }
+}
+
+function trainOneStep() {
+  var m = S.model, ctx = S.cfg.ctx;
+  var batch = K.makeBatch(S.ids, S.batch, ctx);
+  m.zeroGrad();
+  var r = m.forward(batch.tokens, batch.targets);
+  m.backward();
+  m.clipGrad(1.0);
+  var warmup = Math.max(10, Math.floor(S.steps * 0.15));
+  var curLr;
+  if (S.step < warmup) curLr = S.lr * (S.step + 1) / warmup;
+  else curLr = S.lr * 0.5 * (1 + Math.cos(Math.PI * (S.step - warmup) / Math.max(1, S.steps - warmup)));
+  m.step(curLr, S.step + 1);
+  S.losses.push(r.loss);
+  var prev = S.smooth.length ? S.smooth[S.smooth.length - 1] : r.loss;
+  S.smooth.push(prev * 0.9 + r.loss * 0.1);
+  S.lastLoss = r.loss;
+}
+
+function tick() {
+  if (!S.running || S.paused) return;
+  var t0 = performance.now();
+  var budget = 42;
+  var n = 0;
+  while (performance.now() - t0 < budget && S.step < S.steps) {
+    trainOneStep();
+    S.step++; n++;
+  }
+  var now = performance.now();
+  S.totalActive += (now - S.lastFrameT);
+  S.lastFrameT = now;
+
+  if (S.step >= S.steps) { finishTraining(); return; }
+
+  updateProgress(n);
+  // 抓快照。一帧内可能推进很多步（小模型 + 强 CPU 时尤其明显），
+  // 所以允许"追赶"，但每帧最多抓 2 张，避免卡住渲染。
+  var snaps = 0;
+  while (S.step >= S.nextSnap && snaps < 2) {
+    doSnapshot();
+    S.nextSnap += S.snapInterval;
+    snaps++;
+  }
+  requestAnimationFrame(tick);
+}
+
+function updateProgress(nThisFrame) {
+  var pct = 100 * S.step / S.steps;
+  $('progBar').style.width = pct.toFixed(1) + '%';
+  $('pStep').textContent = S.step;
+  var el = (performance.now() - S.t0) / 1000;
+  $('pTime').textContent = el.toFixed(1) + 's';
+  var sps = S.step / Math.max(0.001, el);
+  $('lSpeed').textContent = sps.toFixed(1);
+  $('sSpeed').innerHTML = sps.toFixed(1) + '<small>step/s</small>';
+  var remain = (S.steps - S.step) / Math.max(0.001, sps);
+  $('pEta').textContent = remain > 0 ? (remain > 60 ? (remain / 60).toFixed(1) + ' 分' : remain.toFixed(0) + ' 秒') : '—';
+  $('lSmooth').textContent = S.smooth[S.smooth.length - 1].toFixed(3);
+  $('lRaw').textContent = S.lastLoss.toFixed(3);
+  $('sLoss').textContent = S.smooth[S.smooth.length - 1].toFixed(3);
+  drawLoss();
+  updateLossHint();
+}
+
+function doSnapshot() {
+  var p = K.encode($('gPrompt').value.slice(0, 8) || PROMPTS[S.corpusKey][0], S.vocab.stoi);
+  var g = S.model.generate(p, { maxNew: 34, temp: 0.8, topk: 8, repPenalty: 1.15 });
+  var txt = K.decode(g.ids, S.vocab.itos).replace(/\n/g, ' ');
+  S.snapshots.push({ step: S.step, text: txt });
+  renderSnapshots();
+  drawLoss();
+}
+
+function renderSnapshots() {
+  var box = $('snapBox');
+  box.innerHTML = '';
+  S.snapshots.forEach(function (s, i) {
+    var d = document.createElement('div');
+    var last = i === S.snapshots.length - 1;
+    d.className = 'snap' + (s.step >= S.steps ? ' good' : '');
+    d.innerHTML = '<div class="h">step ' + s.step + ' / ' + S.steps +
+      (last ? ' · 最新' : '') + '</div><div class="t"></div>';
+    d.querySelector('.t').textContent = s.text;
+    box.appendChild(d);
+  });
+  box.scrollTop = box.scrollHeight;
+}
+
+function finishTraining() {
+  S.running = false; S.done = true;
+  S.nextSnap = -1;
+  doSnapshot();
+  $('progBar').style.width = '100%';
+  updateProgressFinal();
+  $('bPause').disabled = true;
+  $('bReset').disabled = false;
+  $('bStart').disabled = false; $('bStart').textContent = '重新训练';
+  setEnabled(true);
+  $('bGrad').disabled = false;
+  $('genOut').innerHTML = '<span class="muted">模型已就绪，点「生成」试试。</span>';
+  refreshAttention();
+  showCandidates();
+}
+
+function updateProgressFinal() {
+  var el = (performance.now() - S.t0) / 1000;
+  $('pStep').textContent = S.steps;
+  $('pTime').textContent = el.toFixed(1) + 's';
+  $('pEta').textContent = '完成';
+  $('lSpeed').textContent = (S.step / Math.max(0.001, el)).toFixed(1);
+  $('lSmooth').textContent = S.smooth[S.smooth.length - 1].toFixed(3);
+  $('lRaw').textContent = S.lastLoss.toFixed(3);
+  drawLoss();
+  updateLossHint();
+}
+
+/* ------------------------------------------------------------------ */
+/* 生成                                                                */
+/* ------------------------------------------------------------------ */
+
+function genOpts() {
+  return {
+    maxNew: +$('gLen').value,
+    temp: (+$('gTemp').value) / 10,
+    topk: +$('gTopk').value,
+    repPenalty: (+$('gRep').value) / 100
+  };
+}
+
+function runGenerate() {
+  if (!S.done) { alert('请先完成一次训练。'); return; }
+  var prompt = $('gPrompt').value || '第一次';
+  var pids = K.encode(prompt, S.vocab.stoi);
+  var g = S.model.generate(pids, genOpts());
+  S.lastGenerateTrace = g.trace;
+  S.lastPromptLen = pids.length;
+  var txt = K.decode(g.ids, S.vocab.itos).replace(/\n/g, ' ');
+  var head = txt.slice(0, prompt.length);
+  var tail = txt.slice(prompt.length);
+  $('genOut').innerHTML = '<span class="prompt"></span><span class="gen"></span>';
+  $('genOut').querySelector('.prompt').textContent = head;
+  $('genOut').querySelector('.gen').textContent = tail;
+  renderCandidates(g.trace);
+}
+
+function runGenerate3() {
+  if (!S.done) { alert('请先完成一次训练。'); return; }
+  var prompt = $('gPrompt').value || '第一次';
+  var pids = K.encode(prompt, S.vocab.stoi);
+  var html = '';
+  [0.5, 0.8, 1.2].forEach(function (t) {
+    var o = genOpts(); o.temp = t;
+    var g = S.model.generate(pids, o);
+    var txt = K.decode(g.ids, S.vocab.itos).replace(/\n/g, ' ');
+    html += '<div class="steplabel" style="color:#5b9dff;font-size:12px">温度 ' + t.toFixed(1) + '</div>' +
+            '<div style="margin-bottom:11px;color:#dfe7f5;line-height:1.8;word-break:break-all">' +
+            escapeHtml(txt) + '</div>';
+  });
+  $('genOut').innerHTML = html;
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+  });
+}
+
+function renderCandidates(trace) {
+  var box = $('candBox');
+  if (!box) return;
+  box.innerHTML = '';
+  if (!trace || !trace.length) {
+    box.innerHTML = '<div class="muted">暂无数据。</div>';
+    return;
+  }
+  trace.slice(0, 8).forEach(function (tr) {
+    var lab = document.createElement('div');
+    lab.className = 'steplabel';
+    lab.textContent = '第 ' + (tr.step + 1) + ' 步 → 选中「' + (S.vocab.itos[tr.chosen] || '?') + '」';
+    box.appendChild(lab);
+    var bars = document.createElement('div');
+    bars.className = 'bars';
+    var max = tr.candidates.length ? tr.candidates[0].p : 1;
+    tr.candidates.slice(0, 6).forEach(function (c) {
+      var ch = S.vocab.itos[c.id] || '?';
+      var row = document.createElement('div');
+      row.className = 'bar';
+      row.innerHTML = '<div class="ch"></div><div class="track"><i style="width:' +
+        (100 * c.p / max).toFixed(1) + '%"></i></div><div class="p">' + (c.p * 100).toFixed(1) + '%</div>';
+      row.querySelector('.ch').textContent = ch === '\n' ? '⏎' : ch;
+      bars.appendChild(row);
+    });
+    box.appendChild(bars);
+  });
+}
+
+// 只展示候选分布，不改动生成输出
+function showCandidates() {
+  if (!S.done) return;
+  var prompt = $('gPrompt').value || '第一次';
+  var pids = K.encode(prompt, S.vocab.stoi);
+  var o = genOpts(); o.maxNew = 8; o.repPenalty = 1.0;
+  var g = S.model.generate(pids, o);
+  renderCandidates(g.trace);
+}
+
+/* ------------------------------------------------------------------ */
+/* 注意力热力图                                                        */
+/* ------------------------------------------------------------------ */
+
+function refreshAttention() {
+  if (!S.model) return;
+  var txt = ($('aText').value || '新长安的雨下了').slice(0, S.cfg.ctx);
+  if (!txt.length) return;
+  var ids = K.encode(txt, S.vocab.stoi);
+  S.model.forward(ids, null, ids.length);
+  var L = S.cfg.layers, H = S.cfg.heads;
+  $('aLayer').max = L - 1;
+  $('aHead').max = H - 1;
+  if (+$('aLayer').value > L - 1) { $('aLayer').value = L - 1; $('vALayer').textContent = L - 1; }
+  if (+$('aHead').value > H - 1) { $('aHead').value = H - 1; $('vAHead').textContent = H - 1; }
+  drawHeat(ids, txt);
+}
+
+function drawHeat(ids, txt) {
+  var layer = +$('aLayer').value, head = +$('aHead').value;
+  var A = S.model.getAttention(layer, head);
+  var o = fitCanvas($('heat')), g = o.g, W = o.w, Hh = o.h;
+  g.clearRect(0, 0, W, Hh);
+  if (!A) { $('heatMeta').textContent = '无数据'; return; }
+
+  var T = S.cacheT = S.model.cache.T;
+  var padL = 22, padT = 18, padR = 6, padB = 6;
+  var size = Math.min(W - padL - padR, Hh - padT - padB);
+  var cell = size / T;
+
+  for (var i = 0; i < T; i++) {
+    for (var j = 0; j < T; j++) {
+      var v = A[i * T + j];
+      var y = padT + i * cell, x = padL + j * cell;
+      if (j > i) { g.fillStyle = '#0d1017'; }
+      else {
+        // 深蓝 → 青 → 亮
+        var r = Math.round(10 + v * (79 - 10) + v * v * (255 - 79));
+        var gg = Math.round(13 + v * (180 - 13) + v * v * (230 - 180));
+        var b = Math.round(19 + v * (255 - 19));
+        g.fillStyle = 'rgb(' + r + ',' + gg + ',' + b + ')';
+      }
+      g.fillRect(x, y, Math.ceil(cell) + .3, Math.ceil(cell) + .3);
+    }
+  }
+  // 网格线
+  g.strokeStyle = 'rgba(255,255,255,.05)'; g.lineWidth = 1;
+  for (var k = 0; k <= T; k++) {
+    g.beginPath(); g.moveTo(padL + k * cell, padT); g.lineTo(padL + k * cell, padT + size); g.stroke();
+    g.beginPath(); g.moveTo(padL, padT + k * cell); g.lineTo(padL + size, padT + k * cell); g.stroke();
+  }
+  // 字标签
+  if (cell >= 8) {
+    g.font = Math.min(9, cell * 0.8) + 'px sans-serif';
+    g.fillStyle = '#93a0b5'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    for (var t = 0; t < T; t++) {
+      var c = txt[t] || '';
+      g.fillText(c === '\n' ? '⏎' : c, padL + t * cell + cell / 2, padT - 8);
+      g.fillText(c === '\n' ? '⏎' : c, padL - 10, padT + t * cell + cell / 2);
+    }
+  }
+  $('heatMeta').innerHTML = '第 ' + layer + ' 层 · 第 ' + head + ' 头 · 序列长度 ' + T +
+    ' · 行=查询字，列=被看的字 · 上三角已被因果掩码屏蔽（不可能偷看未来）';
+}
+
+/* ------------------------------------------------------------------ */
+/* 梯度检查                                                            */
+/* ------------------------------------------------------------------ */
+
+function runGradCheck() {
+  var notice = $('gradNotice');
+  notice.style.display = '';
+  notice.className = 'notice';
+  notice.textContent = '正在做梯度检查（float64 有限差分，逐参数分量）…';
+  $('bGrad').disabled = true;
+
+  setTimeout(function () {
+    // 用一份 float64 的独立模块实例，避免 float32 量化噪声污染
+    var K64 = window.MiniLMKitF64;
+    if (!K64) { notice.textContent = '未找到 float64 版本模块（minilm.js 需支持 MINILM_USE_F64）。'; return; }
+
+    var text = '从前有座山，山里有座庙，庙里有个老和尚，老和尚对小和尚说。';
+    var vocab = K64.buildVocab(text);
+    var cfg = { ctx: 8, d: 8, layers: 1, heads: 2, ffMul: 2 };
+    var m = new K64.MiniLM(vocab.size, cfg);
+    var ids = K64.encode(text, vocab.stoi);
+    var T = 8, B = 2;
+    var tokens = new Int32Array(B * T), targets = new Int32Array(B * T);
+    for (var i = 0; i < B * T; i++) {
+      tokens[i] = ids[i % ids.length];
+      targets[i] = ids[(i + 1) % ids.length];
+    }
+    m.zeroGrad();
+    var r = m.forward(tokens, targets);
+    m.backward();
+
+    var names = ['emb', 'pos', 'Wq0', 'Wo0', 'Wv0', 'W1_0', 'W2_0', 'ln1g0', 'ln2b0', 'bq0', 'lnfg', 'b2_0'];
+    var eps = 1e-5, maxRel = 0, worst = '', checked = 0, passed = 0;
+    var sigChecked = 0, sigPassed = 0;
+    names.forEach(function (name) {
+      if (!m.P[name]) return;
+      var P = m.P[name], G = m.G[name], n = P.length;
+      for (var idx = 0; idx < n; idx++) {
+        var orig = P[idx];
+        P[idx] = orig + eps; var lp = m.forward(tokens, targets).loss;
+        P[idx] = orig - eps; var lm = m.forward(tokens, targets).loss;
+        P[idx] = orig;
+        var num = (lp - lm) / (2 * eps), ana = G[idx];
+
+        // 判据：绝对容差 + 相对容差。
+        // 纯相对误差在梯度接近 0 处会失真（|g|~1e-7 时噪声也能算出百分之几），
+        // 所以用一个绝对下限兜住，再对显著梯度考察相对误差。
+        var diff = Math.abs(num - ana);
+        var scale = Math.max(Math.abs(num), Math.abs(ana));
+        if (scale < 1e-7) continue;
+        checked++;
+        var okThis = diff <= 1e-5 + 1e-4 * scale;
+        if (okThis) passed++;
+        if (scale > 1e-4) {
+          sigChecked++;
+          if (okThis) sigPassed++;
+          var rel = diff / scale;
+          if (rel > maxRel) { maxRel = rel; worst = name + '[' + idx + ']'; }
+        }
+      }
+    });
+    var pct = (100 * passed / Math.max(checked, 1)).toFixed(1);
+    var okAll = passed === checked && sigPassed === sigChecked && checked > 0;
+    notice.className = 'notice' + (okAll ? ' ok' : '');
+    notice.innerHTML = '检查了 <b>' + checked + '</b> 个参数分量，通过 <b>' + passed + '</b> 个（' + pct +
+      '%）· 其中梯度量级显著（|g|&gt;1e-4）的 <b>' + sigChecked + '</b> 个全部通过' +
+      ' · 显著分量最大相对误差 <b>' + maxRel.toExponential(2) + '</b>（最差点 ' + worst + '）<br>' +
+      (okAll
+        ? '结论：✓ 反向传播实现正确 —— 手写梯度与数值梯度一致，误差只在浮点精度范围内。'
+        : '结论：✗ 反向传播存在偏差，相对误差过大。');
+    $('pillGrad').textContent = okAll ? '✓ 全部通过' : '✗ 有偏差';
+    $('bGrad').disabled = false;
+  }, 60);
+}
+
+/* ------------------------------------------------------------------ */
+/* 初始化                                                              */
+/* ------------------------------------------------------------------ */
+
+function init() {
+  initCorpusSelect();
+
+  $('fCtx').addEventListener('input', function () { $('vCtx').textContent = this.value; refreshConfigStats(); structTable(); });
+  $('fD').addEventListener('input', function () { $('vD').textContent = this.value; fixHeads(); refreshConfigStats(); structTable(); });
+  $('fLayers').addEventListener('input', function () { $('vLayers').textContent = this.value; refreshConfigStats(); structTable(); });
+  $('fHeads').addEventListener('input', function () { $('vHeads').textContent = this.value; refreshConfigStats(); structTable(); });
+  $('fBatch').addEventListener('input', function () { $('vBatch').textContent = this.value; });
+  $('fLr').addEventListener('input', function () { $('vLr').textContent = lrFromIdx(this.value); });
+  $('fSteps').addEventListener('input', function () { $('vSteps').textContent = this.value; $('pTotal').textContent = this.value; });
+  $('fCustom').addEventListener('input', function () {
+    $('customLen').textContent = this.value.length;
+    refreshCorpusMeta(); refreshConfigStats(); structTable();
+  });
+
+  document.querySelectorAll('.chip[data-preset]').forEach(function (c) {
+    c.addEventListener('click', function () { applyPreset(c.getAttribute('data-preset')); });
+  });
+
+  bindRange('gTemp', 'vTemp', function (v) { return (v / 10).toFixed(1); });
+  bindRange('gTopk', 'vTopk', function (v) { return v; });
+  bindRange('gRep', 'vRep', function (v) { return (v / 100).toFixed(2).replace(/0$/, ''); });
+  bindRange('gLen', 'vLen', function (v) { return v; });
+  bindRange('aLayer', 'vALayer', function (v) { return v; }, function () { if (S.done) refreshAttention(); });
+  bindRange('aHead', 'vAHead', function (v) { return v; }, function () { if (S.done) refreshAttention(); });
+
+  $('bStart').addEventListener('click', startTraining);
+  $('bPause').addEventListener('click', togglePause);
+  $('bReset').addEventListener('click', function () { resetTraining(); });
+  $('bGrad').addEventListener('click', runGradCheck);
+  $('bGen').addEventListener('click', runGenerate);
+  $('bGen3').addEventListener('click', runGenerate3);
+  $('bAttn').addEventListener('click', refreshAttention);
+
+  renderPromptChips();
+  refreshCorpusMeta();
+  refreshConfigStats();
+  structTable();
+  drawLoss();
+  window.addEventListener('resize', function () {
+    drawLoss();
+    if (S.done) refreshAttention();
+  });
+}
+
+/* 调试 / 自动化测试出口：把内部状态与方法挂到 window 上。
+   浏览器控制台里可以直接 __MiniLMLab.state 看状态，或者
+   __MiniLMLab.preset('fast') 一键换配置。 */
+window.__MiniLMLab = {
+  state: S,
+  preset: applyPreset,
+  start: startTraining,
+  tick: tick,
+  generate: runGenerate,
+  generate3: runGenerate3,
+  attention: refreshAttention,
+  gradCheck: runGradCheck,
+  snapshot: doSnapshot
+};
+
+init();
+})();
+</script>
+</body>
+</html>

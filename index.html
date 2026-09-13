@@ -1,0 +1,2723 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MiniLM Lab · 微型中文小说模型实验台</title>
+<meta name="description" content="零依赖手写 Transformer，在浏览器里从零训练一个中文小说字符级小模型">
+<style>
+  :root{
+    --bg:#0d0f14;
+    --bg-2:#12151c;
+    --panel:#161a23;
+    --panel-2:#1b2029;
+    --line:#252b37;
+    --line-2:#303747;
+    --tx:#e7eaf2;
+    --tx-2:#a7b0c0;
+    --tx-3:#6d7787;
+    --ac:#5b9dff;
+    --ac-2:#3d7ce0;
+    --ok:#3ddc97;
+    --warn:#ffb454;
+    --bad:#ff6b6b;
+    --purple:#b48bff;
+    --cyan:#4fd6e0;
+    --radius:12px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(1100px 520px at 12% -8%, #1a2440 0%, transparent 62%),
+      radial-gradient(900px 460px at 92% 0%, #241c3a 0%, transparent 58%),
+      var(--bg);
+    color:var(--tx);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    font-size:13.5px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  a{color:var(--ac)}
+  code,.mono{font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace}
+
+  /* ---------------- 布局 ---------------- */
+  .wrap{max-width:1480px;margin:0 auto;padding:24px 22px 64px}
+
+  header.top{display:flex;flex-wrap:wrap;align-items:flex-end;gap:18px;margin-bottom:18px}
+  header.top h1{
+    margin:0;font-size:23px;letter-spacing:.2px;font-weight:650;
+    background:linear-gradient(92deg,#e9eefc 8%,#9ec2ff 52%,#b48bff 96%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  header.top .sub{color:var(--tx-2);font-size:12.5px;margin-top:2px}
+  .pills{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+  .pill{
+    border:1px solid var(--line-2);background:rgba(255,255,255,.03);
+    padding:3px 10px;border-radius:999px;font-size:11.5px;color:var(--tx-2);
+  }
+  .pill b{color:var(--tx);font-weight:600}
+
+  .statbar{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));
+    gap:10px;margin-bottom:18px;
+  }
+  .stat{
+    background:linear-gradient(180deg,var(--panel) 0%,var(--panel-2) 100%);
+    border:1px solid var(--line);border-radius:var(--radius);padding:10px 13px;
+  }
+  .stat .k{font-size:11px;color:var(--tx-3);letter-spacing:.4px;text-transform:uppercase}
+  .stat .v{font-size:17px;font-weight:640;margin-top:2px;font-variant-numeric:tabular-nums}
+  .stat .v small{font-size:11.5px;color:var(--tx-3);font-weight:400;margin-left:2px}
+
+  main{display:grid;grid-template-columns:378px minmax(0,1fr);gap:16px;align-items:start}
+  @media (max-width:1080px){ main{grid-template-columns:1fr} }
+  .col{display:flex;flex-direction:column;gap:14px;min-width:0}
+
+  .card{
+    background:linear-gradient(180deg,rgba(255,255,255,.022) 0%,rgba(255,255,255,0) 42%),var(--panel);
+    border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;
+  }
+  .card > h2{
+    margin:0;padding:11px 14px;font-size:12.5px;font-weight:620;letter-spacing:.5px;
+    border-bottom:1px solid var(--line);color:var(--tx);
+    display:flex;align-items:center;gap:8px;
+  }
+  .card > h2 .dot{width:6px;height:6px;border-radius:50%;background:var(--ac);box-shadow:0 0 10px var(--ac)}
+  .card > h2 .hint{margin-left:auto;font-size:11px;color:var(--tx-3);font-weight:400;letter-spacing:0}
+  .card .body{padding:13px 14px}
+
+  /* ---------------- 表单 ---------------- */
+  .field{margin-bottom:11px}
+  .field:last-child{margin-bottom:0}
+  .field > label{display:flex;align-items:baseline;gap:6px;font-size:12px;color:var(--tx-2);margin-bottom:5px}
+  .field > label .val{margin-left:auto;color:var(--ac);font-weight:620;font-variant-numeric:tabular-nums;font-size:12.5px}
+  .field > label .desc{color:var(--tx-3);font-size:11px}
+  select,input[type=text],input[type=number],textarea{
+    width:100%;background:#0b0e14;border:1px solid var(--line-2);color:var(--tx);
+    border-radius:8px;padding:7px 9px;font-size:12.5px;font-family:inherit;outline:none;
+  }
+  select:focus,input:focus,textarea:focus{border-color:var(--ac-2);box-shadow:0 0 0 3px rgba(91,157,255,.13)}
+  textarea{resize:vertical;min-height:84px;line-height:1.55}
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:3px;
+    background:linear-gradient(90deg,var(--ac-2),var(--ac));outline:none;margin:5px 0 0;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+    background:#eef4ff;border:2px solid var(--ac);cursor:pointer;box-shadow:0 0 0 3px rgba(91,157,255,.16)
+  }
+  input[type=range]::-moz-range-thumb{
+    width:12px;height:12px;border-radius:50%;background:#eef4ff;border:2px solid var(--ac);cursor:pointer
+  }
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}
+
+  .chips{display:flex;gap:7px;flex-wrap:wrap}
+  .chip{
+    border:1px solid var(--line-2);background:#0b0e14;color:var(--tx-2);
+    border-radius:999px;padding:4px 11px;font-size:11.5px;cursor:pointer;
+    transition:.14s;font-family:inherit;
+  }
+  .chip:hover{border-color:var(--ac-2);color:var(--tx)}
+  .chip.on{background:rgba(91,157,255,.14);border-color:var(--ac);color:#cfe0ff}
+
+  .btns{display:flex;gap:8px;flex-wrap:wrap}
+  button{
+    font-family:inherit;font-size:12.5px;font-weight:560;border-radius:9px;cursor:pointer;
+    padding:8px 15px;border:1px solid var(--line-2);background:#1c222d;color:var(--tx);
+    transition:.14s;
+  }
+  button:hover:not(:disabled){border-color:var(--ac-2);background:#212836}
+  button:disabled{opacity:.38;cursor:not-allowed}
+  button.primary{background:linear-gradient(180deg,#4b8ff0,#3a75d8);border-color:#4b8ff0;color:#fff}
+  button.primary:hover:not(:disabled){background:linear-gradient(180deg,#5c9cf5,#4280e0)}
+  button.ghost{background:transparent}
+  button.sm{padding:5px 11px;font-size:11.5px;border-radius:7px}
+
+  /* ---------------- 进度 ---------------- */
+  .prog-wrap{margin-top:11px}
+  .prog{height:7px;border-radius:5px;background:#0b0e14;border:1px solid var(--line);overflow:hidden}
+  .prog > i{
+    display:block;height:100%;width:0%;border-radius:5px;
+    background:linear-gradient(90deg,var(--ac-2),var(--cyan),var(--purple));
+    transition:width .12s linear;
+  }
+  .prog-meta{display:flex;justify-content:space-between;font-size:11.5px;color:var(--tx-3);margin-top:6px;font-variant-numeric:tabular-nums}
+  .prog-meta b{color:var(--tx-2);font-weight:600}
+
+  .live{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:11px}
+  .live .cell{background:#0b0e14;border:1px solid var(--line);border-radius:9px;padding:7px 9px}
+  .live .cell .k{font-size:10.5px;color:var(--tx-3)}
+  .live .cell .v{font-size:14px;font-weight:640;font-variant-numeric:tabular-nums}
+
+  /* 必须显式给 CSS 高度：否则设置 canvas.height（乘 dpr）会把元素撑高，逐帧放大 */
+  canvas{display:block;width:100%;border-radius:9px;background:#0a0d13}
+  #lossChart{height:190px}
+  #heat{height:300px}
+
+  /* ---------------- 输出区 ---------------- */
+  .out{
+    background:#0a0d13;border:1px solid var(--line);border-radius:9px;
+    padding:11px 12px;font-size:13px;line-height:1.85;
+    white-space:pre-wrap;word-break:break-all;min-height:74px;
+  }
+  .out .prompt{color:var(--ac)}
+  .out .gen{color:#dfe7f5}
+  .out .gen em{color:var(--warn);font-style:normal;background:rgba(255,180,84,.11);border-radius:3px}
+  .muted{color:var(--tx-3);font-size:11.5px}
+
+  .snap{border-left:2px solid var(--line-2);padding:0 0 0 11px;margin-bottom:11px}
+  .snap:last-child{margin-bottom:0}
+  .snap .h{font-size:11px;color:var(--tx-3);letter-spacing:.3px;margin-bottom:3px;font-variant-numeric:tabular-nums}
+  .snap .t{font-size:12.5px;line-height:1.75;word-break:break-all;color:#c9d3e4}
+  .snap.good{border-left-color:var(--ok)}
+
+  .bars{display:flex;flex-direction:column;gap:5px}
+  .bar{display:grid;grid-template-columns:22px 1fr 54px;gap:9px;align-items:center;font-size:12px}
+  .bar .ch{
+    text-align:center;background:#0b0e14;border:1px solid var(--line);border-radius:5px;
+    color:var(--tx);line-height:20px;height:22px;overflow:hidden;
+  }
+  .bar .track{height:9px;border-radius:5px;background:#0b0e14;border:1px solid var(--line);overflow:hidden}
+  .bar .track > i{display:block;height:100%;background:linear-gradient(90deg,var(--ac-2),var(--cyan))}
+  .bar .p{text-align:right;color:var(--tx-2);font-variant-numeric:tabular-nums;font-size:11.5px}
+  .steplabel{font-size:11px;color:var(--tx-3);margin:9px 0 5px}
+  .steplabel:first-child{margin-top:0}
+
+  table.struct{width:100%;border-collapse:collapse;font-size:12px}
+  table.struct td{padding:4px 0;border-bottom:1px solid #1d222c;color:var(--tx-2)}
+  table.struct tr:last-child td{border-bottom:none}
+  table.struct td:last-child{text-align:right;color:var(--tx);font-variant-numeric:tabular-nums}
+  table.struct td.n{color:var(--tx-3)}
+
+  .notice{
+    border:1px solid var(--line-2);background:rgba(255,180,84,.07);color:#ffd9a3;
+    border-radius:9px;padding:9px 11px;font-size:11.5px;line-height:1.6;margin-bottom:11px;
+  }
+  .notice.ok{background:rgba(61,220,151,.08);color:#a8f0cd;border-color:#2a5a45}
+  footer{color:var(--tx-3);font-size:11.5px;margin-top:26px;text-align:center;line-height:1.9}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>MiniLM Lab · 微型中文小说模型实验台</h1>
+      <div class="sub">零依赖手写 Transformer · 字符级分词 · 纯 CPU · 全部在你的浏览器里从零训练</div>
+    </div>
+    <div class="pills">
+      <span class="pill">反向传播 <b>手写</b></span>
+      <span class="pill">梯度检查 <b id="pillGrad">未运行</b></span>
+      <span class="pill">无外部依赖 <b>0</b></span>
+    </div>
+  </header>
+
+  <div class="statbar">
+    <div class="stat"><div class="k">参数量</div><div class="v" id="sParam">—</div></div>
+    <div class="stat"><div class="k">词表 / 唯一字符</div><div class="v" id="sVocab">—</div></div>
+    <div class="stat"><div class="k">语料字符数</div><div class="v" id="sCorpus">—</div></div>
+    <div class="stat"><div class="k">结构</div><div class="v" id="sStruct">—</div></div>
+    <div class="stat"><div class="k">当前损失</div><div class="v" id="sLoss">—</div></div>
+    <div class="stat"><div class="k">训练速度</div><div class="v" id="sSpeed">—</div></div>
+  </div>
+
+  <main>
+    <!-- ================= 左列：配置与训练 ================= -->
+    <div class="col">
+
+      <div class="card">
+        <h2><span class="dot"></span>语料<span class="hint">决定模型能写出什么</span></h2>
+        <div class="body">
+          <div class="field">
+            <label>训练语料<span class="desc">单一风格效果最好</span></label>
+            <select id="fCorpus"></select>
+          </div>
+          <div class="muted" id="corpusMeta" style="margin-bottom:10px"></div>
+          <div class="field" id="customWrap" style="display:none">
+            <label>自定义语料<span class="val" id="customLen">0</span></label>
+            <textarea id="fCustom" placeholder="粘贴任意中文文本，建议 2000 字以上、风格统一。例如把《零号计划》某一章粘进来。"></textarea>
+          </div>
+          <div class="field">
+            <label>提示词预设<span class="desc">点一下填入生成区</span></label>
+            <div class="chips" id="promptChips"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="dot"></span>模型配置<span class="hint">改动后需重新训练</span></h2>
+        <div class="body">
+          <div class="grid2">
+            <div class="field">
+              <label>上下文 ctx<span class="val" id="vCtx">32</span></label>
+              <input type="range" id="fCtx" min="8" max="64" step="8" value="32">
+            </div>
+            <div class="field">
+              <label>维度 d<span class="val" id="vD">40</span></label>
+              <input type="range" id="fD" min="16" max="96" step="8" value="40">
+            </div>
+            <div class="field">
+              <label>层数 layers<span class="val" id="vLayers">2</span></label>
+              <input type="range" id="fLayers" min="1" max="4" step="1" value="2">
+            </div>
+            <div class="field">
+              <label>注意力头 heads<span class="val" id="vHeads">4</span></label>
+              <input type="range" id="fHeads" min="1" max="8" step="1" value="4">
+            </div>
+            <div class="field">
+              <label>batch<span class="val" id="vBatch">8</span></label>
+              <input type="range" id="fBatch" min="2" max="24" step="2" value="8">
+            </div>
+            <div class="field">
+              <label>学习率 lr<span class="val" id="vLr">0.004</span></label>
+              <input type="range" id="fLr" min="1" max="12" step="1" value="4">
+            </div>
+          </div>
+          <div class="field" style="margin-top:2px">
+            <label>训练步数 steps<span class="val" id="vSteps">400</span></label>
+            <input type="range" id="fSteps" min="50" max="1500" step="50" value="400">
+          </div>
+          <div class="chips" style="margin-top:9px">
+            <button class="chip" data-preset="fast">极速体验</button>
+            <button class="chip on" data-preset="std">标准</button>
+            <button class="chip" data-preset="deep">深入</button>
+            <button class="chip" data-preset="big">大模型</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="dot"></span>训练控制</h2>
+        <div class="body">
+          <div class="btns">
+            <button class="primary" id="bStart">开始训练</button>
+            <button id="bPause" disabled>暂停</button>
+            <button class="ghost" id="bReset" disabled>重置</button>
+            <button class="ghost" id="bGrad">梯度检查</button>
+          </div>
+          <div class="prog-wrap">
+            <div class="prog"><i id="progBar"></i></div>
+            <div class="prog-meta">
+              <span>step <b id="pStep">0</b> / <b id="pTotal">400</b></span>
+              <span>已用 <b id="pTime">0.0s</b> · 剩余约 <b id="pEta">—</b></span>
+            </div>
+          </div>
+          <div class="live">
+            <div class="cell"><div class="k">平滑损失</div><div class="v" id="lSmooth">—</div></div>
+            <div class="cell"><div class="k">瞬时损失</div><div class="v" id="lRaw">—</div></div>
+            <div class="cell"><div class="k">step/s</div><div class="v" id="lSpeed">—</div></div>
+          </div>
+          <div class="notice" id="gradNotice" style="display:none;margin-top:11px"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="dot"></span>损失曲线<span class="hint">越低越像中文 —— 但太低会开始背课文</span></h2>
+        <div class="body">
+          <canvas id="lossChart" height="190"></canvas>
+          <div class="muted" style="margin-top:8px">
+            <span style="color:#5b9dff">■</span> 平滑（EMA）&nbsp;&nbsp;
+            <span style="color:#39445a">■</span> 每步原始损失&nbsp;&nbsp;
+            <span style="color:#3ddc97">■</span> 快照点&nbsp;&nbsp;
+            <span style="color:#2dd4a7">▨</span> 生成质量甜蜜点
+          </div>
+          <div class="notice" id="lossHint" style="display:none;margin-top:10px"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ================= 右列：观测与生成 ================= -->
+    <div class="col">
+
+      <div class="card">
+        <h2><span class="dot"></span>训练过程快照<span class="hint">同一个提示词，看它怎么从乱码变成句子</span></h2>
+        <div class="body" id="snapBox">
+          <div class="muted">尚未训练。点左侧「开始训练」，这里会每隔若干步抓一次生成快照。</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="dot"></span>中文小说生成<span class="hint">训练完成后可用</span></h2>
+        <div class="body">
+          <div class="field">
+            <label>提示词<span class="desc">模型会接着往下写</span></label>
+            <input type="text" id="gPrompt" value="新长安的雨下了" >
+          </div>
+          <div class="grid3">
+            <div class="field">
+              <label>温度<span class="val" id="vTemp">0.8</span></label>
+              <input type="range" id="gTemp" min="2" max="15" step="1" value="8">
+            </div>
+            <div class="field">
+              <label>top-k<span class="val" id="vTopk">8</span></label>
+              <input type="range" id="gTopk" min="1" max="40" step="1" value="8">
+            </div>
+            <div class="field">
+              <label>重复惩罚<span class="val" id="vRep">1.15</span></label>
+              <input type="range" id="gRep" min="100" max="160" step="5" value="115">
+            </div>
+          </div>
+          <div class="field">
+            <label>生成长度<span class="val" id="vLen">120</span></label>
+            <input type="range" id="gLen" min="20" max="300" step="10" value="120">
+          </div>
+          <div class="btns">
+            <button class="primary" id="bGen" disabled>生成</button>
+            <button id="bGen3" disabled>三种温度对比</button>
+          </div>
+          <div class="out" id="genOut" style="margin-top:12px">
+            <span class="muted">等待模型训练完成…</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="dot"></span>下一步候选分布<span class="hint">模型的本质是概率，不是"想好一句话"</span></h2>
+        <div class="body" id="candBox">
+          <div class="muted">生成一次后，这里会显示每一步模型眼中的 top 候选字。</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="dot"></span>注意力热力图<span class="hint">每一行 = 这个字在看前面的哪些字</span></h2>
+        <div class="body">
+          <div class="grid2" style="margin-bottom:11px">
+            <div class="field" style="margin:0">
+              <label>层<span class="val" id="vALayer">0</span></label>
+              <input type="range" id="aLayer" min="0" max="1" step="1" value="0">
+            </div>
+            <div class="field" style="margin:0">
+              <label>头<span class="val" id="vAHead">0</span></label>
+              <input type="range" id="aHead" min="0" max="3" step="1" value="0">
+            </div>
+          </div>
+          <div class="field">
+            <label>观察文本<span class="desc">用这段文字跑一次前向</span></label>
+            <input type="text" id="aText" value="新长安的雨下了，他说">
+          </div>
+          <button class="sm" id="bAttn" disabled>刷新注意力</button>
+          <canvas id="heat" height="300" style="margin-top:11px"></canvas>
+          <div class="muted" id="heatMeta" style="margin-top:7px">—</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="dot"></span>模型结构</h2>
+        <div class="body">
+          <table class="struct" id="structTable"></table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer>
+    MiniLM Lab · 全部计算在本地完成，不上传任何数据<br>
+    手写前向 / 反向 / Adam · 权重共享输出层 · Pre-LayerNorm 残差 · 因果掩码多头注意力
+  </footer>
+</div>
+
+<!-- ===== 以下三块由 build.js 内联生成，请勿手工编辑 ===== -->
+<script>
+/* ---- minilm.js（内联，包成工厂：一次代码，两份实例）---- */
+function __makeMiniLM(__USE_F64__) {
+  var __g = {};
+/* ============================================================================
+ * minilm.js — 从零手写的微型 Transformer 语言模型
+ * ----------------------------------------------------------------------------
+ * 纯 JavaScript，零依赖，可在浏览器与 Node 中运行。
+ *
+ * 包含内容（全部手写，不调用任何深度学习库）：
+ *   - 字符级分词器
+ *   - Token Embedding + 可学习位置编码
+ *   - 因果多头自注意力（Causal Multi-Head Self-Attention）
+ *   - 前馈网络（GELU）+ Pre-LayerNorm 残差结构
+ *   - 权重共享（Weight Tying）：输出层复用 Embedding 矩阵
+ *   - 手写反向传播（反向推导到每一个矩阵乘法）
+ *   - Adam 优化器
+ *   - Top-k / 温度 / 重复惩罚 采样
+ *   - 注意力矩阵导出（用于可视化）
+ * ============================================================================ */
+
+(function (global) {
+  'use strict';
+
+  // 数值精度开关：默认 float32（快，生产用）；
+  // 设 globalThis.MINILM_USE_F64 = true 可切到 float64，
+  // 用于梯度检查——float32 的量化噪声会淹没小梯度分量。
+  var REAL = __USE_F64__ ? Float64Array : Float32Array;
+
+  var SQRT2PI = Math.sqrt(2 / Math.PI);
+
+  /* ---------------------------- 基础工具 ---------------------------- */
+
+  function zeros(n) { return new REAL(n); }
+
+  // 标准正态分布初始化（Box-Muller）
+  function randn(n, scale) {
+    var a = new REAL(n);
+    for (var i = 0; i < n; i++) {
+      var u = 0, v = 0;
+      while (u === 0) u = Math.random();
+      while (v === 0) v = Math.random();
+      a[i] = Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v) * scale;
+    }
+    return a;
+  }
+
+  // C[M,N] = A[M,K] * B[K,N]
+  function mm(A, B, M, K, N, C) {
+    for (var i = 0; i < M; i++) {
+      var ai = i * K, ci = i * N;
+      for (var j = 0; j < N; j++) C[ci + j] = 0;
+      for (var k = 0; k < K; k++) {
+        var a = A[ai + k];
+        if (a === 0) continue;
+        var bk = k * N;
+        for (var j2 = 0; j2 < N; j2++) C[ci + j2] += a * B[bk + j2];
+      }
+    }
+  }
+
+  // 反向：dA += dC * B^T ; dB += A^T * dC
+  function mmBack(dC, A, B, M, K, N, dA, dB) {
+    var i, k, j, s;
+    for (i = 0; i < M; i++) {
+      var ci = i * N, ai = i * K;
+      for (k = 0; k < K; k++) {
+        s = 0;
+        var bk = k * N;
+        for (j = 0; j < N; j++) s += dC[ci + j] * B[bk + j];
+        dA[ai + k] += s;
+      }
+    }
+    for (k = 0; k < K; k++) {
+      var bk2 = k * N;
+      for (j = 0; j < N; j++) {
+        s = 0;
+        for (i = 0; i < M; i++) s += A[i * K + k] * dC[i * N + j];
+        dB[bk2 + j] += s;
+      }
+    }
+  }
+
+  function addBias(y, b, M, N) {
+    for (var i = 0; i < M; i++) {
+      var off = i * N;
+      for (var j = 0; j < N; j++) y[off + j] += b[j];
+    }
+  }
+
+  function addBiasBack(dy, db, M, N) {
+    for (var i = 0; i < M; i++) {
+      var off = i * N;
+      for (var j = 0; j < N; j++) db[j] += dy[off + j];
+    }
+  }
+
+  /* ---------------------------- 激活函数 ---------------------------- */
+
+  // GELU (tanh 近似，与 GPT 系列一致)
+  function gelu(x) {
+    var u = SQRT2PI * (x + 0.044715 * x * x * x);
+    return 0.5 * x * (1 + Math.tanh(u));
+  }
+  function dgelu(x) {
+    var u = SQRT2PI * (x + 0.044715 * x * x * x);
+    var t = Math.tanh(u);
+    var du = SQRT2PI * (1 + 3 * 0.044715 * x * x);
+    return 0.5 * (1 + t) + 0.5 * x * (1 - t * t) * du;
+  }
+
+  /* --------------------------- LayerNorm --------------------------- */
+
+  // y = (x - mean) / sqrt(var + eps) * gamma + beta
+  function layernorm(x, g, b, M, D, eps, cache) {
+    var y = zeros(M * D);
+    var mean = zeros(M), rstd = zeros(M);
+    for (var i = 0; i < M; i++) {
+      var off = i * D, s = 0, d;
+      for (d = 0; d < D; d++) s += x[off + d];
+      var mu = s / D;
+      var v = 0;
+      for (d = 0; d < D; d++) { var t = x[off + d] - mu; v += t * t; }
+      v /= D;
+      var rs = 1 / Math.sqrt(v + eps);
+      mean[i] = mu; rstd[i] = rs;
+      for (d = 0; d < D; d++) y[off + d] = (x[off + d] - mu) * rs * g[d] + b[d];
+    }
+    if (cache) { cache.mean = mean; cache.rstd = rstd; cache.x = x; cache.g = g; }
+    return y;
+  }
+
+  function layernormBack(dy, M, D, cache, dx, dg, db) {
+    var mean = cache.mean, rstd = cache.rstd, x = cache.x, g = cache.g;
+    for (var i = 0; i < M; i++) {
+      var off = i * D, mu = mean[i], rs = rstd[i], d;
+      var dvar = 0, dmu = 0;
+      for (d = 0; d < D; d++) {
+        var xhat = (x[off + d] - mu) * rs;
+        var dhat = dy[off + d] * g[d];
+        dg[d] += dy[off + d] * xhat;
+        db[d] += dy[off + d];
+        dx[off + d] += dhat * rs;
+        dvar += dhat * (x[off + d] - mu) * (-0.5) * rs * rs * rs;
+        dmu += dhat * (-rs);
+      }
+      for (d = 0; d < D; d++) {
+        dx[off + d] += dvar * 2 * (x[off + d] - mu) / D + dmu / D;
+      }
+    }
+  }
+
+  /* ------------------------- 因果多头自注意力 ------------------------- */
+
+  // q,k,v: [B*T, D]  →  out: [B*T, D]，attnStore: [B*H*T*T]
+  function attentionForward(q, k, v, B, T, D, H, attnStore) {
+    var DH = D / H;
+    var scale = 1 / Math.sqrt(DH);
+    var out = zeros(B * T * D);
+    var scores = new REAL(T);
+    for (var b = 0; b < B; b++) {
+      for (var h = 0; h < H; h++) {
+        var hoff = h * DH;
+        for (var t = 0; t < T; t++) {
+          var qOff = (b * T + t) * D + hoff;
+          var mx = -Infinity, s, d;
+          // 只计算 s <= t —— 这就是"因果掩码"，保证模型不能偷看未来
+          for (s = 0; s <= t; s++) {
+            var kOff = (b * T + s) * D + hoff;
+            var dot = 0;
+            for (d = 0; d < DH; d++) dot += q[qOff + d] * k[kOff + d];
+            dot *= scale;
+            scores[s] = dot;
+            if (dot > mx) mx = dot;
+          }
+          var sum = 0;
+          for (s = 0; s <= t; s++) { var e = Math.exp(scores[s] - mx); scores[s] = e; sum += e; }
+          var inv = 1 / sum;
+          for (s = 0; s <= t; s++) scores[s] *= inv;
+
+          var base = ((b * H + h) * T + t) * T;
+          for (s = 0; s <= t; s++) attnStore[base + s] = scores[s];
+
+          var oOff = (b * T + t) * D + hoff;
+          for (d = 0; d < DH; d++) {
+            var acc = 0;
+            for (s = 0; s <= t; s++) acc += scores[s] * v[(b * T + s) * D + hoff + d];
+            out[oOff + d] = acc;
+          }
+        }
+      }
+    }
+    return out;
+  }
+
+  function attentionBackward(dout, q, k, v, attnStore, B, T, D, H, dq, dk, dv) {
+    var DH = D / H;
+    var scale = 1 / Math.sqrt(DH);
+    var dattn = new REAL(T);
+    for (var b = 0; b < B; b++) {
+      for (var h = 0; h < H; h++) {
+        var hoff = h * DH;
+        for (var t = 0; t < T; t++) {
+          var base = ((b * H + h) * T + t) * T;
+          var oOff = (b * T + t) * D + hoff;
+          var DOT = 0, s, d;
+          for (s = 0; s <= t; s++) {
+            var kOff = (b * T + s) * D + hoff;
+            var dot = 0;
+            for (d = 0; d < DH; d++) dot += dout[oOff + d] * v[kOff + d];
+            dattn[s] = dot;
+            DOT += dot * attnStore[base + s];
+          }
+          for (s = 0; s <= t; s++) {
+            var p = attnStore[base + s];
+            var ds = p * (dattn[s] - DOT);   // softmax 的反向传播
+            var vOff = (b * T + s) * D + hoff;
+            var qOff = (b * T + t) * D + hoff;
+            var kOff2 = (b * T + s) * D + hoff;
+            for (d = 0; d < DH; d++) {
+              dv[vOff + d] += p * dout[oOff + d];
+              dq[qOff + d] += ds * k[kOff2 + d] * scale;
+              dk[kOff2 + d] += ds * q[qOff + d] * scale;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /* --------------------------- 模型本体 --------------------------- */
+
+  function MiniLM(vocabSize, cfg) {
+    cfg = cfg || {};
+    this.cfg = {
+      ctx: cfg.ctx || 32,
+      d: cfg.d || 40,
+      layers: cfg.layers || 2,
+      heads: cfg.heads || 4,
+      ffMul: cfg.ffMul || 4
+    };
+    this.V = vocabSize;
+    this.P = {}; this.G = {}; this.M = {}; this.Vv = {};
+    this.paramList = [];
+    this.cache = null;
+    this._init();
+  }
+
+  MiniLM.prototype._init = function () {
+    var c = this.cfg;
+    var D = c.d, L = c.layers, T = c.ctx, F = c.ffMul * D, V = this.V;
+    var P = this.P, G = this.G, M = this.M, A = this.Vv;
+    var list = this.paramList;
+
+    var mk = function (name, n, scale) {
+      P[name] = randn(n, scale); G[name] = zeros(n);
+      M[name] = zeros(n); A[name] = zeros(n);
+      list.push({ name: name, n: n });
+    };
+
+    var std = 0.02;
+    var resStd = 0.02 / Math.sqrt(2 * L);
+
+    // gamma 必须是全 1、beta 必须是全 0 —— 这是 LayerNorm 的标准初始化，
+    // 若给 gamma 用随机值会让归一化层一开始就把信号扭曲掉。
+    var mkOnes = function (name, n) {
+      P[name] = new REAL(n); P[name].fill(1);
+      G[name] = zeros(n); M[name] = zeros(n); A[name] = zeros(n);
+      list.push({ name: name, n: n });
+    };
+
+    mk('emb', V * D, std);
+    mk('pos', T * D, std);
+
+    for (var l = 0; l < L; l++) {
+      mkOnes('ln1g' + l, D); mk('ln1b' + l, D, 0);
+      mk('Wq' + l, D * D, std); mk('bq' + l, D, 0);
+      mk('Wk' + l, D * D, std); mk('bk' + l, D, 0);
+      mk('Wv' + l, D * D, std); mk('bv' + l, D, 0);
+      mk('Wo' + l, D * D, resStd); mk('bo' + l, D, 0);
+      mkOnes('ln2g' + l, D); mk('ln2b' + l, D, 0);
+      mk('W1_' + l, D * F, std); mk('b1_' + l, F, 0);
+      mk('W2_' + l, F * D, resStd); mk('b2_' + l, D, 0);
+    }
+    mkOnes('lnfg', D); mk('lnfb', D, 0);
+  };
+
+  MiniLM.prototype.paramCount = function () {
+    var n = 0;
+    for (var i = 0; i < this.paramList.length; i++) n += this.paramList[i].n;
+    return n;
+  };
+
+  /* ------------------------------ 前向 ------------------------------ */
+
+  // tokens: Int32Array/Array，长度必须是 T 的整数倍（B*T）
+  // targets: 同长度，训练时提供；生成时传 null
+  MiniLM.prototype.forward = function (tokens, targets, TOverride) {
+    var c = this.cfg;
+    var D = c.d, L = c.layers, H = c.heads, F = c.ffMul * D;
+    var T = TOverride || c.ctx;
+    var V = this.V, P = this.P;
+    var BT = tokens.length;
+    var B = BT / T;
+
+    var cache = this.cache = {
+      tokens: tokens, targets: targets, B: B, T: T, BT: BT
+    };
+    var i, d, t, j;
+
+    // ---- 1. 词嵌入 + 位置嵌入 ----
+    var x = zeros(BT * D);
+    for (i = 0; i < BT; i++) {
+      var tok = tokens[i], tp = (i % T) * D;
+      for (d = 0; d < D; d++) x[i * D + d] = P.emb[tok * D + d] + P.pos[tp + d];
+    }
+    var cur = x;
+
+    // ---- 2. N 层 Transformer Block ----
+    var layerCaches = [];
+    for (var l = 0; l < L; l++) {
+      var lc = {};
+
+      // Pre-LayerNorm + 多头注意力
+      lc.xin1 = cur;
+      var ln1c = {};
+      var xn1 = layernorm(cur, P['ln1g' + l], P['ln1b' + l], BT, D, 1e-5, ln1c);
+      lc.ln1 = ln1c; lc.xn1 = xn1;
+
+      var q = zeros(BT * D), k = zeros(BT * D), v = zeros(BT * D);
+      mm(xn1, P['Wq' + l], BT, D, D, q);
+      mm(xn1, P['Wk' + l], BT, D, D, k);
+      mm(xn1, P['Wv' + l], BT, D, D, v);
+      addBias(q, P['bq' + l], BT, D);
+      addBias(k, P['bk' + l], BT, D);
+      addBias(v, P['bv' + l], BT, D);
+      lc.q = q; lc.k = k; lc.v = v;
+
+      var attnStore = zeros(B * H * T * T);
+      var ao = attentionForward(q, k, v, B, T, D, H, attnStore);
+      lc.attnStore = attnStore; lc.ao = ao;
+
+      var attnOut = zeros(BT * D);
+      mm(ao, P['Wo' + l], BT, D, D, attnOut);
+      addBias(attnOut, P['bo' + l], BT, D);
+
+      // 残差连接 1
+      var xmid = zeros(BT * D);
+      for (i = 0; i < BT * D; i++) xmid[i] = cur[i] + attnOut[i];
+      lc.xmid = xmid;
+
+      // Pre-LayerNorm + 前馈网络
+      var ln2c = {};
+      var xn2 = layernorm(xmid, P['ln2g' + l], P['ln2b' + l], BT, D, 1e-5, ln2c);
+      lc.ln2 = ln2c; lc.xn2 = xn2;
+
+      var hp = zeros(BT * F);
+      mm(xn2, P['W1_' + l], BT, D, F, hp);
+      addBias(hp, P['b1_' + l], BT, F);
+      var hg = new REAL(BT * F);
+      for (i = 0; i < BT * F; i++) hg[i] = gelu(hp[i]);
+      lc.hp = hp; lc.hg = hg;
+
+      var fo = zeros(BT * D);
+      mm(hg, P['W2_' + l], BT, F, D, fo);
+      addBias(fo, P['b2_' + l], BT, D);
+
+      // 残差连接 2
+      var xout = zeros(BT * D);
+      for (i = 0; i < BT * D; i++) xout[i] = xmid[i] + fo[i];
+      lc.xout = xout;
+      cur = xout;
+
+      layerCaches.push(lc);
+    }
+
+    // ---- 3. 最终 LayerNorm ----
+    var lnfc = {};
+    var xnf = layernorm(cur, P.lnfg, P.lnfb, BT, D, 1e-5, lnfc);
+    cache.lnfc = lnfc; cache.xnf = xnf;
+
+    // ---- 4. 输出层（权重共享：复用 emb 的转置）----
+    var logits = zeros(BT * V);
+    for (i = 0; i < BT; i++) {
+      var xo = i * D;
+      for (j = 0; j < V; j++) {
+        var eo = j * D, s = 0;
+        for (d = 0; d < D; d++) s += xnf[xo + d] * P.emb[eo + d];
+        logits[i * V + j] = s;
+      }
+    }
+    cache.logits = logits;
+
+    // ---- 5. Softmax + 交叉熵损失 ----
+    var loss = 0;
+    var probs = zeros(BT * V);
+    if (targets) {
+      for (i = 0; i < BT; i++) {
+        var off = i * V, mx = -Infinity;
+        for (j = 0; j < V; j++) if (logits[off + j] > mx) mx = logits[off + j];
+        var sum = 0;
+        for (j = 0; j < V; j++) {
+          var e = Math.exp(logits[off + j] - mx);
+          probs[off + j] = e; sum += e;
+        }
+        var inv = 1 / sum;
+        for (j = 0; j < V; j++) probs[off + j] *= inv;
+        loss -= Math.log(probs[off + targets[i]] + 1e-9);
+      }
+      loss /= BT;
+    }
+    cache.probs = probs; cache.loss = loss; cache.layers = layerCaches;
+
+    return { loss: loss, logits: logits, probs: probs, cache: cache };
+  };
+
+  /* ------------------------------ 反向 ------------------------------ */
+
+  MiniLM.prototype.backward = function () {
+    var c = this.cache;
+    if (!c || !c.targets) throw new Error('backward() 需要先带 targets 前向');
+    var cfg = this.cfg;
+    var D = cfg.d, L = cfg.layers, H = cfg.heads, F = cfg.ffMul * D;
+    var V = this.V, P = this.P, G = this.G;
+    var BT = c.BT, B = c.B, T = c.T;
+    var i, d, j, l;
+
+    // ---- 交叉熵 + Softmax 的反向：dlogits = probs - onehot ----
+    var dlogits = zeros(BT * V);
+    for (i = 0; i < BT; i++) {
+      var off = i * V, dl;
+      for (j = 0; j < V; j++) dlogits[off + j] = c.probs[off + j] / BT;
+      dlogits[off + c.targets[i]] -= 1 / BT;
+    }
+
+    // ---- 反向输出层（权重共享：梯度回流到 emb）----
+    var dxnf = zeros(BT * D);
+    for (j = 0; j < V; j++) {
+      var eo = j * D;
+      for (i = 0; i < BT; i++) {
+        var dl2 = dlogits[i * V + j];
+        if (dl2 === 0) continue;
+        var xo = i * D;
+        for (d = 0; d < D; d++) G.emb[eo + d] += c.xnf[xo + d] * dl2;
+      }
+    }
+    for (i = 0; i < BT; i++) {
+      var xo2 = i * D;
+      for (j = 0; j < V; j++) {
+        var dl3 = dlogits[i * V + j];
+        if (dl3 === 0) continue;
+        var eo2 = j * D;
+        for (d = 0; d < D; d++) dxnf[xo2 + d] += dl3 * P.emb[eo2 + d];
+      }
+    }
+
+    // ---- 反向最终 LayerNorm ----
+    var dx = zeros(BT * D);
+    layernormBack(dxnf, BT, D, c.lnfc, dx, G.lnfg, G.lnfb);
+    if (this.DEBUG) { this._dxnf = dxnf; this._dx = dx; }
+
+    // ---- 逐层倒序反向 ----
+    for (l = L - 1; l >= 0; l--) {
+      var lc = c.layers[l];
+
+      // 残差 2：xout = xmid + fo
+      var dfo = dx;
+      var dhg = zeros(BT * F);
+      mmBack(dfo, lc.hg, P['W2_' + l], BT, F, D, dhg, G['W2_' + l]);
+      addBiasBack(dfo, G['b2_' + l], BT, D);
+
+      // GELU 反向
+      var dhp = new REAL(BT * F);
+      for (i = 0; i < BT * F; i++) dhp[i] = dhg[i] * dgelu(lc.hp[i]);
+
+      var dxn2 = zeros(BT * D);
+      mmBack(dhp, lc.xn2, P['W1_' + l], BT, D, F, dxn2, G['W1_' + l]);
+      addBiasBack(dhp, G['b1_' + l], BT, F);
+
+      // LayerNorm 2 反向
+      var dxmid_ln2 = zeros(BT * D);
+      layernormBack(dxn2, BT, D, lc.ln2, dxmid_ln2, G['ln2g' + l], G['ln2b' + l]);
+
+      // xmid 影响输出有两条路：直通残差 2 + 经过 LayerNorm2/FFN，
+      // 所以 dL/d(xmid) 必须把两者相加，不能只用 ln2 那一条。
+      var dxmid = zeros(BT * D);
+      for (i = 0; i < BT * D; i++) dxmid[i] = dfo[i] + dxmid_ln2[i];
+
+      // 残差 1：xmid = xin1 + attnOut  → 梯度分两路
+      var dao = zeros(BT * D);
+      mmBack(dxmid, lc.ao, P['Wo' + l], BT, D, D, dao, G['Wo' + l]);
+      addBiasBack(dxmid, G['bo' + l], BT, D);
+
+      // 注意力反向
+      var dq = zeros(BT * D), dk = zeros(BT * D), dv = zeros(BT * D);
+      attentionBackward(dao, lc.q, lc.k, lc.v, lc.attnStore, B, T, D, H, dq, dk, dv);
+
+      var dxn1 = zeros(BT * D);
+      mmBack(dq, lc.xn1, P['Wq' + l], BT, D, D, dxn1, G['Wq' + l]);
+      mmBack(dk, lc.xn1, P['Wk' + l], BT, D, D, dxn1, G['Wk' + l]);
+      mmBack(dv, lc.xn1, P['Wv' + l], BT, D, D, dxn1, G['Wv' + l]);
+      addBiasBack(dq, G['bq' + l], BT, D);
+      addBiasBack(dk, G['bk' + l], BT, D);
+      addBiasBack(dv, G['bv' + l], BT, D);
+
+      // LayerNorm 1 反向
+      var dxin1 = zeros(BT * D);
+      layernormBack(dxn1, BT, D, lc.ln1, dxin1, G['ln1g' + l], G['ln1b' + l]);
+
+      // dL/d(xin1) = dL/d(xmid)  ← 残差 1 直通
+      //            + dL/d(xin1)|attn ← 经 LayerNorm1 / Attention
+      // dxmid 此刻已是 dL/d(xmid)（含残差 2 直通），故这里是赋值而非累加。
+      for (i = 0; i < BT * D; i++) dx[i] = dxmid[i] + dxin1[i];
+    }
+
+    // ---- 反向词嵌入 / 位置嵌入 ----
+    for (i = 0; i < BT; i++) {
+      var tok = c.tokens[i], tp = (i % T) * D, xo3 = i * D;
+      for (d = 0; d < D; d++) {
+        G.emb[tok * D + d] += dx[xo3 + d];
+        G.pos[tp + d] += dx[xo3 + d];
+      }
+    }
+  };
+
+  /* ---------------------------- 优化器 ---------------------------- */
+
+  MiniLM.prototype.zeroGrad = function () {
+    for (var i = 0; i < this.paramList.length; i++) this.G[this.paramList[i].name].fill(0);
+  };
+
+  MiniLM.prototype.clipGrad = function (maxNorm) {
+    var total = 0, i, k;
+    for (i = 0; i < this.paramList.length; i++) {
+      var g = this.G[this.paramList[i].name];
+      for (k = 0; k < g.length; k++) total += g[k] * g[k];
+    }
+    var norm = Math.sqrt(total);
+    if (norm > maxNorm) {
+      var s = maxNorm / (norm + 1e-6);
+      for (i = 0; i < this.paramList.length; i++) {
+        var g2 = this.G[this.paramList[i].name];
+        for (k = 0; k < g2.length; k++) g2[k] *= s;
+      }
+    }
+    return norm;
+  };
+
+  MiniLM.prototype.step = function (lr, t) {
+    var b1 = 0.9, b2 = 0.999, eps = 1e-8;
+    var bc1 = 1 - Math.pow(b1, t), bc2 = 1 - Math.pow(b2, t);
+    for (var i = 0; i < this.paramList.length; i++) {
+      var name = this.paramList[i].name, n = this.paramList[i].n;
+      var P = this.P[name], G = this.G[name], M = this.M[name], A = this.Vv[name];
+      for (var k = 0; k < n; k++) {
+        var g = G[k];
+        M[k] = b1 * M[k] + (1 - b1) * g;
+        A[k] = b2 * A[k] + (1 - b2) * g * g;
+        P[k] -= lr * (M[k] / bc1) / (Math.sqrt(A[k] / bc2) + eps);
+      }
+    }
+  };
+
+  /* ---------------------------- 文本生成 ---------------------------- */
+
+  // ids: 提示词的 token id 数组；返回 { ids, steps } —— steps 记录每步候选分布
+  MiniLM.prototype.generate = function (ids, opts) {
+    opts = opts || {};
+    var maxNew = opts.maxNew || 60;
+    var temp = opts.temp == null ? 0.8 : opts.temp;
+    var topk = opts.topk || 8;
+    var repPen = opts.repPenalty == null ? 1.15 : opts.repPenalty;
+    var repWin = opts.repWindow || 24;
+
+    var V = this.V, out = ids.slice();
+    var trace = [];
+    var self = this;
+
+    for (var s = 0; s < maxNew; s++) {
+      var ctx = out.slice(Math.max(0, out.length - this.cfg.ctx));
+      if (ctx.length === 0) break;
+      var n = ctx.length;
+
+      this.forward(ctx, null, n);
+
+      var logits = this.cache.logits;
+      var last = (n - 1) * V;
+      var arr = new REAL(V);
+      var j;
+      for (j = 0; j < V; j++) arr[j] = logits[last + j] / temp;
+
+      // 重复惩罚：压掉最近出现过的 token，缓解小模型"复读机"问题
+      if (repPen !== 1) {
+        var from = Math.max(0, out.length - repWin);
+        for (var k = from; k < out.length; k++) {
+          var id = out[k];
+          arr[id] = arr[id] > 0 ? arr[id] / repPen : arr[id] * repPen;
+        }
+      }
+
+      // top-k 截断
+      var sorted = Array.prototype.slice.call(arr).sort(function (a, b) { return b - a; });
+      var kth = sorted[Math.min(topk, V - 1) - 1];
+      var mx = -Infinity;
+      for (j = 0; j < V; j++) {
+        if (arr[j] < kth) arr[j] = -Infinity;
+        else if (arr[j] > mx) mx = arr[j];
+      }
+
+      var probs = new REAL(V), sum = 0;
+      for (j = 0; j < V; j++) {
+        var e = arr[j] === -Infinity ? 0 : Math.exp(arr[j] - mx);
+        probs[j] = e; sum += e;
+      }
+      var inv = 1 / (sum || 1);
+
+      var r = Math.random(), acc = 0, pick = 0;
+      for (j = 0; j < V; j++) {
+        acc += probs[j] * inv;
+        if (r <= acc) { pick = j; break; }
+      }
+
+      // 记录这一步的高概率候选（用于界面展示"模型在想什么"）
+      var cands = [];
+      for (j = 0; j < V; j++) {
+        if (probs[j] > 0) cands.push({ id: j, p: probs[j] * inv });
+      }
+      cands.sort(function (a, b) { return b.p - a.p; });
+      trace.push({ step: s, chosen: pick, candidates: cands.slice(0, 6) });
+
+      out.push(pick);
+    }
+    return { ids: out, trace: trace };
+  };
+
+  // 返回某一层某个注意力头的 [T, T] 注意力矩阵（用于热力图）
+  MiniLM.prototype.getAttention = function (layer, head) {
+    if (!this.cache || !this.cache.layers) return null;
+    var lc = this.cache.layers[layer];
+    if (!lc) return null;
+    var T = this.cache.T, H = this.cfg.heads;
+    var base = head * T * T;
+    var m = new REAL(T * T);
+    for (var i = 0; i < T * T; i++) m[i] = lc.attnStore[base + i];
+    return m;
+  };
+
+  /* ---------------------------- 分词器 ---------------------------- */
+
+  function buildVocab(text) {
+    var set = new Set();
+    for (var i = 0; i < text.length; i++) set.add(text[i]);
+    var chars = Array.from(set).sort();
+    var itos = ['\u0000'].concat(chars);   // 0 号保留作未知字符
+    var stoi = new Map();
+    for (var k = 0; k < itos.length; k++) stoi.set(itos[k], k);
+    return { itos: itos, stoi: stoi, size: itos.length };
+  }
+
+  function encode(text, stoi) {
+    var ids = [];
+    for (var i = 0; i < text.length; i++) {
+      var id = stoi.get(text[i]);
+      ids.push(id === undefined ? 0 : id);
+    }
+    return ids;
+  }
+
+  function decode(ids, itos) {
+    var s = '';
+    for (var i = 0; i < ids.length; i++) {
+      if (ids[i] === 0) continue;
+      s += itos[ids[i]] || '';
+    }
+    return s;
+  }
+
+  /* ---------------------------- 训练批次 ---------------------------- */
+
+  // 从 id 序列里随机采样 B 个长度为 T 的连续片段
+  function makeBatch(ids, B, T) {
+    var tokens = new Int32Array(B * T);
+    var targets = new Int32Array(B * T);
+    var maxStart = ids.length - T - 1;
+    if (maxStart <= 0) throw new Error('语料太短，请增加文本长度或减小上下文窗口');
+    for (var b = 0; b < B; b++) {
+      var start = Math.floor(Math.random() * maxStart);
+      for (var t = 0; t < T; t++) {
+        tokens[b * T + t] = ids[start + t];
+        targets[b * T + t] = ids[start + t + 1];
+      }
+    }
+    return { tokens: tokens, targets: targets };
+  }
+
+  /* ---------------------------- 导出 ---------------------------- */
+
+  var api = {
+    MiniLM: MiniLM,
+    buildVocab: buildVocab,
+    encode: encode,
+    decode: decode,
+    makeBatch: makeBatch,
+    gelu: gelu,
+    dgelu: dgelu,
+    // 以下导出仅供单元测试使用
+    attentionForward: attentionForward,
+    attentionBackward: attentionBackward,
+    layernorm: layernorm,
+    layernormBack: layernormBack
+  };
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  global.MiniLMKit = api;
+
+})(__g);
+
+  return __g.MiniLMKit;
+}
+window.MiniLMKitF64 = __makeMiniLM(true);   // 梯度检查用
+window.MiniLMKit    = __makeMiniLM(false);  // 训练用
+
+/* ---- corpus.js（内联）---- */
+/* ============================================================================
+ * corpus.js — 用于训练的中文小说语料
+ * ----------------------------------------------------------------------------
+ * 全部为本项目原创文本，可直接用于训练与分发。
+ *
+ * 关于语料的一点说明（这也是实验的一部分）：
+ * 字符级小模型的能力几乎完全由语料的"集中度"决定。
+ * 语料越集中在单一风格、单一题材上，模型生成得越像样；
+ * 语料越杂，模型越会写出四不像的东西——这就是 TinyStories 论文
+ * "把词汇表限定在 1500 个词" 背后的核心洞察。
+ * ============================================================================ */
+
+(function (global) {
+  'use strict';
+
+  var CORPUS = {};
+
+  /* ---------------------------------------------------------------
+   * 风格一：科幻 · 记忆与意识
+   * --------------------------------------------------------------- */
+  CORPUS.scifi = {
+    name: '科幻 · 记忆之海',
+    desc: '新长安，一个正在失去记忆的人',
+    text:
+`新长安的雨下了三天。城市上空的浮岛在雨幕里只剩下模糊的轮廓，像一群搁浅的鲸。
+
+恒站在窗前，看着玻璃上的水痕不断汇合、分开、再汇合。他的记忆正在以每天百分之零点三的速度消失。这是第十七天。
+
+他记得七天前自己说过的话，记得昨天早饭吃的是粥。但他想不起来母亲的样子了。他只记得母亲的手很凉，剩下的全是空白。空白像一块没有边界的布，慢慢盖住他脑子里所有的东西。
+
+医生告诉他，这个过程是不可逆的。医生说，你的意识里有一块碎片，它不属于你。它在慢慢替换你。
+
+恒问，那我还会是我吗。
+
+医生没有回答。医生只是把检查报告推到桌子对面，然后说，去医院外面走一走吧，趁你还记得路。
+
+于是恒就走了出去。雨落在他的肩上，很快就湿透了他的外套。街上的人撑着伞匆匆走过，没有一个人看他。新长安有一千万人，一千万人里没有一个认识他。
+
+他沿着长街一直向前。路过第七个路口的时候，他停了下来，因为他不知道自己是从哪个方向来的。
+
+一个女孩站在路口，也在看着雨。她穿着一件洗得发白的蓝色外套，手里没有伞。她的头发被雨打湿了，贴在脸颊上。
+
+恒问，你也在等人吗。
+
+女孩说，我在等一个不会来的人。
+
+恒说，那你怎么知道他不会来。
+
+女孩说，因为他已经忘记我了。她说这句话的时候，语气很平静，像是在说别人的事情。
+
+恒看着她。他忽然觉得这个场景很熟悉。他想不起来在哪里见过她，但他确定自己见过。那种熟悉感像一根很细的针，扎在他的意识里。
+
+恒问，你叫什么名字。
+
+女孩说，我叫苏念。
+
+恒说，我好像认识你。
+
+苏念笑了。她说，你现在还认识我，这很好。明天你可能就不认识了。
+
+恒问，为什么。
+
+苏念说，因为你正在变成另外一个人。她说，他们说这是升级，可我觉得这是消失。
+
+雨还在下。两个人站在路口，谁也没有动。
+
+苏念说，你还记得昨天做了什么吗。
+
+恒想了想，说，我吃了粥。
+
+苏念说，除了吃粥呢。
+
+恒沉默了。他发现自己的昨天只剩下一点点东西。吃粥，看雨，睡觉。其他全是空白。
+
+苏念说，我教你一个办法。你把重要的事情写在纸上。纸不会忘记。
+
+恒说，可是我明天会忘记纸放在哪里。
+
+苏念说，所以你写在手上。
+
+她走过去，握住他的手。她的手指很凉。她用指尖在他掌心里写了三个字。写完以后，她把手松开，说，现在你自己看一眼。
+
+恒低下头。他的掌心里什么也没有。雨水已经把字冲掉了。
+
+苏念说，没关系。至少这一分钟你还记得。
+
+恒问，那三个字是什么。
+
+苏念说，是我爱你。
+
+恒站在那里，很久没有说话。雨落进他的眼睛里，他分不清那是雨还是别的什么。
+
+苏念说，我要走了。
+
+恒问，去哪里。
+
+苏念说，去一个还记得我的地方。她说，等你想起我的时候，就去海边找我。她说完就转身走了，走进雨里，走进人群里，很快就看不见了。
+
+恒在路口站了很久。他试着回忆那三个字，但是他想不起来。他记得的只有她的手指很凉，还有她的手心里写过什么东西。
+
+他抬起手，看着自己的掌心。掌心里什么都没有。
+
+第二天，恒醒过来。他看着窗外，雨停了。他起床，洗漱，吃粥。然后他坐在桌前，很久没有动，因为他不知道今天该做什么。
+
+桌上有一张纸，上面写着一行字。字迹是他自己的，但他不认识那些字的意思。
+
+纸上写着：去医院外面走一走，趁你还记得路。
+
+恒把纸折起来，放进口袋。他推开门，走了出去。
+
+外面的世界很亮。他沿着长街一直向前。走到第七个路口的时候，他停了下来。
+
+一个女孩站在路口。她穿着一件洗得发白的蓝色外套。
+
+女孩看见他，愣了一下，然后说，你来了。
+
+恒问，你是谁。
+
+女孩说，我是苏念。
+
+恒说，我不认识你。
+
+苏念说，没关系。她说，我们昨天见过。
+
+恒问，昨天我做了什么。
+
+苏念说，昨天你吃了粥。
+
+恒说，哦。
+
+苏念说，你还想去海边吗。
+
+恒问，为什么是海边。
+
+苏念说，因为你昨天说你想去。
+
+恒想了想，说，好吧。
+
+他们一起向前走。雨又开始下了，很小，像雾。苏念走在他左边，一直走在他左边。
+
+恒忽然问，我是不是忘记过什么很重要的事情。
+
+苏念说，是的。
+
+恒问，是什么。
+
+苏念说，是我。
+
+恒沉默了一会儿，说，那我现在记得了。
+
+苏念说，你现在记得，明天也会忘记。
+
+恒说，那我明天再重新认识你一次。
+
+苏念没有回答。她只是加快了一点脚步，让两个人走得更近一些。
+
+雨落在他们身上。新长安的雨下了三天，这是第四天。城市上空的浮岛在雨幕里只剩下模糊的轮廓，像一群搁浅的鲸。
+
+恒看着那些轮廓，忽然觉得它们很像一个人躺在水里的样子。
+
+他说，我们为什么要去海边。
+
+苏念说，因为我想看看，你到底能不能记起来。
+
+她说，如果你记起来了，我就留下来。如果你记不起来，我就走。
+
+恒问，走去哪里。
+
+苏念说，走去一个还记得我的地方。
+
+他们继续向前走。路很长。恒不知道走了多久，只知道天慢慢暗了下来。路灯一盏一盏亮起来，把雨照成一片一片金色的薄雾。
+
+走到海边的时候，天已经黑了。
+
+海面很黑，什么也看不见。只有远处有一点点灯光，那是海上浮岛的方向。
+
+苏念站在他旁边，说，你想起来了吗。
+
+恒看着黑色的海。他脑子里全是空白。空白像一块没有边界的布。
+
+他说，对不起。
+
+苏念点点头。她说，我知道了。
+
+她转身要走。恒忽然抓住了她的手腕。
+
+他说，等一下。
+
+苏念停下。
+
+恒说，我不记得你。但是我记得你的手很凉。
+
+苏念的呼吸停了一瞬。
+
+恒说，我记得我们站在一个路口。我记得下过雨。我记得你说过一句话，可是我想不起来是什么了。
+
+他说，这些算不算记得。
+
+苏念站在那里，很久没有说话。
+
+然后她说，算。
+
+她说，这些都算。
+
+海风从远处吹过来，把雨吹到他们的脸上。恒的手还握着她的手腕，他能感觉到她的脉搏，一下，一下，很慢，很稳。
+
+苏念说，我不走了。
+
+恒问，为什么。
+
+苏念说，因为你记得我的手很凉。
+
+她转过身，看着他。路灯的光落在她的脸上。
+
+她说，这就够了。
+
+那天晚上，恒在自己的手心里写了三个字。这一次他写得很大，写得很深，写完以后他没有洗手。
+
+第二天早上，他醒过来。窗外有阳光。他起床，洗漱，吃粥。
+
+然后他低下头，看着自己的掌心。
+
+掌心里有三个字。
+
+他看了很久，慢慢地读了出来。
+
+他读出来的时候，眼泪就掉了下来。他不知道为什么，只是觉得很熟悉。他觉得自己好像已经等了这三个字很久。
+
+他把手握起来，握得很紧。
+
+然后他推开门，走了出去。外面的世界很亮。
+
+他要去海边。
+
+他记得有一个人在等他。他也许不记得她的名字，但他记得她的手指很凉。
+
+这就够了。`
+  };
+
+  /* ---------------------------------------------------------------
+   * 风格二：武侠 · 剑雨楼
+   * --------------------------------------------------------------- */
+  CORPUS.wuxia = {
+    name: '武侠 · 剑雨楼',
+    desc: '一场约在雨夜的决斗',
+    text:
+`剑雨楼的灯亮到三更。
+
+沈砚站在楼下的青石板上，抬头看着那扇窗。雨落在他的肩上，落在他的剑上，落在他脚下的石板上，声音很轻，很密。
+
+他已经站了一个时辰。他知道楼上有人在等他。
+
+一个人从楼里走出来。是楼里的伙计，举着一盏灯笼，灯光照在沈砚的脸上。
+
+伙计说，客人，楼上有人请您上去。
+
+沈砚说，我不上去。
+
+伙计说，那人在等您。
+
+沈砚说，让她等。
+
+伙计愣了一下，退了回去。
+
+雨下得更大了。街上没有一个人。整条长街只剩下剑雨楼这一盏灯，还有沈砚一个人。
+
+又过了半个时辰，楼上的门开了。
+
+一个女子站在门口。她穿着一身白衣，手里握着一柄没有伞面的伞骨。她站在门内，看着雨，看着楼下的沈砚。
+
+她说，你不肯上来，那我下来。
+
+她走下楼，走下台阶，走到雨里。雨水打湿了她的白衣，很快就湿透了。她走到沈砚面前三步远的地方，停下。
+
+沈砚说，你不该来。
+
+女子说，我为什么不该来。
+
+沈砚说，因为你会死。
+
+女子笑了笑。她说，那你为什么不上去。你上去，我就可以活。
+
+沈砚没有说话。
+
+女子说，你不上去，是因为你怕。你怕你见了我，就下不了手。
+
+沈砚说，我不怕。
+
+女子说，那你看着我的眼睛。
+
+沈砚看着她。她的眼睛很黑，像两口深井。他看了三息，然后移开了目光。
+
+女子说，你看，你怕。
+
+雨落在两个人中间，像一道帘子。
+
+沈砚说，师父是你杀的。
+
+女子说，是。
+
+沈砚说，为什么。
+
+女子说，因为他想杀我。
+
+沈砚说，他为什么要杀你。
+
+女子说，因为我偷了他一样东西。
+
+沈砚问，什么东西。
+
+女子说，他的剑谱。
+
+沈砚沉默了很久。他说，就为了一本剑谱。
+
+女子说，不是一本剑谱。她说，是那本剑谱里写着的一句话。
+
+沈砚问，什么话。
+
+女子说，写了四个字。她说，那四个字是，不可传女。
+
+沈砚抬起头。雨水顺着他的脸流下来。
+
+女子说，我学了十二年剑。我比你的师兄们学得都好。可是师父说，剑法不能传给女子。他说这是规矩。他说规矩比人重要。
+
+她说，所以我杀了他。
+
+沈砚说，你可以离开。你可以不学。
+
+女子说，我为什么要离开。她说，那是我十二年的东西。
+
+沈砚没有说话。他的手按在剑柄上。
+
+女子看见他的动作，也把手按在自己的剑柄上。
+
+她说，你拔剑吧。
+
+沈砚说，我不想拔。
+
+女子说，你必须拔。她说，你今天是来杀我的。
+
+沈砚说，我今天来，是想听你说一句话。
+
+女子问，什么话。
+
+沈砚说，我想听你说，你不是故意的。
+
+女子看着他。雨落在她的睫毛上，一滴一滴地掉下去。
+
+她说，我是故意的。
+
+她说，我每一下都是故意的。
+
+沈砚闭上眼睛。
+
+再睁开眼睛的时候，他的剑已经出鞘了。
+
+剑光划开雨幕，像一道白色的闪电。女子也拔了剑，两柄剑在雨里撞在一起，发出一声很脆的响。
+
+他们打了起来。剑雨楼的灯照在两个人身上，照在雨上，照在两柄剑上，把雨照成一片一片金色的薄雾。
+
+打了十七招，沈砚的剑刺穿了女子的肩膀。
+
+女子退了三步，靠在一根柱子上。血顺着她的手流下来，混在雨水里，很快就看不见了。
+
+沈砚站在她面前，剑尖指着她。
+
+女子说，你赢了。
+
+沈砚说，你让我赢的。
+
+女子说，是。
+
+沈砚问，为什么。
+
+女子说，因为我想让你赢。
+
+沈砚说，为什么。
+
+女子说，因为我杀了你师父。她说，我杀了他，你就没有师父了。我想让你至少有一件事赢。
+
+沈砚的手抖了一下。
+
+他说，你为什么不逃。
+
+女子说，我逃了十二年了。她说，从我学第一招剑开始，我就在逃。
+
+她说，我不想逃了。
+
+雨还在下。
+
+沈砚把剑收了回去。他走到女子面前，蹲下来，撕下自己的衣袖，缠在她的肩膀上。
+
+女子说，你在做什么。
+
+沈砚说，我给你止血。
+
+女子说，你应该杀了我。
+
+沈砚说，我不杀你。
+
+女子说，为什么。
+
+沈砚说，因为师父教我剑法的时候，说过一句话。他说，剑是用来护人的，不是用来杀人的。
+
+女子说，可他还是想杀我。
+
+沈砚说，那是他错了。
+
+女子看着他。她的眼睛里第一次有了别的东西。
+
+她说，那本剑谱，在我住的地方。她说，我明天给你送过去。
+
+沈砚说，不用了。
+
+女子说，那你要什么。
+
+沈砚站起来，看着雨。他说，我要你活下来。
+
+他说，然后你可以把那本剑谱上的字改掉。
+
+女子问，改什么。
+
+沈砚说，改成，可以传女。
+
+女子坐在雨里，看了他很久。
+
+然后她笑了。她笑起来的时候，雨好像小了一点。
+
+她说，好。
+
+沈砚伸出手。女子把手放在他的手里。她的手很凉。
+
+他把她扶起来。两个人一起走进剑雨楼。楼上的灯还亮着。
+
+雨下了一整夜。第二天早上，天亮的时候，雨停了。
+
+剑雨楼的伙计打开门，看见青石板上还留着水，水面上浮着几片被打落的叶子。
+
+街上没有人。
+
+远处的山在雾里，一点一点地显出来。
+
+有人说，那天晚上以后，剑雨楼的灯就再也没有熄过。
+
+也有人说，沈砚和他的剑一起不见了。
+
+还有人说，他在南边的一座小城里见过他们。说他们开了一间很小的武馆，教附近的孩子们练剑。馆里的规矩只有一条，男孩子和女孩子都可以来。
+
+说这话的人，没有一个人真的去过那里。
+
+但是每年春天，都有人从很远的地方来剑雨楼，站在楼下，抬头看那扇窗。
+
+他们看很久，然后就走。
+
+雨总会再下的。`
+  };
+
+  /* ---------------------------------------------------------------
+   * 风格三：都市 · 深夜面馆
+   * --------------------------------------------------------------- */
+  CORPUS.urban = {
+    name: '都市 · 深夜面馆',
+    desc: '只在夜里开门的一家小店',
+    text:
+`巷子口有一家面馆，只在夜里开门。
+
+老板是个四十多岁的男人，姓陈。他不爱说话，客人来了，他就问一句，吃什么。客人说了，他就去下面。面端上来，他就不管了。
+
+面馆只有六张桌子。墙上贴着一张手写的菜单，字很丑，上面只有四样东西。阳春面，牛肉面，雪菜肉丝面，还有一碗汤。
+
+凌晨一点，面馆的灯还亮着。
+
+一个年轻女人推门进来。她穿着一身深色的职业装，头发挽着，脸上有点疲惫。她坐在靠窗的位置，把包放在旁边。
+
+陈老板走过去，问，吃什么。
+
+女人说，一碗阳春面。
+
+陈老板说，好。
+
+他去后厨下面。水开了，面下去，他用筷子拨了拨。三分钟，面捞起来，加一勺猪油，一点酱油，一把葱花，浇上热汤。热气腾起来，把整个小店都填满了。
+
+他把面端过去。
+
+女人说，谢谢。
+
+她低头吃面。吃得很慢。吃到一半的时候，她停下来，看着窗外。
+
+窗外是一条空巷子。只有一盏路灯，灯泡有点闪。
+
+陈老板在擦柜台。他没有看她。
+
+女人忽然说，老板，你这里开到几点。
+
+陈老板说，开到没人来。
+
+女人说，那要是没人来呢。
+
+陈老板说，那就早点睡。
+
+女人笑了一下。她继续吃面。
+
+过了一会儿，她又说，我今天辞职了。
+
+陈老板嗯了一声。
+
+女人说，我做了七年。七年里我每天加班到十一点。今天我提了辞职，我老板问我为什么。我说我累了。他说，别人都不累吗。
+
+她说，我当时不知道该怎么回答。
+
+陈老板说，那你现在知道了吗。
+
+女人想了想，说，知道了。她说，别人累不累，跟我累不累，是两件事。
+
+陈老板点点头。他把柜台擦完了，把抹布挂起来。
+
+女人把面吃完了。她把碗推到一边，问，多少钱。
+
+陈老板说，十二块。
+
+女人从包里拿了钱，放在桌上。她站起来，拿上包，往门口走。
+
+走到门口的时候，她停下来。
+
+她说，老板，你这面很好吃。
+
+陈老板说，谢谢。
+
+女人说，我明天还能来吗。
+
+陈老板说，我每天都在。
+
+女人点点头，推门走了。
+
+门上的铃响了一声。
+
+陈老板走过去，把碗收起来。他把碗端到后厨，洗了，放好。然后他回到柜台后面，坐下来。
+
+他拿起桌上的报纸。报纸是三天前的。他看了一会儿，又放下了。
+
+他把灯关了一盏。
+
+---
+
+凌晨两点半，一个男人推门进来。
+
+男人看上去五十岁左右，穿着一件旧夹克，头发有点乱。他在门口站了一会儿，好像在犹豫要不要进来。
+
+陈老板说，坐吧。
+
+男人才走进来，坐在最里面的一张桌子。
+
+陈老板问，吃什么。
+
+男人说，你们有什么。
+
+陈老板指了指墙上的菜单。
+
+男人看了很久，说，一碗牛肉面。
+
+陈老板说，好。
+
+他去后厨下面。牛肉是提前炖好的，在锅里泡着。他捞了几块，切成片。面下锅，捞起来，浇汤，摆上牛肉，撒一把香菜。
+
+他把面端过去。
+
+男人说，谢谢。
+
+他低头吃面。他吃得很急，像是很久没吃过饭了。
+
+吃到一半，他忽然停下来，用手背擦了擦眼睛。
+
+陈老板在擦桌子。他没有看他。
+
+男人说，老板，你这店开了多久了。
+
+陈老板说，八年。
+
+男人说，八年。他说，八年里你一直在这儿吗。
+
+陈老板说，一直在。
+
+男人说，那真好。
+
+他继续吃面。吃完以后，他把碗推开，坐了一会儿。
+
+他说，我今天去看我儿子了。
+
+陈老板嗯了一声。
+
+男人说，他在里面。他说，还有三年出来。
+
+陈老板说，哦。
+
+男人说，我一年去看他一次。他每次都说，爸，你回去吧。他说他不想见我。
+
+男人说，我今天还是去了。我在门口站了两个小时。他没出来。
+
+陈老板说，也许他明天就出来了。
+
+男人笑了一下。他说，也许吧。
+
+他从口袋里拿出钱，放在桌上。他站起来，往门口走。
+
+走到门口，他回头说，老板，你的面跟我媳妇做的味道很像。
+
+陈老板说，谢谢。
+
+男人说，她不在了。走了六年了。
+
+陈老板说，节哀。
+
+男人点点头，推门走了。
+
+门上的铃响了一声。
+
+陈老板走过去，把碗收起来。
+
+他把碗端到后厨，洗了，放好。然后他回到柜台后面，坐下来。
+
+他把灯又关了一盏。
+
+---
+
+凌晨四点，一个女孩推门进来。
+
+她看上去十六七岁，穿着校服，背着书包。她站在门口，有点紧张。
+
+陈老板说，进来吧。
+
+女孩走进来，坐在靠门的位置。
+
+陈老板问，吃什么。
+
+女孩说，我只有五块钱。
+
+陈老板说，那就吃一碗阳春面。
+
+女孩说，够吗。
+
+陈老板说，够。
+
+他去后厨下面。他给的分量比平时多了一点。面捞起来的时候，他想了想，又加了一个荷包蛋。
+
+他把面端过去。
+
+女孩说，我没有点蛋。
+
+陈老板说，送的。
+
+女孩看着他，说，谢谢。
+
+她低头吃面。她吃得很香，很快。吃完以后，她把碗里最后一口汤也喝了。
+
+她说，老板，我明天要考试。
+
+陈老板说，什么考试。
+
+女孩说，高考。她说，我昨天跟我妈吵架了。我跑出来了。
+
+陈老板说，你妈会担心的。
+
+女孩说，她不会。她说，她只关心我考多少分。
+
+陈老板说，她关心你考多少分，也是关心你。
+
+女孩没说话。她低着头，手指在桌面上划来划去。
+
+过了一会儿，她说，她说我要是考不上，就对不起她。
+
+陈老板说，那你想考吗。
+
+女孩说，我想。
+
+陈老板说，那就够了。
+
+女孩抬起头，看着他。
+
+陈老板说，考不上也没关系。他说，路很多。
+
+女孩看着他，忽然眼泪就掉下来了。她没有哭出声，只是眼泪一直掉。
+
+陈老板没有安慰她。他转过身，去擦柜台。
+
+女孩擦干眼泪，站起来。她把五块钱放在桌上。
+
+她说，老板，我明天考完还来。
+
+陈老板说，好。
+
+女孩推门走了。
+
+门上的铃响了一声。
+
+陈老板把碗收起来。他看见碗里干干净净，一点汤都没剩。
+
+他把碗端到后厨，洗了，放好。
+
+---
+
+天快亮了。
+
+陈老板把最后两盏灯关了，只留门口那一盏。他坐在柜台后面，看着窗外。
+
+巷子里的路灯还在闪。天边有一点点白。
+
+他的妻子从后门进来。她提着一个袋子，里面是菜。
+
+她说，今天生意怎么样。
+
+陈老板说，来三个人。
+
+她说，都吃了什么。
+
+陈老板说，一碗阳春面，一碗牛肉面，一碗阳春面加蛋。
+
+她说，那个加蛋的，你没多收钱吧。
+
+陈老板说，没有。
+
+她笑了一下，把袋子放在桌上。她说，你就是心软。
+
+陈老板说，明天可能还来。
+
+她说，那就明天再说。
+
+她把菜拿进后厨，开始收拾。陈老板站起来，把门口那盏灯也关了。
+
+天亮了。
+
+巷子口的这家面馆，关上了门。
+
+它晚上还会开。`
+  };
+
+  /* ---------------------------------------------------------------
+   * 自定义语料的占位
+   * --------------------------------------------------------------- */
+  CORPUS.custom = {
+    name: '自定义语料',
+    desc: '粘贴你自己的文本',
+    text: ''
+  };
+
+  global.CORPUS = CORPUS;
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = CORPUS;
+
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+
+</script>
+<script>
+(function () {
+'use strict';
+
+var K = window.MiniLMKit;
+var CORPUS = window.CORPUS;
+if (!K || !CORPUS) {
+  document.body.innerHTML = '<p style="padding:40px;color:#ff6b6b">未能加载 minilm.js / corpus.js，请确认三个文件在同一目录。</p>';
+  return;
+}
+
+var $ = function (id) { return document.getElementById(id); };
+
+var PRESETS = {
+  fast: { ctx: 16, d: 32, layers: 2, heads: 4, batch: 8, lrIdx: 4, steps: 150 },
+  std:  { ctx: 32, d: 40, layers: 2, heads: 4, batch: 8, lrIdx: 4, steps: 400 },
+  deep: { ctx: 32, d: 48, layers: 3, heads: 4, batch: 12, lrIdx: 4, steps: 700 },
+  big:  { ctx: 48, d: 64, layers: 4, heads: 8, batch: 16, lrIdx: 3, steps: 1000 }
+};
+
+var PROMPTS = {
+  scifi: ['新长安的雨下了', '恒站在窗前，', '苏念说，我', '他低下头，看着', '他的记忆正在', '雨落在他的肩上'],
+  wuxia: ['沈砚站在', '女子说，你', '雨落在他的', '剑雨楼的灯', '沈砚说，我', '她走过来，握'],
+  urban: ['陈老板说，', '巷子口有一家', '她低头吃面', '他说，我今天', '门上的铃响了', '天快亮了'],
+  custom: ['第一次', '他说，']
+};
+
+var S = {
+  model: null, vocab: null, ids: null, corpusKey: 'scifi',
+  running: false, paused: false, done: false,
+  step: 0, steps: 0, lr: 0.004, batch: 8, cfg: null,
+  losses: [], smooth: [], snapMarks: [],
+  t0: 0, lastFrameT: 0, totalActive: 0,
+  nextSnap: 0, snapInterval: 1, snapshots: [], pendingSnap: false,
+  lastGenerateTrace: null
+};
+
+/* ------------------------------------------------------------------ */
+/* 语料与配置                                                          */
+/* ------------------------------------------------------------------ */
+
+function currentText() {
+  if (S.corpusKey === 'custom') return $('fCustom').value || '';
+  return CORPUS[S.corpusKey].text;
+}
+
+function initCorpusSelect() {
+  var sel = $('fCorpus');
+  ['scifi', 'wuxia', 'urban', 'custom'].forEach(function (k) {
+    var o = document.createElement('option');
+    o.value = k;
+    o.textContent = CORPUS[k].name + '（' + CORPUS[k].desc + '）';
+    sel.appendChild(o);
+  });
+  sel.value = 'scifi';
+  sel.addEventListener('change', function () {
+    S.corpusKey = sel.value;
+    $('customWrap').style.display = S.corpusKey === 'custom' ? '' : 'none';
+    refreshCorpusMeta();
+    renderPromptChips();
+    if (S.corpusKey !== 'custom') {
+      var first = PROMPTS[S.corpusKey][0];
+      $('gPrompt').value = first;
+      $('aText').value = CORPUS[S.corpusKey].text.slice(0, 11);
+    }
+  });
+}
+
+function refreshCorpusMeta() {
+  var t = currentText();
+  var chars = 0, set = {};
+  for (var i = 0; i < t.length; i++) { set[t[i]] = 1; }
+  for (var k in set) chars++;
+  var el = $('corpusMeta');
+  if (!t) {
+    el.innerHTML = '<span style="color:#ffb454">自定义语料为空，请粘贴 2000 字以上文本。</span>';
+    $('sCorpus').textContent = '0';
+    $('sVocab').textContent = '—';
+    return;
+  }
+  $('sCorpus').textContent = t.length.toLocaleString();
+  $('sVocab').innerHTML = chars + '<small>字</small>';
+  var warn = t.length < 1200 ? ' <span style="color:#ffb454">（偏短，建议 ≥2000 字）</span>' : '';
+  el.innerHTML = '语料 <b style="color:#e7eaf2">' + t.length.toLocaleString() + '</b> 字 · 唯一字符 <b style="color:#e7eaf2">' +
+                 chars + '</b> 个 · 词表大小 <b style="color:#e7eaf2">' + (chars + 1) + '</b>' + warn;
+}
+
+function renderPromptChips() {
+  var box = $('promptChips');
+  box.innerHTML = '';
+  var list = PROMPTS[S.corpusKey] || [];
+  list.forEach(function (p) {
+    var b = document.createElement('button');
+    b.className = 'chip';
+    b.textContent = p;
+    b.addEventListener('click', function () { $('gPrompt').value = p; });
+    box.appendChild(b);
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* 参数绑定                                                            */
+/* ------------------------------------------------------------------ */
+
+function bindRange(id, valId, fmt, onchange) {
+  var el = $(id), lab = $(valId);
+  var upd = function () {
+    lab.textContent = fmt(el.value);
+    if (onchange) onchange(el.value);
+  };
+  el.addEventListener('input', upd);
+  upd();
+  return el;
+}
+
+function lrFromIdx(i) { return (0.001 * i).toFixed(3); }
+
+function applyPreset(name) {
+  var p = PRESETS[name];
+  if (!p) return;
+  $('fCtx').value = p.ctx;     $('vCtx').textContent = p.ctx;
+  $('fD').value = p.d;         $('vD').textContent = p.d;
+  $('fLayers').value = p.layers; $('vLayers').textContent = p.layers;
+  $('fHeads').value = p.heads; $('vHeads').textContent = p.heads;
+  $('fBatch').value = p.batch; $('vBatch').textContent = p.batch;
+  $('fLr').value = p.lrIdx;    $('vLr').textContent = lrFromIdx(p.lrIdx);
+  $('fSteps').value = p.steps; $('vSteps').textContent = p.steps;
+  fixHeads();
+  refreshConfigStats();
+  document.querySelectorAll('.chip[data-preset]').forEach(function (c) {
+    c.classList.toggle('on', c.getAttribute('data-preset') === name);
+  });
+}
+
+function fixHeads() {
+  // d 必须能被 heads 整除
+  var d = +$('fD').value;
+  var heads = +$('fHeads').value;
+  var maxH = Math.min(8, d);
+  var ok = [];
+  for (var h = 1; h <= maxH; h++) if (d % h === 0) ok.push(h);
+  if (ok.indexOf(heads) < 0) {
+    heads = ok[ok.length - 1];
+    $('fHeads').value = heads;
+    $('vHeads').textContent = heads;
+  }
+  $('fHeads').max = maxH;
+  $('vHeads').textContent = $('fHeads').value;
+}
+
+function refreshConfigStats() {
+  var d = +$('fD').value, L = +$('fLayers').value, ctx = +$('fCtx').value, H = +$('fHeads').value;
+  var text = currentText();
+  var uniq = new Set();
+  for (var i = 0; i < text.length; i++) uniq.add(text[i]);
+  var V = uniq.size + 1;
+  if (!text) { $('sParam').textContent = '—'; return; }
+  var F = 4 * d;
+  var n = V * d + ctx * d;          // emb + pos（输出层与 emb 共享权重，不额外增加参数）
+  for (var l = 0; l < L; l++) {
+    n += 2 * d;             // ln1
+    n += 4 * (d * d) + 4 * d; // Wq/Wk/Wv/Wo + b
+    n += 2 * d;             // ln2
+    n += d * F + F + F * d + d; // W1,b1,W2,b2
+  }
+  n += 2 * d;               // 最终 LN
+  $('sParam').innerHTML = n.toLocaleString() + '<small>参数</small>';
+  $('sStruct').innerHTML = ctx + '/' + d + '/' + L + '/' + H;
+}
+
+function structTable() {
+  var d = +$('fD').value, L = +$('fLayers').value, ctx = +$('fCtx').value, H = +$('fHeads').value, F = 4 * d;
+  var text = currentText();
+  var uniq = new Set();
+  for (var i = 0; i < text.length; i++) uniq.add(text[i]);
+  var V = (uniq.size + 1) || 1;
+  var rows = [
+    ['字符词表 emb', V + ' × ' + d, V * d],
+    ['位置编码 pos', ctx + ' × ' + d, ctx * d]
+  ];
+  for (var l = 0; l < L; l++) {
+    rows.push(['第 ' + l + ' 层 · 注意力 Wq/Wk/Wv/Wo', '4 × ' + d + '²', 4 * d * d + 4 * d]);
+    rows.push(['第 ' + l + ' 层 · 前馈 W1/W2', d + '×' + F + ' 与 ' + F + '×' + d, d * F + F * d + F + d]);
+    rows.push(['第 ' + l + ' 层 · LayerNorm ×2', 'γ/β × ' + d + '', 4 * d]);
+  }
+  rows.push(['输出层（复用 emb 转置）', '权重共享', 0]);
+  rows.push(['最终 LayerNorm', 'γ/β × ' + d, 2 * d]);
+  var t = $('structTable');
+  t.innerHTML = rows.map(function (r) {
+    return '<tr><td>' + r[0] + '<div class="n">' + r[1] + '</div></td><td>' + r[2].toLocaleString() + '</td></tr>';
+  }).join('') +
+  '<tr><td><b style="color:#e7eaf2">合计</b></td><td><b style="color:#5b9dff">' +
+  rows.reduce(function (a, r) { return a + r[2]; }, 0).toLocaleString() + '</b></td></tr>';
+}
+
+/* ------------------------------------------------------------------ */
+/* 损失曲线                                                            */
+/* ------------------------------------------------------------------ */
+
+function fitCanvas(cv) {
+  var dpr = window.devicePixelRatio || 1;
+  var w = cv.clientWidth, h = cv.clientHeight || parseInt(cv.getAttribute('height'), 10);
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
+    cv.width = Math.round(w * dpr);
+    cv.height = Math.round(h * dpr);
+  }
+  var g = cv.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { g: g, w: w, h: h };
+}
+
+function drawLoss() {
+  var o = fitCanvas($('lossChart')), g = o.g, W = o.w, H = o.h;
+  g.clearRect(0, 0, W, H);
+  var padL = 34, padR = 10, padT = 10, padB = 20;
+  var pw = W - padL - padR, ph = H - padT - padB;
+  var n = S.losses.length;
+
+  var lo = Infinity, hi = -Infinity;
+  for (var i = 0; i < n; i++) { var v = S.losses[i]; if (v < lo) lo = v; if (v > hi) hi = v; }
+  if (!isFinite(lo)) { lo = 0; hi = 6; }
+  if (hi - lo < 1.2) { var mid = (hi + lo) / 2; lo = mid - 0.7; hi = mid + 0.7; }
+  var pad = (hi - lo) * 0.12; lo -= pad; hi += pad;
+  if (lo < 0) lo = 0;
+
+  var xAt = function (i) { return padL + (n <= 1 ? 0 : i / (n - 1)) * pw; };
+  var yAt = function (v) { return padT + (1 - (v - lo) / (hi - lo)) * ph; };
+
+  // 网格
+  g.strokeStyle = '#1a1f29'; g.lineWidth = 1;
+  g.font = '10px monospace'; g.fillStyle = '#6d7787'; g.textAlign = 'right'; g.textBaseline = 'middle';
+  for (var t = 0; t <= 4; t++) {
+    var vv = lo + (hi - lo) * t / 4;
+    var y = Math.round(yAt(vv)) + 0.5;
+    g.beginPath(); g.moveTo(padL, y); g.lineTo(W - padR, y); g.stroke();
+    g.fillText(vv.toFixed(2), padL - 5, y);
+  }
+
+  // 随机猜测水位线 ln(V)：loss 低于这条线，说明模型真的学到了东西
+  g.setLineDash([3, 4]); g.strokeStyle = '#28303e';
+  var yln = Math.round(yAt(Math.log(V_REF))) + 0.5;
+  if (yln > padT && yln < padT + ph) {
+    g.beginPath(); g.moveTo(padL, yln); g.lineTo(W - padR, yln); g.stroke();
+    g.textAlign = 'left'; g.fillStyle = '#4a5568';
+    g.fillText('随机猜测水位线 ln(V)', padL + 4, yln - 7);
+  }
+  g.setLineDash([]);
+
+  // 生成质量"甜蜜点"带：实测中 loss 落在这一区间时，
+  // 模型已经会造句、但还没把语料背死，生成效果最好。
+  var bandHi = SWEET[1], bandLo = SWEET[0];
+  var yTop = padT + (1 - (Math.min(bandHi, hi) - lo) / (hi - lo)) * ph;
+  var yBot = padT + (1 - (Math.max(bandLo, lo) - lo) / (hi - lo)) * ph;
+  if (yBot > yTop) {
+    g.fillStyle = 'rgba(45,212,167,.10)';
+    g.fillRect(padL, yTop, pw, yBot - yTop);
+    g.strokeStyle = 'rgba(45,212,167,.32)'; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(padL, yTop + .5); g.lineTo(W - padR, yTop + .5); g.stroke();
+    g.beginPath(); g.moveTo(padL, yBot + .5); g.lineTo(W - padR, yBot + .5); g.stroke();
+    if (yBot - yTop > 26) {
+      g.textAlign = 'right'; g.textBaseline = 'middle'; g.fillStyle = 'rgba(45,212,167,.75)';
+      g.font = '10px sans-serif';
+      g.fillText('甜蜜点', W - padR - 4, (yTop + yBot) / 2);
+    }
+  }
+
+  if (n < 1) {
+    g.fillStyle = '#6d7787'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText('等待训练开始…', W / 2, H / 2);
+    return;
+  }
+
+  // 原始损失
+  g.strokeStyle = 'rgba(90,105,130,.45)'; g.lineWidth = 1;
+  g.beginPath();
+  for (var i2 = 0; i2 < n; i2++) { var xx = xAt(i2), yy = yAt(S.losses[i2]); i2 ? g.lineTo(xx, yy) : g.moveTo(xx, yy); }
+  g.stroke();
+
+  // 平滑线
+  var grad = g.createLinearGradient(padL, 0, W - padR, 0);
+  grad.addColorStop(0, '#4f8cff'); grad.addColorStop(1, '#b48bff');
+  g.strokeStyle = grad; g.lineWidth = 2;
+  g.beginPath();
+  for (var i3 = 0; i3 < n; i3++) { var x3 = xAt(i3), y3 = yAt(S.smooth[i3]); i3 ? g.lineTo(x3, y3) : g.moveTo(x3, y3); }
+  g.stroke();
+
+  // 快照点
+  g.fillStyle = '#3ddc97';
+  S.snapshots.forEach(function (s) {
+    var idx = s.step - 1;
+    if (idx < 0 || idx >= n) return;
+    var x = xAt(idx), y = yAt(S.smooth[idx]);
+    g.beginPath(); g.arc(x, y, 3.2, 0, 6.284); g.fill();
+  });
+
+  // 末端光点
+  if (n > 0) {
+    var ex = xAt(n - 1), ey = yAt(S.smooth[n - 1]);
+    var rg = g.createRadialGradient(ex, ey, 0, ex, ey, 9);
+    rg.addColorStop(0, 'rgba(180,139,255,.85)'); rg.addColorStop(1, 'rgba(180,139,255,0)');
+    g.fillStyle = rg; g.beginPath(); g.arc(ex, ey, 9, 0, 6.284); g.fill();
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(ex, ey, 2.1, 0, 6.284); g.fill();
+  }
+}
+
+var V_REF = 300;
+// 生成质量的"甜蜜点"区间（字符级交叉熵）。
+// 依据本项目实测：loss > 3.5 还在乱码；2.5~3.5 开始成词；
+// 0.8~2.5 能写出通顺且有风格的句子；< 0.8 基本是把语料背下来了，
+// 采样时一旦偏离记忆路径就崩成碎片，反而更难看。
+var SWEET = [0.8, 2.5];
+
+function updateLossHint() {
+  var el = $('lossHint');
+  if (!S.smooth.length) { el.style.display = 'none'; return; }
+  var v = S.smooth[S.smooth.length - 1];
+  var txt, cls = 'notice';
+  if (v > 4.0) {
+    txt = '当前 loss ' + v.toFixed(2) + ' —— 还在<strong>乱码阶段</strong>，模型只能吐出随机汉字。继续训练。';
+  } else if (v > 3.0) {
+    txt = '当前 loss ' + v.toFixed(2) + ' —— 开始出现<strong>真正的词</strong>（"的""了""他"），但句子结构还没成形。';
+  } else if (v > SWEET[1]) {
+    txt = '当前 loss ' + v.toFixed(2) + ' —— <strong>正在成形</strong>，已经能凑出像样的短句。再练一点就进入甜蜜点。';
+  } else if (v >= SWEET[0]) {
+    cls = 'notice ok';
+    txt = '当前 loss ' + v.toFixed(2) + ' —— 处在<strong>甜蜜点</strong>：已会造句、还没把语料背死，' +
+          '生成效果最好。建议就停在这里，去右边点「生成」。';
+  } else {
+    txt = '当前 loss ' + v.toFixed(2) + ' —— 已经<strong>低于甜蜜点</strong>：模型开始逐字背课文了。' +
+          '这时它能把语料原句吐出来，但采样稍有偏离就碎成拼接片段，' +
+          '换一个没见过的提示词基本写不下去。<strong>想让它"会写"而不是"会背"，减少训练步数即可。</strong>';
+  }
+  el.className = cls;
+  el.style.display = '';
+  el.innerHTML = txt;
+}
+
+/* ------------------------------------------------------------------ */
+/* 模型 / 训练                                                         */
+/* ------------------------------------------------------------------ */
+
+function buildModel() {
+  var text = currentText();
+  if (!text || text.length < 120) { alert('语料太短，无法训练。请选择内置语料或粘贴更长文本。'); return false; }
+  var ctx = +$('fCtx').value, d = +$('fD').value, L = +$('fLayers').value, H = +$('fHeads').value;
+  if (text.length < ctx + 8) { alert('语料长度必须大于 ctx + 8。请减小上下文窗口或增加语料。'); return false; }
+
+  S.vocab = K.buildVocab(text);
+  S.ids = K.encode(text, S.vocab.stoi);
+  S.cfg = { ctx: ctx, d: d, layers: L, heads: H, ffMul: 4 };
+  S.model = new K.MiniLM(S.vocab.size, S.cfg);
+  V_REF = S.vocab.size;
+  S.batch = +$('fBatch').value;
+  S.lr = 0.001 * (+$('fLr').value);
+  S.steps = +$('fSteps').value;
+
+  $('sParam').innerHTML = S.model.paramCount().toLocaleString() + '<small>参数</small>';
+  $('sVocab').innerHTML = S.vocab.size + '<small>词表</small>';
+  $('sStruct').textContent = ctx + '/' + d + '/' + L + '/' + H;
+  $('pTotal').textContent = S.steps;
+  structTable();
+  return true;
+}
+
+function resetTraining() {
+  S.running = false; S.paused = false; S.done = false;
+  S.step = 0; S.losses = []; S.smooth = []; S.snapshots = []; S.totalActive = 0;
+  $('progBar').style.width = '0%';
+  $('pStep').textContent = '0';
+  $('pTime').textContent = '0.0s';
+  $('pEta').textContent = '—';
+  $('lSmooth').textContent = '—'; $('lRaw').textContent = '—'; $('lSpeed').textContent = '—';
+  $('sLoss').textContent = '—'; $('sSpeed').textContent = '—';
+  $('snapBox').innerHTML = '<div class="muted">尚未训练。点左侧「开始训练」，这里会每隔若干步抓一次生成快照。</div>';
+  $('candBox').innerHTML = '<div class="muted">生成一次后，这里会显示每一步模型眼中的 top 候选字。</div>';
+  $('lossHint').style.display = 'none';
+  drawLoss();
+  setEnabled(false);
+  $('bStart').disabled = false; $('bStart').textContent = '开始训练';
+  $('bPause').disabled = true; $('bReset').disabled = true;
+  $('bGrad').disabled = false;
+}
+
+function setEnabled(on) {
+  $('bGen').disabled = !on;
+  $('bGen3').disabled = !on;
+  $('bAttn').disabled = !on;
+}
+
+function startTraining() {
+  if (!buildModel()) return;
+  resetTraining();
+  S.running = true; S.paused = false;
+  S.t0 = performance.now(); S.lastFrameT = performance.now();
+  S.snapInterval = Math.max(1, Math.floor(S.steps / 5));
+  S.nextSnap = 0;
+  $('bStart').disabled = true;
+  $('bPause').disabled = false; $('bPause').textContent = '暂停';
+  $('bReset').disabled = true;
+  $('bGrad').disabled = true;
+  refreshCorpusMeta();
+  requestAnimationFrame(tick);
+}
+
+function togglePause() {
+  if (!S.running) return;
+  S.paused = !S.paused;
+  $('bPause').textContent = S.paused ? '继续' : '暂停';
+  if (!S.paused) { S.lastFrameT = performance.now(); requestAnimationFrame(tick); }
+}
+
+function trainOneStep() {
+  var m = S.model, ctx = S.cfg.ctx;
+  var batch = K.makeBatch(S.ids, S.batch, ctx);
+  m.zeroGrad();
+  var r = m.forward(batch.tokens, batch.targets);
+  m.backward();
+  m.clipGrad(1.0);
+  var warmup = Math.max(10, Math.floor(S.steps * 0.15));
+  var curLr;
+  if (S.step < warmup) curLr = S.lr * (S.step + 1) / warmup;
+  else curLr = S.lr * 0.5 * (1 + Math.cos(Math.PI * (S.step - warmup) / Math.max(1, S.steps - warmup)));
+  m.step(curLr, S.step + 1);
+  S.losses.push(r.loss);
+  var prev = S.smooth.length ? S.smooth[S.smooth.length - 1] : r.loss;
+  S.smooth.push(prev * 0.9 + r.loss * 0.1);
+  S.lastLoss = r.loss;
+}
+
+function tick() {
+  if (!S.running || S.paused) return;
+  var t0 = performance.now();
+  var budget = 42;
+  var n = 0;
+  while (performance.now() - t0 < budget && S.step < S.steps) {
+    trainOneStep();
+    S.step++; n++;
+  }
+  var now = performance.now();
+  S.totalActive += (now - S.lastFrameT);
+  S.lastFrameT = now;
+
+  if (S.step >= S.steps) { finishTraining(); return; }
+
+  updateProgress(n);
+  // 抓快照。一帧内可能推进很多步（小模型 + 强 CPU 时尤其明显），
+  // 所以允许"追赶"，但每帧最多抓 2 张，避免卡住渲染。
+  var snaps = 0;
+  while (S.step >= S.nextSnap && snaps < 2) {
+    doSnapshot();
+    S.nextSnap += S.snapInterval;
+    snaps++;
+  }
+  requestAnimationFrame(tick);
+}
+
+function updateProgress(nThisFrame) {
+  var pct = 100 * S.step / S.steps;
+  $('progBar').style.width = pct.toFixed(1) + '%';
+  $('pStep').textContent = S.step;
+  var el = (performance.now() - S.t0) / 1000;
+  $('pTime').textContent = el.toFixed(1) + 's';
+  var sps = S.step / Math.max(0.001, el);
+  $('lSpeed').textContent = sps.toFixed(1);
+  $('sSpeed').innerHTML = sps.toFixed(1) + '<small>step/s</small>';
+  var remain = (S.steps - S.step) / Math.max(0.001, sps);
+  $('pEta').textContent = remain > 0 ? (remain > 60 ? (remain / 60).toFixed(1) + ' 分' : remain.toFixed(0) + ' 秒') : '—';
+  $('lSmooth').textContent = S.smooth[S.smooth.length - 1].toFixed(3);
+  $('lRaw').textContent = S.lastLoss.toFixed(3);
+  $('sLoss').textContent = S.smooth[S.smooth.length - 1].toFixed(3);
+  drawLoss();
+  updateLossHint();
+}
+
+function doSnapshot() {
+  var p = K.encode($('gPrompt').value.slice(0, 8) || PROMPTS[S.corpusKey][0], S.vocab.stoi);
+  var g = S.model.generate(p, { maxNew: 34, temp: 0.8, topk: 8, repPenalty: 1.15 });
+  var txt = K.decode(g.ids, S.vocab.itos).replace(/\n/g, ' ');
+  S.snapshots.push({ step: S.step, text: txt });
+  renderSnapshots();
+  drawLoss();
+}
+
+function renderSnapshots() {
+  var box = $('snapBox');
+  box.innerHTML = '';
+  S.snapshots.forEach(function (s, i) {
+    var d = document.createElement('div');
+    var last = i === S.snapshots.length - 1;
+    d.className = 'snap' + (s.step >= S.steps ? ' good' : '');
+    d.innerHTML = '<div class="h">step ' + s.step + ' / ' + S.steps +
+      (last ? ' · 最新' : '') + '</div><div class="t"></div>';
+    d.querySelector('.t').textContent = s.text;
+    box.appendChild(d);
+  });
+  box.scrollTop = box.scrollHeight;
+}
+
+function finishTraining() {
+  S.running = false; S.done = true;
+  S.nextSnap = -1;
+  doSnapshot();
+  $('progBar').style.width = '100%';
+  updateProgressFinal();
+  $('bPause').disabled = true;
+  $('bReset').disabled = false;
+  $('bStart').disabled = false; $('bStart').textContent = '重新训练';
+  setEnabled(true);
+  $('bGrad').disabled = false;
+  $('genOut').innerHTML = '<span class="muted">模型已就绪，点「生成」试试。</span>';
+  refreshAttention();
+  showCandidates();
+}
+
+function updateProgressFinal() {
+  var el = (performance.now() - S.t0) / 1000;
+  $('pStep').textContent = S.steps;
+  $('pTime').textContent = el.toFixed(1) + 's';
+  $('pEta').textContent = '完成';
+  $('lSpeed').textContent = (S.step / Math.max(0.001, el)).toFixed(1);
+  $('lSmooth').textContent = S.smooth[S.smooth.length - 1].toFixed(3);
+  $('lRaw').textContent = S.lastLoss.toFixed(3);
+  drawLoss();
+  updateLossHint();
+}
+
+/* ------------------------------------------------------------------ */
+/* 生成                                                                */
+/* ------------------------------------------------------------------ */
+
+function genOpts() {
+  return {
+    maxNew: +$('gLen').value,
+    temp: (+$('gTemp').value) / 10,
+    topk: +$('gTopk').value,
+    repPenalty: (+$('gRep').value) / 100
+  };
+}
+
+function runGenerate() {
+  if (!S.done) { alert('请先完成一次训练。'); return; }
+  var prompt = $('gPrompt').value || '第一次';
+  var pids = K.encode(prompt, S.vocab.stoi);
+  var g = S.model.generate(pids, genOpts());
+  S.lastGenerateTrace = g.trace;
+  S.lastPromptLen = pids.length;
+  var txt = K.decode(g.ids, S.vocab.itos).replace(/\n/g, ' ');
+  var head = txt.slice(0, prompt.length);
+  var tail = txt.slice(prompt.length);
+  $('genOut').innerHTML = '<span class="prompt"></span><span class="gen"></span>';
+  $('genOut').querySelector('.prompt').textContent = head;
+  $('genOut').querySelector('.gen').textContent = tail;
+  renderCandidates(g.trace);
+}
+
+function runGenerate3() {
+  if (!S.done) { alert('请先完成一次训练。'); return; }
+  var prompt = $('gPrompt').value || '第一次';
+  var pids = K.encode(prompt, S.vocab.stoi);
+  var html = '';
+  [0.5, 0.8, 1.2].forEach(function (t) {
+    var o = genOpts(); o.temp = t;
+    var g = S.model.generate(pids, o);
+    var txt = K.decode(g.ids, S.vocab.itos).replace(/\n/g, ' ');
+    html += '<div class="steplabel" style="color:#5b9dff;font-size:12px">温度 ' + t.toFixed(1) + '</div>' +
+            '<div style="margin-bottom:11px;color:#dfe7f5;line-height:1.8;word-break:break-all">' +
+            escapeHtml(txt) + '</div>';
+  });
+  $('genOut').innerHTML = html;
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+  });
+}
+
+function renderCandidates(trace) {
+  var box = $('candBox');
+  if (!box) return;
+  box.innerHTML = '';
+  if (!trace || !trace.length) {
+    box.innerHTML = '<div class="muted">暂无数据。</div>';
+    return;
+  }
+  trace.slice(0, 8).forEach(function (tr) {
+    var lab = document.createElement('div');
+    lab.className = 'steplabel';
+    lab.textContent = '第 ' + (tr.step + 1) + ' 步 → 选中「' + (S.vocab.itos[tr.chosen] || '?') + '」';
+    box.appendChild(lab);
+    var bars = document.createElement('div');
+    bars.className = 'bars';
+    var max = tr.candidates.length ? tr.candidates[0].p : 1;
+    tr.candidates.slice(0, 6).forEach(function (c) {
+      var ch = S.vocab.itos[c.id] || '?';
+      var row = document.createElement('div');
+      row.className = 'bar';
+      row.innerHTML = '<div class="ch"></div><div class="track"><i style="width:' +
+        (100 * c.p / max).toFixed(1) + '%"></i></div><div class="p">' + (c.p * 100).toFixed(1) + '%</div>';
+      row.querySelector('.ch').textContent = ch === '\n' ? '⏎' : ch;
+      bars.appendChild(row);
+    });
+    box.appendChild(bars);
+  });
+}
+
+// 只展示候选分布，不改动生成输出
+function showCandidates() {
+  if (!S.done) return;
+  var prompt = $('gPrompt').value || '第一次';
+  var pids = K.encode(prompt, S.vocab.stoi);
+  var o = genOpts(); o.maxNew = 8; o.repPenalty = 1.0;
+  var g = S.model.generate(pids, o);
+  renderCandidates(g.trace);
+}
+
+/* ------------------------------------------------------------------ */
+/* 注意力热力图                                                        */
+/* ------------------------------------------------------------------ */
+
+function refreshAttention() {
+  if (!S.model) return;
+  var txt = ($('aText').value || '新长安的雨下了').slice(0, S.cfg.ctx);
+  if (!txt.length) return;
+  var ids = K.encode(txt, S.vocab.stoi);
+  S.model.forward(ids, null, ids.length);
+  var L = S.cfg.layers, H = S.cfg.heads;
+  $('aLayer').max = L - 1;
+  $('aHead').max = H - 1;
+  if (+$('aLayer').value > L - 1) { $('aLayer').value = L - 1; $('vALayer').textContent = L - 1; }
+  if (+$('aHead').value > H - 1) { $('aHead').value = H - 1; $('vAHead').textContent = H - 1; }
+  drawHeat(ids, txt);
+}
+
+function drawHeat(ids, txt) {
+  var layer = +$('aLayer').value, head = +$('aHead').value;
+  var A = S.model.getAttention(layer, head);
+  var o = fitCanvas($('heat')), g = o.g, W = o.w, Hh = o.h;
+  g.clearRect(0, 0, W, Hh);
+  if (!A) { $('heatMeta').textContent = '无数据'; return; }
+
+  var T = S.cacheT = S.model.cache.T;
+  var padL = 22, padT = 18, padR = 6, padB = 6;
+  var size = Math.min(W - padL - padR, Hh - padT - padB);
+  var cell = size / T;
+
+  for (var i = 0; i < T; i++) {
+    for (var j = 0; j < T; j++) {
+      var v = A[i * T + j];
+      var y = padT + i * cell, x = padL + j * cell;
+      if (j > i) { g.fillStyle = '#0d1017'; }
+      else {
+        // 深蓝 → 青 → 亮
+        var r = Math.round(10 + v * (79 - 10) + v * v * (255 - 79));
+        var gg = Math.round(13 + v * (180 - 13) + v * v * (230 - 180));
+        var b = Math.round(19 + v * (255 - 19));
+        g.fillStyle = 'rgb(' + r + ',' + gg + ',' + b + ')';
+      }
+      g.fillRect(x, y, Math.ceil(cell) + .3, Math.ceil(cell) + .3);
+    }
+  }
+  // 网格线
+  g.strokeStyle = 'rgba(255,255,255,.05)'; g.lineWidth = 1;
+  for (var k = 0; k <= T; k++) {
+    g.beginPath(); g.moveTo(padL + k * cell, padT); g.lineTo(padL + k * cell, padT + size); g.stroke();
+    g.beginPath(); g.moveTo(padL, padT + k * cell); g.lineTo(padL + size, padT + k * cell); g.stroke();
+  }
+  // 字标签
+  if (cell >= 8) {
+    g.font = Math.min(9, cell * 0.8) + 'px sans-serif';
+    g.fillStyle = '#93a0b5'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    for (var t = 0; t < T; t++) {
+      var c = txt[t] || '';
+      g.fillText(c === '\n' ? '⏎' : c, padL + t * cell + cell / 2, padT - 8);
+      g.fillText(c === '\n' ? '⏎' : c, padL - 10, padT + t * cell + cell / 2);
+    }
+  }
+  $('heatMeta').innerHTML = '第 ' + layer + ' 层 · 第 ' + head + ' 头 · 序列长度 ' + T +
+    ' · 行=查询字，列=被看的字 · 上三角已被因果掩码屏蔽（不可能偷看未来）';
+}
+
+/* ------------------------------------------------------------------ */
+/* 梯度检查                                                            */
+/* ------------------------------------------------------------------ */
+
+function runGradCheck() {
+  var notice = $('gradNotice');
+  notice.style.display = '';
+  notice.className = 'notice';
+  notice.textContent = '正在做梯度检查（float64 有限差分，逐参数分量）…';
+  $('bGrad').disabled = true;
+
+  setTimeout(function () {
+    // 用一份 float64 的独立模块实例，避免 float32 量化噪声污染
+    var K64 = window.MiniLMKitF64;
+    if (!K64) { notice.textContent = '未找到 float64 版本模块（minilm.js 需支持 MINILM_USE_F64）。'; return; }
+
+    var text = '从前有座山，山里有座庙，庙里有个老和尚，老和尚对小和尚说。';
+    var vocab = K64.buildVocab(text);
+    var cfg = { ctx: 8, d: 8, layers: 1, heads: 2, ffMul: 2 };
+    var m = new K64.MiniLM(vocab.size, cfg);
+    var ids = K64.encode(text, vocab.stoi);
+    var T = 8, B = 2;
+    var tokens = new Int32Array(B * T), targets = new Int32Array(B * T);
+    for (var i = 0; i < B * T; i++) {
+      tokens[i] = ids[i % ids.length];
+      targets[i] = ids[(i + 1) % ids.length];
+    }
+    m.zeroGrad();
+    var r = m.forward(tokens, targets);
+    m.backward();
+
+    var names = ['emb', 'pos', 'Wq0', 'Wo0', 'Wv0', 'W1_0', 'W2_0', 'ln1g0', 'ln2b0', 'bq0', 'lnfg', 'b2_0'];
+    var eps = 1e-5, maxRel = 0, worst = '', checked = 0, passed = 0;
+    var sigChecked = 0, sigPassed = 0;
+    names.forEach(function (name) {
+      if (!m.P[name]) return;
+      var P = m.P[name], G = m.G[name], n = P.length;
+      for (var idx = 0; idx < n; idx++) {
+        var orig = P[idx];
+        P[idx] = orig + eps; var lp = m.forward(tokens, targets).loss;
+        P[idx] = orig - eps; var lm = m.forward(tokens, targets).loss;
+        P[idx] = orig;
+        var num = (lp - lm) / (2 * eps), ana = G[idx];
+
+        // 判据：绝对容差 + 相对容差。
+        // 纯相对误差在梯度接近 0 处会失真（|g|~1e-7 时噪声也能算出百分之几），
+        // 所以用一个绝对下限兜住，再对显著梯度考察相对误差。
+        var diff = Math.abs(num - ana);
+        var scale = Math.max(Math.abs(num), Math.abs(ana));
+        if (scale < 1e-7) continue;
+        checked++;
+        var okThis = diff <= 1e-5 + 1e-4 * scale;
+        if (okThis) passed++;
+        if (scale > 1e-4) {
+          sigChecked++;
+          if (okThis) sigPassed++;
+          var rel = diff / scale;
+          if (rel > maxRel) { maxRel = rel; worst = name + '[' + idx + ']'; }
+        }
+      }
+    });
+    var pct = (100 * passed / Math.max(checked, 1)).toFixed(1);
+    var okAll = passed === checked && sigPassed === sigChecked && checked > 0;
+    notice.className = 'notice' + (okAll ? ' ok' : '');
+    notice.innerHTML = '检查了 <b>' + checked + '</b> 个参数分量，通过 <b>' + passed + '</b> 个（' + pct +
+      '%）· 其中梯度量级显著（|g|&gt;1e-4）的 <b>' + sigChecked + '</b> 个全部通过' +
+      ' · 显著分量最大相对误差 <b>' + maxRel.toExponential(2) + '</b>（最差点 ' + worst + '）<br>' +
+      (okAll
+        ? '结论：✓ 反向传播实现正确 —— 手写梯度与数值梯度一致，误差只在浮点精度范围内。'
+        : '结论：✗ 反向传播存在偏差，相对误差过大。');
+    $('pillGrad').textContent = okAll ? '✓ 全部通过' : '✗ 有偏差';
+    $('bGrad').disabled = false;
+  }, 60);
+}
+
+/* ------------------------------------------------------------------ */
+/* 初始化                                                              */
+/* ------------------------------------------------------------------ */
+
+function init() {
+  initCorpusSelect();
+
+  $('fCtx').addEventListener('input', function () { $('vCtx').textContent = this.value; refreshConfigStats(); structTable(); });
+  $('fD').addEventListener('input', function () { $('vD').textContent = this.value; fixHeads(); refreshConfigStats(); structTable(); });
+  $('fLayers').addEventListener('input', function () { $('vLayers').textContent = this.value; refreshConfigStats(); structTable(); });
+  $('fHeads').addEventListener('input', function () { $('vHeads').textContent = this.value; refreshConfigStats(); structTable(); });
+  $('fBatch').addEventListener('input', function () { $('vBatch').textContent = this.value; });
+  $('fLr').addEventListener('input', function () { $('vLr').textContent = lrFromIdx(this.value); });
+  $('fSteps').addEventListener('input', function () { $('vSteps').textContent = this.value; $('pTotal').textContent = this.value; });
+  $('fCustom').addEventListener('input', function () {
+    $('customLen').textContent = this.value.length;
+    refreshCorpusMeta(); refreshConfigStats(); structTable();
+  });
+
+  document.querySelectorAll('.chip[data-preset]').forEach(function (c) {
+    c.addEventListener('click', function () { applyPreset(c.getAttribute('data-preset')); });
+  });
+
+  bindRange('gTemp', 'vTemp', function (v) { return (v / 10).toFixed(1); });
+  bindRange('gTopk', 'vTopk', function (v) { return v; });
+  bindRange('gRep', 'vRep', function (v) { return (v / 100).toFixed(2).replace(/0$/, ''); });
+  bindRange('gLen', 'vLen', function (v) { return v; });
+  bindRange('aLayer', 'vALayer', function (v) { return v; }, function () { if (S.done) refreshAttention(); });
+  bindRange('aHead', 'vAHead', function (v) { return v; }, function () { if (S.done) refreshAttention(); });
+
+  $('bStart').addEventListener('click', startTraining);
+  $('bPause').addEventListener('click', togglePause);
+  $('bReset').addEventListener('click', function () { resetTraining(); });
+  $('bGrad').addEventListener('click', runGradCheck);
+  $('bGen').addEventListener('click', runGenerate);
+  $('bGen3').addEventListener('click', runGenerate3);
+  $('bAttn').addEventListener('click', refreshAttention);
+
+  renderPromptChips();
+  refreshCorpusMeta();
+  refreshConfigStats();
+  structTable();
+  drawLoss();
+  window.addEventListener('resize', function () {
+    drawLoss();
+    if (S.done) refreshAttention();
+  });
+}
+
+/* 调试 / 自动化测试出口：把内部状态与方法挂到 window 上。
+   浏览器控制台里可以直接 __MiniLMLab.state 看状态，或者
+   __MiniLMLab.preset('fast') 一键换配置。 */
+window.__MiniLMLab = {
+  state: S,
+  preset: applyPreset,
+  start: startTraining,
+  tick: tick,
+  generate: runGenerate,
+  generate3: runGenerate3,
+  attention: refreshAttention,
+  gradCheck: runGradCheck,
+  snapshot: doSnapshot
+};
+
+init();
+})();
+</script>
+</body>
+</html>

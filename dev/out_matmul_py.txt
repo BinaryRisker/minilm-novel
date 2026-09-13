@@ -1,0 +1,7 @@
+numpy 2.5.3
+--- NumPy 矩阵乘法（同一台机器，走 BLAS）---
+NumPy 256x192 @ 192x768  x3000  →  3.82s  |  59.33 GFLOPS
+NumPy 1024x1024 @ 1024x1024  x300  →  8.14s  |  79.12 GFLOPS
+平均: 69.23 GFLOPS
+
+BLAS 后端: scipy-openblas 0.3.34.106.0
