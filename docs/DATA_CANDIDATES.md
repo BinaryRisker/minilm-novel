@@ -123,3 +123,7 @@
 产出带 `story_id` 的 manifest 与切分审计；随后用 `py/tokenizer.py` 在训练切分上拟合一个 BPE，
 对比"字符级 vs 子词"在同一批故事上的表现。
 
+> ✅ **已完成（2026-09-13）**：两个来源均已接入 `py/data/fetch_corpus.py`（新增 `hf` 源与 `story` 桶），
+> 全量重跑后 1091 部作品 / 2682 万字，`prepare.py --split` 产出 871/107/113 的故事级切分（0 冲突）。
+> BPE 对照结果见 `py/runs/bpe_probe_*.json` 与 LOG.md 续六。
+

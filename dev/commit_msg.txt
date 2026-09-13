@@ -1,10 +1,43 @@
-P1/P2/P3/P4 骨架完成：PyTorch 对齐、数据量扫描、数据管线、场景评测、内容产物
+L3 语料工程：公版中文小说扩到 613 万字；修正基线评测协议后重跑数据量扫描
 
-- P1：修复 verify_parity.py gradient 读取 bug，forward/backward/clip/Adam 全 20 参数 bitwise 对齐
-- P1：新增 dev/export_fixture.js、py/verify_parity.py、py/train.py
-- P2：新增 py/baselines.py、py/sweep_data_scale.py，4 尺寸 × 3 语料数据量扫描完成；结论：模型均未超过 trigram
-- P2：新增 py/benchmark.py、py/tokenizer.py、py/data/prepare.py、data/manifest.jsonl、configs/base.json
-- P3：新增 eval/prompts.jsonl（30 场景）、py/eval_story.py、configs/baseline_model.json
-- P4：新增 docs/experiments/模板.md 及两份实验报告、docs/content/选题表.md、docs/img/sweep_data_scale.png
-- 更新 LOG.md、docs/TODO_NOVEL_MODEL_LEARNING_V1.md、.gitignore
-- 回归通过：node test.js --grad / build.js / smoke.js / uidom.js；python -m unittest discover -s py/tests
+语料（全部公版 / 开放许可）
+- 新增 py/data/fetch_corpus.py：Gutenberg + GitHub hanchuancaolu + 中文维基文库 三源抓取。
+  清洗链：去头尾 → 硬换行重排回自然段 → 标点归一 → 繁转简(opencc) → 字符白名单
+  → 跨源按标题去重取最长版本 → 按桶均分截断
+- py/data/corpus.json 重生成：scifi 13.2 万 / wuxia 200 万 / urban 200 万 / gudian 200 万
+  = 613 万字、90 部作品（原 7360 字，833×）
+- 新增 data/sources.json：90 部作品的来源 / 许可 / 字数 / sha256 / 链接审计
+- py/data/prepare.py 改为逐作品 manifest（train/val/test 不跨作品）+ split 审计：70/7/13 部，无哈希冲突
+- .gitignore 新增 data/raw/、data/processed/（原始缓存与逐作品副本可由脚本重建，不入库）
+
+基线 bug 修复（上一轮结论作废的直接原因）
+- py/baselines.py：for_each_position 滑窗步长 1 → ctx（原基线被评测 32 倍位置，且与模型不在同一批位置）
+- py/baselines.py：NGram 由「每上下文一个 V 维 float64 数组」改为稀疏计数 + 向量化 dist
+  （180 万字语料原需约 36 GB，实测挂死扫描）；修复后建表 5.0s、评测 29.2s，约 32000× 提速
+- 新增 py/tests/test_baselines.py：稀疏实现对稠密参考实现逐点差分（9 项全过，证明语义未变）
+  + 滑窗步长协议的显式断言
+
+数据量扫描重跑（新增按数据量放大步数的模式）
+- py/sweep_data_scale.py：新增 --proportional_steps（步数随训练字数放大，≈恒定 0.5 epoch）；
+  --min_freq 默认 3（长尾生僻字映射 UNK，控制嵌入表规模）
+- 新增 py/sweep_report.py：合并全部批次的 sweep_*.json → runs/sweep_report.md
+  + runs/sweep_summary.json（含 fix 与 prop 两种模式）+ docs/img/sweep_data_scale.png
+- py/runs/sweep_*_{fix,prop}_s1234.json：48 条结果（4 语料 × 6 尺寸 × 2 模式）
+- 结论：修正协议后「模型全负」不成立 —— fix 轮有 4 组微胜（wuxia 1 万/5 万、urban 1 万、gudian 1 万，
+  +0.2~1.6pt）；大数据量处仍落后 trigram 1.6~5.4pt；
+  fix → prop 在最大数据量处追回 4.4~8.6pt，说明上一轮「数据越多模型越差」主体是训练不足
+
+文档与纠错
+- 新增 docs/experiments/2026-09-13-public-domain-corpus.md（语料采集全过程与 6 个坑）
+- docs/experiments/2026-09-13-sweep-data-scale.md：加「两轮」指引 + §10 第二轮完整结果，旧结论标注作废
+- py/verify_parity.py：汇总行把「失败数」当分子却配 FAIL 字样 → 全绿时输出 0/20 FAIL，看着像挂了。
+  改为「通过数/总数」+ 一行明确结论（判定逻辑与退出码一直是对的）
+- py/README.md：补「两条语料线」对照表 —— 原先写的「corpus.json 由 corpus.js 导出、JS 是唯一真源」
+  在加入公版语料后已不成立
+- README.md / LOG.md：新增「续七」并给旧「全负」结论加作废标注；重排章节顺序
+- docs/experiments/2026-09-13-pytorch-parity.md：同步修正被误导的输出块
+- 回归：node test.js --grad 688/688 · build.js 产物 86.9 KB 且与提交版逐字节一致 ·
+  smoke.js 23/23 · uidom.js 41/41 · eval/test_eval.js 68/68 ·
+  python -m unittest 13/13 · verify_parity 2/2 + 20/20 + 20/20 + 20/20
+
+注：docs/content/ 下的文章正文正由另一条并发的内容工作流改写中，本提交未纳入该目录。

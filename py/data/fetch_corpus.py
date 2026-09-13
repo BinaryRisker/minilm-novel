@@ -10,6 +10,8 @@ py/data/fetch_corpus.py — 多源公版中文小说抓取与归一化
   1. gutenberg   — Project Gutenberg 中文书目（PD，UTF-8 单文件纯文本）
   2. hcc         — GitHub xp44mm/hanchuancaolu（中国古典文学原文，逐回 txt）
   3. wikisource  — 中文维基文库（CC BY-SA / PD），用于清末科幻小说
+  4. hf          — HuggingFace 开放许可数据集：chinese_novel（CC BY 4.0）
+                   + TinyStories 中文译文（CDLA-Sharing-1.0，story 桶）
 
 处理链路：
   下载(带磁盘缓存) → 去 Gutenberg 头尾/HTML/页码等噪声 → 标点归一（｡→。、
@@ -173,17 +175,51 @@ WIKISOURCE_BOOKS = [
     ('貓城記', 'scifi'),            # 老舍 1932（作者 1966 卒，已入公版）
 ]
 
+# HuggingFace 开放许可数据集（出处与许可条件详见 docs/DATA_CANDIDATES.md）
+# 收录原则：**只收许可明确、且上传者有权授权的数据**。
+# 抓取类数据集（中文网文合集）即使标了 Apache-2.0，也不覆盖原著版权，一律不收。
+HF_BOOKS = [
+    {
+        'repo': 'asd567557275/chinese_novel',
+        'file': 'novel_by_chapter.jsonl',
+        'field': 'text',
+        'title': '空间魔导书与少年魔法师',
+        'bucket': 'scifi',   # 现代幻想类；scifi 桶此前只有清末科学小说
+        'license': 'CC BY 4.0（署名：睡半夜怎麼三更）',
+        'ref': 'https://huggingface.co/datasets/asd567557275/chinese_novel',
+        'note': '繁体原作，入库前 opencc t2s；按章拼接（novel_by_chapter.jsonl）',
+    },
+]
+
+# TinyStories 中文译文：词汇窄、句子短的合成数据，用于「数百个短故事探索集」
+# 与故事级切分（每篇一部作品，PRD 要求 train/val/test 不跨故事）。
+HF_TINYSTORIES = {
+    'repo': 'adam89/TinyStoriesChinese',
+    'archive': os.path.join(CACHE_DIR, 'tinystories_zh.tar.gz'),
+    'member': 'data00_zh.jsonl',
+    'field': 'story_zh',
+    'bucket': 'story',
+    'license': 'CDLA-Sharing-1.0（TinyStories 中文译文，合成数据）',
+    'ref': 'https://huggingface.co/datasets/adam89/TinyStoriesChinese',
+}
+HF_TINYSTORIES_URL = ('https://huggingface.co/datasets/adam89/TinyStoriesChinese/'
+                      'resolve/main/TinyStories_all_data_zh.tar.gz')
+
 BUCKETS = {
-    'scifi': {'name': '科幻 · 清末科学小说',
-              'desc': '月界旅行 / 地底旅行 / 新纪元 / 电世界 / 猫城记（维基文库，公版）'},
+    'scifi': {'name': '科幻 · 清末科学小说 + 现代幻想',
+              'desc': '月界旅行 / 地底旅行 / 新纪元 / 电世界 / 猫城记（维基文库，公版）'
+                      ' + 空间魔导书与少年魔法师（CC BY 4.0，现代）'},
     'wuxia': {'name': '武侠 · 侠义公案',
               'desc': '水浒传 / 三侠五义 / 儿女英雄传 / 荡寇志 / 施公案等（Gutenberg，公版）'},
     'urban': {'name': '都市 · 世情谴责',
               'desc': '官场现形记 / 二十年目睹之怪现状 / 老残游记 / 孽海花 / 儒林外史等（公版）'},
     'gudian': {'name': '古典 · 神魔笔记',
                'desc': '红楼梦 / 西游记 / 三国演义 / 封神演义 / 聊斋志异 / 三言二拍等（公版）'},
+    'story': {'name': '短故事 · 简单现代汉语',
+              'desc': 'TinyStories 中文译文（CDLA-Sharing-1.0，合成数据）：'
+                      '词汇窄、句子短，用于跑通管线与故事级切分，不代表目标文风'},
 }
-BUCKET_ORDER = ['scifi', 'wuxia', 'urban', 'gudian']
+BUCKET_ORDER = ['scifi', 'wuxia', 'urban', 'gudian', 'story']
 
 
 # ---------------------------------------------------------------------------
@@ -655,6 +691,83 @@ def fetch_wikisource(limit: int | None = None) -> list:
     return stories
 
 
+def fetch_huggingface(limit: int | None = None) -> list:
+    """HuggingFace 开放许可数据集：下载 jsonl → 拼接 → 清洗（含繁转简）。"""
+    stories = []
+    books = HF_BOOKS[:limit] if limit else HF_BOOKS
+    for i, spec in enumerate(books, 1):
+        url = (f"https://huggingface.co/datasets/{spec['repo']}"
+               f"/resolve/main/{spec['file']}")
+        cp = os.path.join(CACHE_DIR, 'hf',
+                          spec['repo'].replace('/', '__') + '__' + spec['file'])
+        try:
+            raw = http_get_cached(url, cp).decode('utf-8', errors='replace')
+        except Exception as e:  # noqa: BLE001
+            print(f'  [!] HF {spec["repo"]} 失败: {e}')
+            continue
+        parts = []
+        for ln in raw.splitlines():
+            ln = ln.strip()
+            if not ln:
+                continue
+            try:
+                o = json.loads(ln)
+            except Exception:  # noqa: BLE001
+                continue
+            t = o.get(spec['field']) or ''
+            if t:
+                parts.append(t)
+        text = clean('\n\n'.join(parts), 'hf')
+        print(f'  [{i}/{len(books)}] {spec["title"]:<24} {len(parts):>5} 段 '
+              f'{len(text):>9} 字')
+        if len(text) < 500:
+            print('        [skip] 正文过短')
+            continue
+        stories.append({
+            'title': spec['title'], 'bucket': spec['bucket'], 'text': text,
+            'source': 'huggingface', 'license': spec['license'],
+            'ref': spec['ref'], 'note': spec.get('note', ''),
+        })
+    return stories
+
+
+def fetch_tinystories(n: int) -> list:
+    """从已下载的 TinyStories 中文包取前 n 篇，**每篇作为一部独立作品**：
+    这样 PRD 要求的「故事家族不跨集合」在切分时天然成立。
+    只读 tar 内第一个分片，不整包解压（整包 2.6 GB / 48 分片）。"""
+    spec = HF_TINYSTORIES
+    if not os.path.exists(spec['archive']):
+        print(f'  [!] 未找到 {spec["archive"]}，跳过 TinyStories')
+        print(f'      下载：curl -L -C - -o {spec["archive"]} {HF_TINYSTORIES_URL}')
+        return []
+    stories = []
+    with tarfile.open(spec['archive'], 'r:gz') as tf:
+        fh = tf.extractfile(spec['member'])
+        for ln in io.TextIOWrapper(fh, encoding='utf-8', errors='replace'):
+            if len(stories) >= n:
+                break
+            ln = ln.strip()
+            if not ln:
+                continue
+            try:
+                o = json.loads(ln)
+            except Exception:  # noqa: BLE001
+                continue
+            t = (o.get(spec['field']) or '').strip()
+            if len(t) < 200:   # 与 allocate 的 200 字下限对齐，避免进 sources 却进不了桶
+                continue
+            stories.append({
+                'title': f'ts_zh_{len(stories) + 1:04d}', 'bucket': 'story',
+                'text': clean(t, 'hf'), 'source': 'huggingface',
+                'license': spec['license'], 'ref': spec['ref'],
+                'note': 'TinyStories 中文译文（合成）',
+            })
+    total = sum(len(s['text']) for s in stories)
+    print(f'  [tiny] {len(stories)} 篇短故事，合计 {total} 字'
+          f'（均长 {total // max(1, len(stories))} 字）')
+    return stories
+
+
 # ---------------------------------------------------------------------------
 # 5. 去重 + 分桶 + 落盘
 # ---------------------------------------------------------------------------
@@ -750,9 +863,11 @@ def dump_works(stories: list, out_root: str) -> int:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--only', default='gutenberg,hcc,wikisource',
-                    help='逗号分隔：gutenberg,hcc,wikisource')
+    ap.add_argument('--only', default='gutenberg,hcc,wikisource,hf',
+                    help='逗号分隔：gutenberg,hcc,wikisource,hf')
     ap.add_argument('--limit', type=int, default=None, help='每个源最多抓 N 本（试跑用）')
+    ap.add_argument('--tiny-n', type=int, default=1000,
+                    help='TinyStories 中文短故事取前 N 篇（story 桶）')
     ap.add_argument('--max-chars', type=int, default=2_000_000,
                     help='每个主题桶保留的最大字数')
     ap.add_argument('--list-sources', action='store_true', help='只打印源清单')
@@ -772,20 +887,29 @@ def main():
         print(f'\n维基文库（{len(WIKISOURCE_BOOKS)} 部）:')
         for t, b in WIKISOURCE_BOOKS:
             print(f'  [{b:<6}] {t}')
+        print(f'\nHuggingFace（{len(HF_BOOKS)} 个数据集 + TinyStories 短故事）:')
+        for s in HF_BOOKS:
+            print(f"  [{s['bucket']:<6}] {s['repo']} -> {s['title']}（{s['license']}）")
+        print(f"  [story ] {HF_TINYSTORIES['repo']} -> 前 N 篇短故事"
+              f"（{HF_TINYSTORIES['license']}）")
         return
 
     os.makedirs(CACHE_DIR, exist_ok=True)
     only = {x.strip() for x in args.only.split(',') if x.strip()}
     stories = []
     if 'gutenberg' in only:
-        print('== 1/3 Project Gutenberg ==')
+        print('== 1/4 Project Gutenberg ==')
         stories += fetch_gutenberg(args.limit)
     if 'hcc' in only:
-        print('== 2/3 GitHub hanchuancaolu ==')
+        print('== 2/4 GitHub hanchuancaolu ==')
         stories += fetch_hcc()
     if 'wikisource' in only:
-        print('== 3/3 中文维基文库 ==')
+        print('== 3/4 中文维基文库 ==')
         stories += fetch_wikisource(args.limit)
+    if 'hf' in only:
+        print('== 4/4 HuggingFace 开放许可数据集 ==')
+        stories += fetch_huggingface(args.limit)
+        stories += fetch_tinystories(args.tiny_n)
 
     print('\n== 跨源去重 ==')
     stories = dedupe(stories)
