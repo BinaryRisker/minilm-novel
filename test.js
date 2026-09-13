@@ -139,7 +139,7 @@ function trainAndGenerate(corpusKey, overrides) {
   var snapshots = [];
 
   for (var step = 0; step < steps; step++) {
-    var batch = kit.makeBatch(ids, B, cfg.ctx);
+    var batch = kit.makeBatch(ids, B, cfg.ctx, m.rng.batch);
     m.zeroGrad();
     var r = m.forward(batch.tokens, batch.targets);
     m.backward();

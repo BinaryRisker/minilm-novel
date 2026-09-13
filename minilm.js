@@ -26,17 +26,61 @@
 
   var SQRT2PI = Math.sqrt(2 / Math.PI);
 
+  /* ---------------------- 确定性随机流（RNG） ---------------------- */
+  /* 三条互相独立的随机流：init（初始化）/ batch（训练批次）/ sample（生成采样）。
+     共用一条流的后果是：中途多生成一次演示快照，后续训练批次就全变了，
+     实验结果无法对照。这是原先最隐蔽的实验可信度问题。
+     算法用 mulberry32：32 位状态、周期 2^32、状态可存可恢复。 */
+
+  function hashSeed(seed, stream) {
+    var h = 2166136261 >>> 0;
+    var s = String(seed) + '\u0001' + stream;
+    for (var i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 16777619) >>> 0;
+    }
+    h = (h ^ (h >>> 16)) >>> 0;
+    h = Math.imul(h, 0x85ebca6b) >>> 0;
+    h = (h ^ (h >>> 13)) >>> 0;
+    h = Math.imul(h, 0xc2b2ae35) >>> 0;
+    h = (h ^ (h >>> 16)) >>> 0;
+    return h >>> 0;
+  }
+
+  function makeRng(seed) {
+    var st = { a: (seed >>> 0) || 1 };
+    var f = function () {
+      st.a = (st.a + 0x6D2B79F5) >>> 0;
+      var t = st.a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+    f.getState = function () { return st.a >>> 0; };
+    f.setState = function (v) { st.a = (v >>> 0) || 1; };
+    return f;
+  }
+
+  function makeStreams(seed) {
+    return {
+      init: makeRng(hashSeed(seed, 'init')),
+      batch: makeRng(hashSeed(seed, 'batch')),
+      sample: makeRng(hashSeed(seed, 'sample'))
+    };
+  }
+
   /* ---------------------------- 基础工具 ---------------------------- */
 
   function zeros(n) { return new REAL(n); }
 
-  // 标准正态分布初始化（Box-Muller）
-  function randn(n, scale) {
+  // 标准正态分布初始化（Box-Muller）。rng 可选，不传则用 Math.random。
+  function randn(n, scale, rng) {
+    var rnd = rng || Math.random;
     var a = new REAL(n);
     for (var i = 0; i < n; i++) {
       var u = 0, v = 0;
-      while (u === 0) u = Math.random();
-      while (v === 0) v = Math.random();
+      while (u === 0) u = rnd();
+      while (v === 0) v = rnd();
       a[i] = Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v) * scale;
     }
     return a;
@@ -227,7 +271,11 @@
 
   /* --------------------------- 模型本体 --------------------------- */
 
-  function MiniLM(vocabSize, cfg) {
+  // opts: { seed: <number> } —— 传固定种子即可完全复现一次实验；
+  // 不传则自动取一个随机种子并记在 this.seed 上。
+  // 注意：即使不传种子，三条流依然互相独立（只是不可复现）。
+  function MiniLM(vocabSize, cfg, opts) {
+    opts = opts || {};
     cfg = cfg || {};
     this.cfg = {
       ctx: cfg.ctx || 32,
@@ -240,17 +288,49 @@
     this.P = {}; this.G = {}; this.M = {}; this.Vv = {};
     this.paramList = [];
     this.cache = null;
+    this.seed = (opts.seed == null)
+      ? (Math.random() * 4294967296) >>> 0
+      : (opts.seed >>> 0);
+    this.rng = makeStreams(this.seed);
     this._init();
   }
+
+  // 重设随机流（不重新初始化权重）
+  MiniLM.prototype.setSeed = function (seed) {
+    this.seed = (seed >>> 0);
+    this.rng = makeStreams(this.seed);
+    return this;
+  };
+
+  // 保存 / 恢复三条流状态 —— checkpoint 续跑需要它
+  MiniLM.prototype.rngState = function () {
+    return {
+      seed: this.seed,
+      init: this.rng.init.getState(),
+      batch: this.rng.batch.getState(),
+      sample: this.rng.sample.getState()
+    };
+  };
+
+  MiniLM.prototype.setRngState = function (st) {
+    if (!st) return this;
+    if (st.seed != null) this.seed = st.seed >>> 0;
+    if (!this.rng) this.rng = makeStreams(this.seed);
+    if (st.init != null) this.rng.init.setState(st.init);
+    if (st.batch != null) this.rng.batch.setState(st.batch);
+    if (st.sample != null) this.rng.sample.setState(st.sample);
+    return this;
+  };
 
   MiniLM.prototype._init = function () {
     var c = this.cfg;
     var D = c.d, L = c.layers, T = c.ctx, F = c.ffMul * D, V = this.V;
     var P = this.P, G = this.G, M = this.M, A = this.Vv;
     var list = this.paramList;
+    var initRng = this.rng ? this.rng.init : null;
 
     var mk = function (name, n, scale) {
-      P[name] = randn(n, scale); G[name] = zeros(n);
+      P[name] = randn(n, scale, initRng); G[name] = zeros(n);
       M[name] = zeros(n); A[name] = zeros(n);
       list.push({ name: name, n: n });
     };
@@ -611,7 +691,8 @@
       }
       var inv = 1 / (sum || 1);
 
-      var r = Math.random(), acc = 0, pick = 0;
+      // 走独立的采样流：生成再多也不会动到训练批次流
+      var r = (this.rng ? this.rng.sample() : Math.random()), acc = 0, pick = 0;
       for (j = 0; j < V; j++) {
         acc += probs[j] * inv;
         if (r <= acc) { pick = j; break; }
@@ -675,13 +756,15 @@
   /* ---------------------------- 训练批次 ---------------------------- */
 
   // 从 id 序列里随机采样 B 个长度为 T 的连续片段
-  function makeBatch(ids, B, T) {
+  // rng 可选：传 m.rng.batch，批次流就与生成采样流彻底隔离，互不干扰。
+  function makeBatch(ids, B, T, rng) {
+    var rnd = rng || Math.random;
     var tokens = new Int32Array(B * T);
     var targets = new Int32Array(B * T);
     var maxStart = ids.length - T - 1;
     if (maxStart <= 0) throw new Error('语料太短，请增加文本长度或减小上下文窗口');
     for (var b = 0; b < B; b++) {
-      var start = Math.floor(Math.random() * maxStart);
+      var start = Math.floor(rnd() * maxStart);
       for (var t = 0; t < T; t++) {
         tokens[b * T + t] = ids[start + t];
         targets[b * T + t] = ids[start + t + 1];
@@ -698,6 +781,9 @@
     encode: encode,
     decode: decode,
     makeBatch: makeBatch,
+    makeRng: makeRng,
+    makeStreams: makeStreams,
+    hashSeed: hashSeed,
     gelu: gelu,
     dgelu: dgelu,
     // 以下导出仅供单元测试使用

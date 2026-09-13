@@ -28,6 +28,8 @@ function argVal(name, dft) {
 var QUICK = argv.indexOf('--quick') >= 0;
 var ONLY = argVal('corpus', null);
 var STEPS = parseInt(argVal('steps', QUICK ? 150 : 400), 10);
+var SEED = argVal('seed', null) != null ? parseInt(argVal('seed', null), 10) : null;
+var OUT = argVal('out', null);
 
 // 与网页工具 index.html 的默认配置严格一致
 var CFG = { ctx: 32, d: 40, layers: 2, heads: 4, ffMul: 4 };
@@ -62,7 +64,7 @@ function trainCorpus(key) {
   var trainIds = ids.slice(0, split);
   var testIds = ids.slice(split);
 
-  var model = new kit.MiniLM(vocab.size, CFG);
+  var model = new kit.MiniLM(vocab.size, CFG, SEED == null ? {} : { seed: SEED });
   var warmup = Math.max(10, Math.floor(STEPS * 0.15));
 
   w('\n## ' + corpus.name);
@@ -77,6 +79,7 @@ function trainCorpus(key) {
   w('| 参数量 | ' + model.paramCount().toLocaleString() + ' |');
   w('| 配置 | ctx=' + CFG.ctx + ' d=' + CFG.d + ' layers=' + CFG.layers +
     ' heads=' + CFG.heads + ' batch=' + BATCH + ' lr=' + LR + ' steps=' + STEPS + ' |');
+  w('| 随机种子 | ' + model.seed + (SEED == null ? '（自动取值，本次运行不可复现）' : '（显式指定，可复现）') + ' |');
   w('');
 
   var t0 = Date.now();
@@ -87,7 +90,7 @@ function trainCorpus(key) {
   var lossAcc = 0, lossN = 0;
 
   for (var step = 0; step < STEPS; step++) {
-    var batch = kit.makeBatch(trainIds, BATCH, CFG.ctx);
+    var batch = kit.makeBatch(trainIds, BATCH, CFG.ctx, model.rng.batch);
     model.zeroGrad();
     var r = model.forward(batch.tokens, batch.targets);
     model.backward();
@@ -178,10 +181,18 @@ function trainCorpus(key) {
     '遇到没见过的开头就会崩成随机字或强行拐回训练集里的句子。');
   w('');
   OOD_PROMPTS[key].forEach(function (p) {
+    // 统计有多少字不在词表内——字符级模型会把它们静默丢弃，必须显式披露
+    var oov = 0;
+    for (var oi = 0; oi < p.length; oi++) if (!(p[oi] in vocab.stoi)) oov++;
     var pid = kit.encode(p, vocab.stoi);
     var g = model.generate(pid, { maxNew: 60, temp: 0.8, topk: 8, repPenalty: 1.15 });
     var full = kit.decode(g.ids, vocab.itos).replace(/\n/g, ' ');
     w('- `' + p + '` → ' + full);
+    if (oov > 0) {
+      w('  - **注意**：这 ' + p.length + ' 个字里有 **' + oov + ' 个不在词表内**，' +
+        '模型实际只看到了 `' + p.split('').filter(function (ch) { return ch in vocab.stoi; }).join('') +
+        '`。所以下面这段输出**不能**当作完整语义的泛化证据。');
+    }
     var trace = g.trace[0].candidates.slice(0, 3).map(function (c) {
       return "'" + (vocab.itos[c.id] || '?') + "'" + (c.p * 100).toFixed(0) + '%';
     }).join(' ');
@@ -212,6 +223,7 @@ var HEAD = [
   '> 本文件由 `test_novel.js` 自动生成，是人工分析报告的数据来源。',
   '> 生成时间：' + new Date().toISOString().replace('T', ' ').slice(0, 19) + ' (UTC)',
   '> 运行模式：' + (QUICK ? '快速' : '标准') + ' · 每段语料 ' + STEPS + ' 步',
+  '> 随机种子：' + (SEED == null ? '未指定 —— 每次运行自动取新值，**不可复现**；各段表格记录了实际值' : SEED),
   '',
   '配置与网页工具 `index.html` 的默认档完全一致：' +
   '`ctx=32 d=40 layers=2 heads=4 ffMul=4 batch=' + BATCH + ' lr=' + LR + '`，' +
@@ -241,6 +253,9 @@ summary.forEach(function (s) {
 sumLines.push('');
 w(sumLines.join('\n'));
 
-var outFile = path.join(__dirname, 'report_evidence.md');
+var outFile = OUT
+  ? (/\.md$/i.test(OUT) ? path.resolve(OUT) : path.join(path.resolve(OUT), 'report_evidence.md'))
+  : path.join(__dirname, 'report_evidence.md');
+fs.mkdirSync(path.dirname(outFile), { recursive: true });
 fs.writeFileSync(outFile, out.join('\n'), 'utf8');
 console.log('\n✓ 已写入 ' + outFile);

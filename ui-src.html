@@ -841,7 +841,7 @@ function togglePause() {
 
 function trainOneStep() {
   var m = S.model, ctx = S.cfg.ctx;
-  var batch = K.makeBatch(S.ids, S.batch, ctx);
+  var batch = K.makeBatch(S.ids, S.batch, ctx, m.rng.batch);
   m.zeroGrad();
   var r = m.forward(batch.tokens, batch.targets);
   m.backward();
