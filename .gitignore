@@ -14,3 +14,17 @@ dev/diag*.txt
 dev/r_*.txt
 dev/e.txt
 dev/sz.txt
+
+# 公版语料抓取：原始下载缓存与逐作品副本都不入库（可由 py/data/fetch_corpus.py 重建）
+# 入库的是聚合后的 py/data/corpus.json 与审计 data/sources.json
+data/raw/
+data/processed/
+
+# 语料来源探索的临时探针（古腾堡 / 汉川草庐 / 维基文库的中间产物）
+dev/gb_zh.html
+dev/gutendex_zh.json
+dev/t_pg24099.txt
+dev/tree_*.json
+
+# 语料改写前的本地备份（原 7360 字种子语料）；可从 git 历史恢复，不入库
+py/data/corpus.orig.json

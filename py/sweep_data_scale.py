@@ -41,8 +41,8 @@ from minilm_torch import MiniLM, build_vocab, encode, train, holdout_eval  # noq
 from baselines import NGram, Acc, run_baselines, for_each_position  # noqa
 
 DEFAULT_CFG = dict(ctx=32, d=40, layers=2, heads=4, ffMul=4)
-DEFAULT_SIZES = (500, 1000, 2000)         # 'all' 单独处理为 -1
-CORPORA = ('scifi', 'wuxia', 'urban')
+DEFAULT_SIZES = (2000, 10000, 50000, 200000, 1000000)   # 'all' 单独处理为 -1
+CORPORA = ('scifi', 'wuxia', 'urban', 'gudian')
 
 
 def load_corpus() -> Dict[str, str]:
@@ -70,7 +70,7 @@ def trigram_eval(train_ids: List[int], test_ids: List[int], V: int, ctx: int = 3
 
 def model_eval(text: str, train_ids: List[int], test_ids: List[int],
                vocab_chars: List[str], cfg: dict, steps: int,
-               batch: int, lr: float, seed: int) -> Dict:
+               batch: int, lr: float, seed: int, min_freq: int = 1) -> Dict:
     """用同样的 train/test split 训练模型并评测。返回 {top1, top5, final_loss}。
     关键约束：模型词表必须在全文上建（与 JS/复刻一致），不能只看 train，
     否则 test_ids 会出现「vocab 越界」越界访问。"""
@@ -79,7 +79,7 @@ def model_eval(text: str, train_ids: List[int], test_ids: List[int],
     torch.manual_seed(seed)
 
     # 词表 = 全文，与 JS 的 kit.buildVocab(text) 一致
-    itos_full, stoi_full = build_vocab(text)
+    itos_full, stoi_full = build_vocab(text, min_freq=min_freq)
     V = len(itos_full)
     # train/test ids 已经是按全文 vocab 编出的，直接复用即可
     train_ids_v = [t for t in train_ids if t < V]   # 安全过滤
@@ -137,9 +137,11 @@ def model_eval(text: str, train_ids: List[int], test_ids: List[int],
 
 def sweep_one(corpus_key: str, full_text: str, size: int,
               cfg: dict, steps: int, batch: int, lr: float, seed: int,
-              ctx: int) -> Dict:
+              ctx: int, min_freq: int = 1,
+              proportional: bool = False, prop_ref: int = 200000,
+              prop_cap: int = 4000) -> Dict:
     """单个 (corpus, size) 组合。返回一条 run dict。"""
-    itos, stoi = build_vocab(full_text)
+    itos, stoi = build_vocab(full_text, min_freq=min_freq)
     V = len(itos)
     full_ids = encode(full_text, stoi)
     # 测试集：始终是全文最后 10%（与 JS/复刻一致）
@@ -162,6 +164,13 @@ def sweep_one(corpus_key: str, full_text: str, size: int,
     # 确保 train_ids 与 test_ids 完全不重叠
     assert test_cut >= actual_size, f'训练集 {actual_size} 越界测试起点 {test_cut}'
 
+    # 固定步数模式下模型 token 预算恒定（steps×batch×ctx），数据变大并不会多看 token，
+    # 会低估数据收益；--proportional-steps 让步数随训练字数同比放大，等价于固定 epoch。
+    if proportional and actual_size > 0:
+        eff_steps = int(min(prop_cap, max(50, round(steps * actual_size / prop_ref))))
+    else:
+        eff_steps = steps
+
     vocab_chars = itos[1:]   # 去掉 0 号未登录位（仅供 model_eval 兼容，实际内部重建全文词表）
 
     t0 = time.time()
@@ -170,7 +179,8 @@ def sweep_one(corpus_key: str, full_text: str, size: int,
 
     t0 = time.time()
     mod = model_eval(full_text, train_ids, test_ids, vocab_chars,
-                     cfg=cfg, steps=steps, batch=batch, lr=lr, seed=seed)
+                     cfg=cfg, steps=eff_steps, batch=batch, lr=lr, seed=seed,
+                     min_freq=min_freq)
     t_model = time.time() - t0
 
     return {
@@ -178,11 +188,13 @@ def sweep_one(corpus_key: str, full_text: str, size: int,
         'size': actual_size,
         'size_label': size_label,
         'seed': seed,
-        'steps': steps,
+        'steps': eff_steps,
+        'proportional_steps': proportional,
         'batch': batch,
         'lr': lr,
         'cfg': cfg,
         'V': V,
+        'min_freq': min_freq,
         'train_chars': len(train_ids),
         'test_chars': len(test_ids),
         'n_positions': mod['n'],
@@ -212,6 +224,13 @@ def main():
     ap.add_argument('--seed', type=int, default=1234)
     ap.add_argument('--ctx', type=int, default=DEFAULT_CFG['ctx'])
     ap.add_argument('--corpus', default='all', help='all 或单个语料 id')
+    ap.add_argument('--min_freq', type=int, default=3,
+                    help='词表词频下限：低于该频次的字映射到 UNK(0)，控制词表规模')
+    ap.add_argument('--proportional_steps', action='store_true',
+                    help='步数随训练字数同比放大（固定 epoch），避免固定步数低估数据收益')
+    ap.add_argument('--prop_ref', type=int, default=200000,
+                    help='--proportional_steps 的参考字数：该字数下用 --steps 指定的步数')
+    ap.add_argument('--prop_cap', type=int, default=4000, help='放大后的步数上限')
     ap.add_argument('--out_dir', default=os.path.join(HERE, 'runs'))
     ap.add_argument('--no_plot', action='store_true', help='跳过画图')
     args = ap.parse_args()
@@ -238,20 +257,27 @@ def main():
             try:
                 r = sweep_one(ck, text, sz, cfg=cfg, steps=args.steps,
                               batch=args.batch, lr=args.lr, seed=args.seed,
-                              ctx=args.ctx)
+                              ctx=args.ctx, min_freq=args.min_freq,
+                              proportional=args.proportional_steps,
+                              prop_ref=args.prop_ref, prop_cap=args.prop_cap)
                 all_runs.append(r)
                 print(f'    model Top-1={r["model"]["top1"]:.1f}%  '
                       f'trigram Top-1={r["trigram"]["top1"]:.1f}%  '
+                      f'steps={r["steps"]}  '
                       f'wallclock={r["wallclock"]["model"]:.1f}s',
                       flush=True)
                 # 单条 JSON
-                fn = f'sweep_{ck}_{label}_s{args.seed}.json'
+                mode = 'prop' if args.proportional_steps else 'fix'
+                fn = f'sweep_{ck}_{label}_{mode}_s{args.seed}.json'
                 with open(os.path.join(args.out_dir, fn), 'w', encoding='utf-8') as f:
                     json.dump(r, f, ensure_ascii=False, indent=2)
             except Exception as e:
                 print(f'    FAILED: {e}', flush=True)
 
-    summary_path = os.path.join(args.out_dir, 'sweep_summary.json')
+    # 单批汇总。**故意不叫 sweep_summary.json** —— 那个名字留给 py/sweep_report.py
+    # 输出的"全部批次合并版"；否则每跑一批就把合并版覆盖成只剩这一批，容易读出片面结论。
+    mode_tag = 'prop' if args.proportional_steps else 'fix'
+    summary_path = os.path.join(args.out_dir, f'sweep_batch_{mode_tag}_s{args.seed}.json')
     with open(summary_path, 'w', encoding='utf-8') as f:
         json.dump({
             'meta': {
@@ -262,6 +288,8 @@ def main():
                 'seed': args.seed,
                 'sizes': sizes,
                 'corpora': keys,
+                'min_freq': args.min_freq,
+                'proportional_steps': args.proportional_steps,
             },
             'runs': all_runs,
         }, f, ensure_ascii=False, indent=2)
@@ -296,18 +324,20 @@ def write_report(runs: List[Dict], args):
     L.append('# 数据量扫描：模型 vs Trigram')
     L.append('')
     L.append('> 回答「模型到底需要多少训练字才能超过 trigram？」')
-    L.append(f'> 固定 seed={args.seed}、steps={args.steps}、batch={args.batch}、lr={args.lr}、'
-             f'ctx={args.ctx}；只改训练集大小。测试集是全文最后 10%，所有配置在同一份留出集上比较。')
+    L.append(f'> 固定 seed={args.seed}、batch={args.batch}、lr={args.lr}、'
+             f'ctx={args.ctx}、词频下限 min_freq={args.min_freq}；只改训练集大小。'
+             f'测试集是全文最后 10%，所有配置在同一份留出集上比较。')
+    L.append(f'> 步数模式：{"随数据量同比放大（固定 epoch）" if args.proportional_steps else f"固定 {args.steps} 步（等价固定 token 预算）"}。')
     L.append('')
     for ck, rows in by_corpus.items():
         rows.sort(key=lambda r: r['size'])
         L.append(f'## {ck}')
         L.append('')
-        L.append('| 训练字数 | 留出集字数 | Model Top-1 | Model Top-5 | Trigram Top-1 | Trigram NLL | 胜负 |')
-        L.append('|---|---|---|---|---|---|---|')
+        L.append('| 训练字数 | 步数 | 留出集字数 | Model Top-1 | Model Top-5 | Trigram Top-1 | Trigram NLL | 胜负 |')
+        L.append('|---|---|---|---|---|---|---|---|')
         for r in rows:
-            win = '✓ 模型胜' if r['model']['top1'] > r['trigram']['top1'] else '✗ 模型负'
-            L.append(f'| {r["size"]} | {r["test_chars"]} | '
+            win = '模型胜' if r['model']['top1'] > r['trigram']['top1'] else '模型负'
+            L.append(f'| {r["size"]} | {r["steps"]} | {r["test_chars"]} | '
                      f'{r["model"]["top1"]:.1f}% | {r["model"]["top5"]:.1f}% | '
                      f'{r["trigram"]["top1"]:.1f}% | {r["trigram"]["nll"]:.3f} | {win} |')
         L.append('')
@@ -346,11 +376,12 @@ def plot_sweep(runs: List[Dict], cfg: dict, args):
     for arr in by_corpus.values():
         arr.sort(key=lambda r: r['size'])
 
-    fig, axes = plt.subplots(1, len(by_corpus), figsize=(5 * len(by_corpus), 4),
+    fig, axes = plt.subplots(1, len(by_corpus), figsize=(4.6 * len(by_corpus), 4),
                              sharey=True)
     if len(by_corpus) == 1:
         axes = [axes]
-    palette = {'scifi': '#d62728', 'wuxia': '#1f77b4', 'urban': '#2ca02c'}
+    palette = {'scifi': '#d62728', 'wuxia': '#1f77b4', 'urban': '#2ca02c',
+               'gudian': '#9467bd'}
 
     for ax, (ck, rows) in zip(axes, by_corpus.items()):
         xs = [r['size'] for r in rows]
@@ -361,8 +392,11 @@ def plot_sweep(runs: List[Dict], cfg: dict, args):
         ax.plot(xs, t_t1, 's--', color=palette.get(ck, 'gray'), alpha=0.6,
                 label='Trigram (α=0.1)', linewidth=1.5, markersize=7)
         ax.set_title(f'{ck}', fontsize=13)
-        ax.set_xlabel('训练字数')
-        ax.set_xticks(xs)
+        ax.set_xlabel('训练字数（对数轴）')
+        ax.set_xscale('log')
+        pos = [x for x in xs if x > 0]
+        if pos:
+            ax.set_xticks(pos)
         ax.set_xticklabels([r['size_label'] for r in rows], fontsize=9)
         ax.grid(True, alpha=0.3)
         ax.legend(fontsize=9, loc='best')

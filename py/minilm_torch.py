@@ -29,10 +29,20 @@ DEFAULT_CFG = dict(ctx=32, d=40, layers=2, heads=4, ffMul=4)
 
 # ---------------------------- 分词器 ----------------------------
 
-def build_vocab(text):
+def build_vocab(text, min_freq=1, max_vocab=None):
     # minilm.js: itos = ['\x00'] + Array.from(new Set(text)).sort()
-    # Python 对单字符按 Unicode 码点排序，与 JS 默认排序在 BMP 上一致
-    chars = sorted(set(text))
+    # Python 对单字符按 Unicode 码点排序，与 JS 默认排序在 BMP 上一致。
+    # min_freq<=1 且 max_vocab 为空时行为与 minilm.js 完全一致（逐位对齐依赖此路径）；
+    # 语料放大到百万字后，可选按词频裁掉长尾生僻字（映射到 0 号 UNK）。
+    if min_freq <= 1 and not max_vocab:
+        chars = sorted(set(text))
+    else:
+        from collections import Counter
+        cnt = Counter(text)
+        keep = {c for c, n in cnt.items() if n >= min_freq}
+        if max_vocab and len(keep) > max_vocab:
+            keep = {c for c, _ in cnt.most_common(max_vocab)}
+        chars = sorted(keep)
     itos = ['\x00'] + chars
     stoi = {ch: i for i, ch in enumerate(itos)}
     return itos, stoi
@@ -147,11 +157,11 @@ def lr_at(step, total, base_lr, warmup):
 # ---------------------------- 训练 + 评测 ----------------------------
 
 def train(text, steps=400, batch=8, lr=0.004, seed=1234, cfg=None,
-          snapshot_every=None, log=None):
+          snapshot_every=None, log=None, min_freq=1, max_vocab=None):
     """复刻 test_novel.js 的 trainCorpus 训练段。返回 (model, vocab, snapshots)。"""
     rng = random.Random(seed)
     torch.manual_seed(seed)
-    itos, stoi = build_vocab(text)
+    itos, stoi = build_vocab(text, min_freq=min_freq, max_vocab=max_vocab)
     ids = encode(text, stoi)
 
     # 90% 训练 / 10% 留出（词表建立在全文上，与 JS 相同）
@@ -186,10 +196,10 @@ def train(text, steps=400, batch=8, lr=0.004, seed=1234, cfg=None,
 
 
 @torch.no_grad()
-def holdout_eval(model, text, seed=1234):
+def holdout_eval(model, text, seed=1234, min_freq=1, max_vocab=None):
     """复刻 test_novel.js 的留出集评测：后 10% 分成 32 字窗口逐位置测 top-k。"""
     torch.manual_seed(seed)
-    itos, stoi = build_vocab(text)
+    itos, stoi = build_vocab(text, min_freq=min_freq, max_vocab=max_vocab)
     ids = encode(text, stoi)
     split = math.floor(len(ids) * 0.9)
     test_ids = ids[split:]

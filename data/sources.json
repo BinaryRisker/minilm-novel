@@ -1,0 +1,1116 @@
+{
+ "generated_by": "py/data/fetch_corpus.py",
+ "note": "全部为公版或开放许可中文文本；繁转简(opencc t2s)；跨源按标题去重保留最长版本",
+ "total_works": 90,
+ "total_chars": 24882232,
+ "by_bucket": {
+  "scifi": {
+   "works": 4,
+   "chars": 132007
+  },
+  "wuxia": {
+   "works": 23,
+   "chars": 8077717
+  },
+  "urban": {
+   "works": 26,
+   "chars": 5425260
+  },
+  "gudian": {
+   "works": 37,
+   "chars": 11247248
+  }
+ },
+ "works": [
+  {
+   "title": "今古奇观",
+   "bucket": "gudian",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 933341,
+   "sha256": "08f87a2ea9cd4017",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/24230"
+  },
+  {
+   "title": "红楼梦",
+   "bucket": "gudian",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg",
+    "hcc"
+   ],
+   "chars": 881299,
+   "sha256": "8b81845bf2966045",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/24264"
+  },
+  {
+   "title": "西游记",
+   "bucket": "gudian",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg",
+    "hcc"
+   ],
+   "chars": 726618,
+   "sha256": "929f1f2ce2bdc617",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/23962"
+  },
+  {
+   "title": "三国志演义",
+   "bucket": "gudian",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 602085,
+   "sha256": "9a5ddbb3c7459ff7",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/23950"
+  },
+  {
+   "title": "三国演义",
+   "bucket": "gudian",
+   "source": "hcc",
+   "all_sources": [
+    "hcc"
+   ],
+   "chars": 596175,
+   "sha256": "e4650489d0226293",
+   "license": "Public Domain (中国古典文学原文)",
+   "ref": "https://github.com/xp44mm/hanchuancaolu"
+  },
+  {
+   "title": "封神演义",
+   "bucket": "gudian",
+   "source": "hcc",
+   "all_sources": [
+    "gutenberg",
+    "hcc"
+   ],
+   "chars": 592123,
+   "sha256": "dd1ece6ee53581e6",
+   "license": "Public Domain (中国古典文学原文)",
+   "ref": "https://github.com/xp44mm/hanchuancaolu"
+  },
+  {
+   "title": "醒世恒言",
+   "bucket": "gudian",
+   "source": "hcc",
+   "all_sources": [
+    "gutenberg",
+    "hcc"
+   ],
+   "chars": 540762,
+   "sha256": "d341f9baa74bfc6c",
+   "license": "Public Domain (中国古典文学原文)",
+   "ref": "https://github.com/xp44mm/hanchuancaolu"
+  },
+  {
+   "title": "聊斋志异",
+   "bucket": "gudian",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 483362,
+   "sha256": "5c6b29fbbed0eaad",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/51828"
+  },
+  {
+   "title": "东度记",
+   "bucket": "gudian",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 460373,
+   "sha256": "15775cd49f6b625f",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/24233"
+  },
+  {
+   "title": "二刻拍案惊奇",
+   "bucket": "gudian",
+   "source": "hcc",
+   "all_sources": [
+    "gutenberg",
+    "hcc"
+   ],
+   "chars": 425805,
+   "sha256": "ed98982eee8af34a",
+   "license": "Public Domain (中国古典文学原文)",
+   "ref": "https://github.com/xp44mm/hanchuancaolu"
+  },
+  {
+   "title": "镜花缘",
+   "bucket": "gudian",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 413378,
+   "sha256": "ddfdf8bc19be5ac0",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/23818"
+  },
+  {
+   "title": "初刻拍案惊奇",
+   "bucket": "gudian",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg",
+    "hcc"
+   ],
+   "chars": 397244,
+   "sha256": "09b5318dd223c086",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/57248"
+  },
+  {
+   "title": "警世通言",
+   "bucket": "gudian",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg",
+    "hcc"
+   ],
+   "chars": 378335,
+   "sha256": "f7d33e402ae25a79",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/24141"
+  },
+  {
+   "title": "阅微草堂笔记",
+   "bucket": "gudian",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 377025,
+   "sha256": "bef27a7b1d822da6",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/23817"
+  },
+  {
+   "title": "喻世明言",
+   "bucket": "gudian",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg",
+    "hcc"
+   ],
+   "chars": 360759,
+   "sha256": "9c0f820a196c9c07",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/27582"
+  },
+  {
+   "title": "西湖二集",
+   "bucket": "gudian",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 323989,
+   "sha256": "84f2b8d179697738",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/25392"
+  },
+  {
+   "title": "兰花梦奇传",
+   "bucket": "gudian",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 274872,
+   "sha256": "417af9c3c444af9c",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/25602"
+  },
+  {
+   "title": "子不语",
+   "bucket": "gudian",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 271965,
+   "sha256": "6370ad4070e9cf30",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/25245"
+  },
+  {
+   "title": "平妖传",
+   "bucket": "gudian",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 237447,
+   "sha256": "41be5e777fff5289",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/57227"
+  },
+  {
+   "title": "石点头",
+   "bucket": "gudian",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 204710,
+   "sha256": "cca46cc0bf18b0b0",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/25399"
+  },
+  {
+   "title": "韩湘子全传",
+   "bucket": "gudian",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 175937,
+   "sha256": "4bdfd59b35f82865",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/24231"
+  },
+  {
+   "title": "夜雨秋灯录",
+   "bucket": "gudian",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 167833,
+   "sha256": "02b1d27636ef6ce2",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/25130"
+  },
+  {
+   "title": "东周列国志",
+   "bucket": "gudian",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 154106,
+   "sha256": "26d5de893ce4baa7",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/25349"
+  },
+  {
+   "title": "后西游记",
+   "bucket": "gudian",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 150151,
+   "sha256": "b2b1308dd2859a37",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/27332"
+  },
+  {
+   "title": "无声戏",
+   "bucket": "gudian",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 130558,
+   "sha256": "f115d53fa735b508",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/23907"
+  },
+  {
+   "title": "五色石",
+   "bucket": "gudian",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 118835,
+   "sha256": "78a4012cce68a5c7",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/29079"
+  },
+  {
+   "title": "醉醒石",
+   "bucket": "gudian",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 109672,
+   "sha256": "820589bcab2a01c8",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/24027"
+  },
+  {
+   "title": "续子不语",
+   "bucket": "gudian",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 100450,
+   "sha256": "5edecd7b17ef77d1",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/25315"
+  },
+  {
+   "title": "谐铎",
+   "bucket": "gudian",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 100355,
+   "sha256": "085a294a5cd13db9",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/25375"
+  },
+  {
+   "title": "锦香亭",
+   "bucket": "gudian",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 90898,
+   "sha256": "24d92c7c8e20c491",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/25279"
+  },
+  {
+   "title": "耳食录",
+   "bucket": "gudian",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 86280,
+   "sha256": "ba69a383e468f517",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/27459"
+  },
+  {
+   "title": "珍珠舶",
+   "bucket": "gudian",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 83893,
+   "sha256": "29356cf108e0508f",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/26877"
+  },
+  {
+   "title": "搜神记",
+   "bucket": "gudian",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 73608,
+   "sha256": "e10d79c6640b6027",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/25362"
+  },
+  {
+   "title": "斩鬼传",
+   "bucket": "gudian",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 67545,
+   "sha256": "e5f7b636036a1cab",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/27216"
+  },
+  {
+   "title": "白圭志",
+   "bucket": "gudian",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 61503,
+   "sha256": "09eff6174109e9c1",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/27023"
+  },
+  {
+   "title": "何典",
+   "bucket": "gudian",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 53011,
+   "sha256": "8ccff77e3ed54888",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/24327"
+  },
+  {
+   "title": "山海经",
+   "bucket": "gudian",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 40946,
+   "sha256": "5629333a6ce65019",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/25288"
+  },
+  {
+   "title": "貓城記",
+   "bucket": "scifi",
+   "source": "wikisource",
+   "all_sources": [
+    "wikisource"
+   ],
+   "chars": 69561,
+   "sha256": "f7b72187f340fb77",
+   "license": "CC BY-SA 4.0 / Public Domain (中文维基文库)",
+   "ref": "https://zh.wikisource.org/wiki/%E8%B2%93%E5%9F%8E%E8%A8%98"
+  },
+  {
+   "title": "月界旅行",
+   "bucket": "scifi",
+   "source": "wikisource",
+   "all_sources": [
+    "wikisource"
+   ],
+   "chars": 47828,
+   "sha256": "c5028f8496ed1ff2",
+   "license": "CC BY-SA 4.0 / Public Domain (中文维基文库)",
+   "ref": "https://zh.wikisource.org/wiki/%E6%9C%88%E7%95%8C%E6%97%85%E8%A1%8C"
+  },
+  {
+   "title": "新紀元 (碧荷館主人)",
+   "bucket": "scifi",
+   "source": "wikisource",
+   "all_sources": [
+    "wikisource"
+   ],
+   "chars": 11601,
+   "sha256": "4a979309d5e1230a",
+   "license": "CC BY-SA 4.0 / Public Domain (中文维基文库)",
+   "ref": "https://zh.wikisource.org/wiki/%E6%96%B0%E7%B4%80%E5%85%83%20%28%E7%A2%A7%E8%8D%B7%E9%A4%A8%E4%B8%BB%E4%BA%BA%29"
+  },
+  {
+   "title": "電世界",
+   "bucket": "scifi",
+   "source": "wikisource",
+   "all_sources": [
+    "wikisource"
+   ],
+   "chars": 3017,
+   "sha256": "d6be6872d19d9b0e",
+   "license": "CC BY-SA 4.0 / Public Domain (中文维基文库)",
+   "ref": "https://zh.wikisource.org/wiki/%E9%9B%BB%E4%B8%96%E7%95%8C"
+  },
+  {
+   "title": "醒世姻缘",
+   "bucket": "urban",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 780982,
+   "sha256": "0eb7d156d2c0b9c4",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/26161"
+  },
+  {
+   "title": "官场现形记",
+   "bucket": "urban",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 653775,
+   "sha256": "2962a448c4736588",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/24138"
+  },
+  {
+   "title": "二十年目睹之怪现状",
+   "bucket": "urban",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 547266,
+   "sha256": "2ae9c5bff673aadd",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/24099"
+  },
+  {
+   "title": "儒林外史",
+   "bucket": "urban",
+   "source": "hcc",
+   "all_sources": [
+    "gutenberg",
+    "hcc"
+   ],
+   "chars": 325169,
+   "sha256": "d324066681b752e0",
+   "license": "Public Domain (中国古典文学原文)",
+   "ref": "https://github.com/xp44mm/hanchuancaolu"
+  },
+  {
+   "title": "海上花列传",
+   "bucket": "urban",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 314974,
+   "sha256": "f59e7015e2e86cdf",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/26872"
+  },
+  {
+   "title": "文明小史",
+   "bucket": "urban",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 291650,
+   "sha256": "f5600dd04fa4fc1c",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/25379"
+  },
+  {
+   "title": "孽海花",
+   "bucket": "urban",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 254381,
+   "sha256": "e91629c3493904c1",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/25128"
+  },
+  {
+   "title": "花月痕",
+   "bucket": "urban",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 242360,
+   "sha256": "b1b91a42fa2f21a6",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/25187"
+  },
+  {
+   "title": "冷眼观",
+   "bucket": "urban",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 227522,
+   "sha256": "115c3cb05bdc6b3c",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/24029"
+  },
+  {
+   "title": "青楼梦",
+   "bucket": "urban",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 216173,
+   "sha256": "6e6fe2083cd4f51b",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/57278"
+  },
+  {
+   "title": "蜃楼志",
+   "bucket": "urban",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 189090,
+   "sha256": "d675728b9bae32b3",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/25543"
+  },
+  {
+   "title": "风月梦",
+   "bucket": "urban",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 150830,
+   "sha256": "a88e2215e3ee1706",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/26931"
+  },
+  {
+   "title": "黄绣球",
+   "bucket": "urban",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 148662,
+   "sha256": "5c59f4645dccb9a7",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/25147"
+  },
+  {
+   "title": "痴人说梦记",
+   "bucket": "urban",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 125509,
+   "sha256": "8391ca52c023be51",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/24154"
+  },
+  {
+   "title": "九命奇冤",
+   "bucket": "urban",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 122782,
+   "sha256": "46ee8da4d6be655a",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/25402"
+  },
+  {
+   "title": "老残游记",
+   "bucket": "urban",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 110198,
+   "sha256": "18525e5579ab44a9",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/23850"
+  },
+  {
+   "title": "玉梨魂",
+   "bucket": "urban",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 106446,
+   "sha256": "c670e831b1d5c1db",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/25521"
+  },
+  {
+   "title": "胡涂世界",
+   "bucket": "urban",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 95867,
+   "sha256": "c7cc0fa9a1c55e67",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/23827"
+  },
+  {
+   "title": "负曝闲谈",
+   "bucket": "urban",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 92148,
+   "sha256": "9fad3a90028cf28d",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/25226"
+  },
+  {
+   "title": "定情人",
+   "bucket": "urban",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 88512,
+   "sha256": "e29dcd46322ac001",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/24422"
+  },
+  {
+   "title": "商界现形记",
+   "bucket": "urban",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 84936,
+   "sha256": "23892b8098b29b81",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/24079"
+  },
+  {
+   "title": "邻女语",
+   "bucket": "urban",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 57954,
+   "sha256": "749020fe998a77b8",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/27302"
+  },
+  {
+   "title": "轰天雷",
+   "bucket": "urban",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 57371,
+   "sha256": "89a4be1f77c2ad34",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/24142"
+  },
+  {
+   "title": "老残游记续集",
+   "bucket": "urban",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 53045,
+   "sha256": "ed4a221b8640b1ef",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/56291"
+  },
+  {
+   "title": "恨海",
+   "bucket": "urban",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 47970,
+   "sha256": "6d74810e06c606fc",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/23865"
+  },
+  {
+   "title": "瞎骗奇闻",
+   "bucket": "urban",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 39688,
+   "sha256": "6c0a277107c3c0ca",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/27768"
+  },
+  {
+   "title": "施公案",
+   "bucket": "wuxia",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 1161339,
+   "sha256": "54c794f2b9f0e0e6",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/25393"
+  },
+  {
+   "title": "水浒传",
+   "bucket": "wuxia",
+   "source": "hcc",
+   "all_sources": [
+    "gutenberg",
+    "hcc"
+   ],
+   "chars": 899624,
+   "sha256": "dea041cec38fbf0f",
+   "license": "Public Domain (中国古典文学原文)",
+   "ref": "https://github.com/xp44mm/hanchuancaolu"
+  },
+  {
+   "title": "彭公案",
+   "bucket": "wuxia",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 874720,
+   "sha256": "bb4713467120302e",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/26970"
+  },
+  {
+   "title": "荡寇志",
+   "bucket": "wuxia",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 669854,
+   "sha256": "2094622bb978760a",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/25350"
+  },
+  {
+   "title": "隋唐演义",
+   "bucket": "wuxia",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 627237,
+   "sha256": "63cfda245c32f69e",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/23835"
+  },
+  {
+   "title": "儿女英雄传",
+   "bucket": "wuxia",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 550389,
+   "sha256": "bf0e2e367dee4a4d",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/25327"
+  },
+  {
+   "title": "三侠五义",
+   "bucket": "wuxia",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 510199,
+   "sha256": "61e13347dc9c1c7e",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/25376"
+  },
+  {
+   "title": "飞龙全传",
+   "bucket": "wuxia",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 335583,
+   "sha256": "556954ce603877ce",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/25229"
+  },
+  {
+   "title": "雪月梅传",
+   "bucket": "wuxia",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 253259,
+   "sha256": "80c0dd73fc79a451",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/26739"
+  },
+  {
+   "title": "水浒后传",
+   "bucket": "wuxia",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 246158,
+   "sha256": "3bc9f55b0ce6eb81",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/25217"
+  },
+  {
+   "title": "粉妆楼全传",
+   "bucket": "wuxia",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 209296,
+   "sha256": "7476e09b5f3a3abb",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/26871"
+  },
+  {
+   "title": "说唐",
+   "bucket": "wuxia",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 203773,
+   "sha256": "ba0faf3b4e7ba39b",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/23824"
+  },
+  {
+   "title": "狄公案",
+   "bucket": "wuxia",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 203195,
+   "sha256": "9b206d53e4e3f775",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/27686"
+  },
+  {
+   "title": "海公案",
+   "bucket": "wuxia",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 200704,
+   "sha256": "b2627bbdb47c70b4",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/54494"
+  },
+  {
+   "title": "绿牡丹",
+   "bucket": "wuxia",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 193573,
+   "sha256": "738e7dec5b59d3b4",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/27330"
+  },
+  {
+   "title": "双凤奇缘",
+   "bucket": "wuxia",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 188213,
+   "sha256": "374689e87594273c",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/25348"
+  },
+  {
+   "title": "天豹图",
+   "bucket": "wuxia",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 186511,
+   "sha256": "0a8e5babe53a2dd8",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/26904"
+  },
+  {
+   "title": "杨家将演义",
+   "bucket": "wuxia",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 151782,
+   "sha256": "aa7a1bce0f71f1db",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/27082"
+  },
+  {
+   "title": "好逑传",
+   "bucket": "wuxia",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 127755,
+   "sha256": "c7ca31dbca1a0fc0",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/27414"
+  },
+  {
+   "title": "残唐五代史演义传",
+   "bucket": "wuxia",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 114333,
+   "sha256": "d69985b6cf77a305",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/27145"
+  },
+  {
+   "title": "金石缘",
+   "bucket": "wuxia",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 111504,
+   "sha256": "56700b2365d447d3",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/25369"
+  },
+  {
+   "title": "明镜公案",
+   "bucket": "wuxia",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 37305,
+   "sha256": "23193b03e0da08d0",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/52280"
+  },
+  {
+   "title": "剑侠传",
+   "bucket": "wuxia",
+   "source": "gutenberg",
+   "all_sources": [
+    "gutenberg"
+   ],
+   "chars": 21411,
+   "sha256": "8f545e5cc0ddd178",
+   "license": "Public Domain (Project Gutenberg)",
+   "ref": "https://www.gutenberg.org/ebooks/25214"
+  }
+ ]
+}

@@ -84,6 +84,12 @@ node test_novel.js       # 中文小说生成能力测试，产出 report_eviden
 | `小模型写小说_从零学习方案_2026-09.md` | **路线图**：L0–L7 分级计划、技术栈边界实测、里程碑与风险 |
 | `LOG.md` | **旅程日志**：每个实验做了什么、数字是多少、意外发现是什么。内容素材库 |
 | `py/` | **Python + PyTorch 训练链路**（L0 起的真源）：复刻版 + 多种子对齐验证（已通过） |
+| `py/data/fetch_corpus.py` | **公版语料抓取管线**：Gutenberg / GitHub 古典文库 / 维基文库 → 清洗 → 分桶 → `corpus.json` |
+| `py/data/prepare.py` | 逐作品 manifest 与 train/val/test split 审计（`data/manifest.jsonl`、`data/split_audit.json`） |
+| `py/sweep_data_scale.py` | 数据量扫描实验：模型 vs trigram，支持固定步数与步数随数据放大两种模式 |
+| `py/sweep_report.py` | 把各批次扫描结果合并成一张对比表 + 折线图 |
+| `data/` | 语料审计产物：`sources.json`（90 部作品的来源/许可/哈希）、`manifest.jsonl` |
+| `docs/experiments/` | 每个实验一份记录（问题/假设/唯一变量/结果/失败样本/结论边界/复现命令） |
 | `eval/` | **评估协议与基线**：`protocol.js`（位置/上文/指标的唯一定定义）、`baselines.js`（unigram/bigram/trigram 基线）、`metrics.js`（重复率/重合度/OOV）、`fixtures/`（手算样本） |
 | `中文小说生成测试报告.md` | **中文小说生成能力测试报告**（结论、数据、局限） |
 | `report_evidence.md` | 上述报告的原始证据（由 `test_novel.js` 自动生成） |
@@ -99,6 +105,38 @@ node test_novel.js       # 中文小说生成能力测试，产出 report_eviden
 
 ```bash
 node build.js && node smoke.js && node uidom.js && node test_rng.js
+```
+
+---
+
+## 语料：公版中文小说 · 613 万字 / 90 部作品
+
+`corpus.js` 里那三段语料是手写的（合计 7360 字），只够让实验台跑起来。
+真正训练用的是 `py/data/corpus.json`：从三个**公版**来源抓取、清洗、分桶后的
+**613 万字 / 90 部作品**。
+
+| 桶 | 作品数 | 入库字数 | 代表作品 |
+|---|---|---|---|
+| `scifi` 科幻 · 清末科学小说 | 4 | 13.2 万 | 月界旅行（鲁迅译凡尔纳）、猫城记、新纪元、电世界 |
+| `wuxia` 武侠 · 侠义公案 | 23 | 200 万 | 水浒传、三侠五义、儿女英雄传、荡寇志、施公案 |
+| `urban` 都市 · 世情谴责 | 26 | 200 万 | 官场现形记、二十年目睹之怪现状、老残游记、孽海花 |
+| `gudian` 古典 · 神魔笔记 | 37 | 200 万 | 红楼梦、西游记、三国演义、封神演义、聊斋志异、三言二拍 |
+
+来源与许可（全部为公有领域或开放许可，逐作品清单见 `data/sources.json`）：
+
+- **Project Gutenberg** 中文公版图书（`gutenberg.org`，Public Domain）
+- **GitHub `xp44mm/hanchuancaolu`** 中国古典文学原文（Public Domain）
+- **中文维基文库** 清末「科学小说」（CC BY-SA 4.0 / PD）
+
+处理链路要点（踩坑记录见 `docs/experiments/2026-09-13-public-domain-corpus.md`）：
+去 Gutenberg 头尾 → 硬换行重排回自然段 → 标点归一 → 繁转简（opencc）→
+字符白名单（丢弃版式残渣）→ **跨源按标题去重取最长版本** → 按桶**均分截断**
+（保证每部作品都有代表，而不是只剩最长的两三部）。
+
+```bash
+python py/data/fetch_corpus.py --list-sources            # 先看清单，不下载
+python py/data/fetch_corpus.py --max-chars 2000000       # 抓取 + 清洗 + 分桶
+python py/data/prepare.py --split                        # 逐作品 manifest + split 审计
 ```
 
 ---
@@ -203,6 +241,11 @@ node build.js && node smoke.js && node uidom.js && node test_rng.js
 详细分析与局限见 `中文小说生成测试报告.md`；原始证据见 `report_evidence.md` 与
 `eval/baselines_report.md`。
 
+> **同一问题的第二轮（Python 链路，613 万字公版语料）**：把训练语料从 7360 字扩到
+> **613 万字（833 倍）**后重跑，结论是**仍然没有在留出集 Top-1 上整体超过 trigram**，
+> 但上一轮"数据变多模型反而更差"的部分是**评测步长 bug + 训练不足**造成的假象。
+> 修正协议的完整结果见 `docs/experiments/2026-09-13-sweep-data-scale.md`。
+
 > 关于梯度检查的一个坑：**必须用 float64**。
 > 用 float32 时量化噪声（~1e-6）会淹没小梯度分量，
 > 实测最大相对误差会飙到 **1.9**，800 多个分量"失败"——
@@ -213,7 +256,8 @@ node build.js && node smoke.js && node uidom.js && node test_rng.js
 
 ## 已知限制
 
-- 语料只有几千字，模型会过拟合。想让它"会写"而不是"会背"，请控制训练步数。
+- 语料只有几千字的那个版本（浏览器实验台）会过拟合：模型"会背"而不是"会写"，请控制训练步数。
+  Python 链路已备有 **613 万字公版语料**，但按当前训练预算（0.5 epoch）仍不足以胜过 trigram。
 - 字符级建模，不认词。中文没有空格，所以"词"要靠模型自己从字序里学。
 - 生成是逐字采样的，长文本会不可避免地漂移。
 - 没有 KV Cache，每生成一个字都要重算整个上下文。够小所以还能忍。

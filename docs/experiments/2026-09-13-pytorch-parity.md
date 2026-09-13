@@ -34,11 +34,18 @@ python py/verify_parity.py
 ## 5. 结果
 
 ```text
-forward: logits PASS   loss PASS
-backward (raw):   0/20 FAIL
-grad-clip:        0/20 FAIL
-adam-step:        0/20 FAIL
+forward:            2/2 通过  （logits PASS / loss PASS）
+backward (raw):     20/20 通过
+grad-clip:          20/20 通过
+adam-step:          20/20 通过
+
+结论：✓ 前向 / 反向 / 裁剪 / Adam 一步全部对齐（最大差异在 float64 精度范围内）
 ```
+
+> 勘误（2026-09-13 补）：此处原先贴的是 `backward (raw): 0/20 FAIL` 这类行。
+> 脚本当时把**失败数**当分子打印，却配了 `FAIL` 字样，于是「20 项全过、0 项失败」
+> 被写成 `0/20 FAIL`，读起来像挂了。汇总口径已改为 `通过数/总数`，
+> 并补了一行明确的总体结论；判定逻辑与退出码一直是对的（全绿 → `exit 0`）。
 
 具体最大误差：
 - forward logits: max|Δ| = 5.55e-17（bitwise 一致）

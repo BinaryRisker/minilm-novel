@@ -1,119 +1,178 @@
 """ ============================================================================
-py/data/prepare.py — 数据管线：原始故事 → manifest.jsonl + split 审计
+py/data/prepare.py — 数据管线：作品清单 → manifest.jsonl + split 审计
 ----------------------------------------------------------------------------
 职责：
-  - 读取 py/data/corpus.json（或用户指定的原始目录）中的 story 记录
-  - 为每个 story 分配 story_id，记录 parent_story_id、split、source、哈希、字数
-  - 输出 data/manifest.jsonl（审计线，train/val/test 不可交叉）
-  - 输出一份 split_audit.json，说明每个 split 包含多少字、多少 story、是否有泄漏
+  - 读取语料来源审计 data/sources.json（由 py/data/fetch_corpus.py 生成），
+    为**每一部作品**生成一条 manifest 记录
+  - 记录 story_id / parent_story_id / split / source / license / hash / 字数 / 独立字符数
+  - 输出 data/manifest.jsonl（审计线，train/val/test 不跨作品）
+  - 输出 data/split_audit.json，说明每个 split 的字数与作品数、是否有哈希冲突
+
+为什么按作品而不是按桶：语料扩充到 90+ 部作品后，按桶切成一条记录会让
+train/val/test 的边界无法追溯；按作品记录才能保证「同一部作品不跨集合」。
+注意：当前 minilm_torch.train 仍用「按字符连续切 90/10」的旧方案，
+本 manifest 的 split 字段是按作品切分的**推荐方案与审计依据**，两者暂未打通。
+
+回退：若 data/sources.json 不存在，则退回按 py/data/corpus.json 的桶级记录。
 
 字段定义：
-  story_id:      全局唯一短 ID，形如 "scifi_001"
-  parent_story_id: 若本文是从某父故事改写/节选而来则填；原创为空
-  split:         "train" / "val" / "test" / "unsplit"（未分配）
-  source:        来源描述（如 "original by author" / "public domain" / URL）
-  hash:          sha256(text) 前 16 字节，用于检测重复或篡改
-  chars:         文本字数（含标点）
-  vocab_size:    该 story 的独立字符数
+  story_id:        全局唯一短 ID，形如 "wuxia_007"
+  parent_story_id: 若从某父作品改写/节选而来则填；原作为空
+  split:           "train" / "val" / "test" / "unsplit"
+  source:          gutenberg / hcc / wikisource
+  license:         许可说明
+  ref:             来源链接
+  hash:            sha256(text) 前 16 字节
+  chars:           文本字数（含标点）
+  vocab_size:      该作品的独立字符数
 
 用法：
-  python py/data/prepare.py
+  python py/data/prepare.py                      # 只列清单，不切分
+  python py/data/prepare.py --split              # 按作品 80/10/10 切分
   python py/data/prepare.py --out data/manifest.jsonl --audit data/split_audit.json
 ============================================================================ """
 from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 import sys
 from typing import Dict, List
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
+DEFAULT_SOURCES = os.path.join(ROOT, 'data', 'sources.json')
+FALLBACK_CORPUS = os.path.join(HERE, 'corpus.json')
 
 
 def sha256_prefix(text: str, n: int = 16) -> str:
     return hashlib.sha256(text.encode('utf-8')).hexdigest()[:n]
 
 
-def build_manifest(corpus_path: str, default_split: str = 'train') -> List[Dict]:
-    """把 corpus.json 中的每个故事转成 manifest 条目。"""
+def vocab_size_of(text: str) -> int:
+    return len(set(text))
+
+
+def build_manifest_from_sources(sources_path: str, bucket_of_title: Dict[str, str]) -> List[Dict]:
+    """从 data/sources.json 逐作品建 manifest。"""
+    with open(sources_path, 'r', encoding='utf-8') as f:
+        audit = json.load(f)
+
+    manifest: List[Dict] = []
+    counters: Dict[str, int] = {}
+    for w in audit.get('works', []):
+        bucket = w.get('bucket') or bucket_of_title.get(w['title'], 'unknown')
+        counters[bucket] = counters.get(bucket, 0) + 1
+        manifest.append({
+            'story_id': f"{bucket}_{counters[bucket]:03d}",
+            'parent_story_id': None,
+            'split': 'unsplit',
+            'bucket': bucket,
+            'title': w.get('title'),
+            'source': w.get('source'),
+            'all_sources': w.get('all_sources'),
+            'license': w.get('license'),
+            'ref': w.get('ref'),
+            'hash': w.get('sha256') or '',
+            # 注意：sources.json 里 chars 是**清洗后全文**字数；
+            # 实际入桶字数是 corpus.json 里 stories[].chars（可能被均分截断）
+            'chars': w.get('chars', 0),
+            'vocab_size': None,
+        })
+    return manifest
+
+
+def build_manifest_from_corpus(corpus_path: str) -> List[Dict]:
+    """回退路径：按桶建记录（旧行为）。"""
     with open(corpus_path, 'r', encoding='utf-8') as f:
         corpus = json.load(f)
-
     manifest: List[Dict] = []
     for idx, (key, item) in enumerate(corpus.items(), start=1):
         text = item.get('text', '')
         if not text:
             continue
-        story_id = f'{key}_{idx:03d}'
-        chars = set(text)
-        entry = {
-            'story_id': story_id,
+        manifest.append({
+            'story_id': f'{key}_{idx:03d}',
             'parent_story_id': None,
-            'split': default_split if key != 'custom' else 'unsplit',
-            'source': item.get('source', 'project original'),
+            'split': 'train' if key != 'custom' else 'unsplit',
+            'bucket': key,
             'title': item.get('name', key),
-            'desc': item.get('desc', ''),
+            'source': item.get('source'),
+            'all_sources': None,
+            'license': item.get('license'),
+            'ref': None,
             'hash': sha256_prefix(text),
             'chars': len(text),
-            'vocab_size': len(chars),
-            'license': item.get('license', 'unknown'),
-            'note': item.get('note', ''),
-        }
-        manifest.append(entry)
+            'vocab_size': vocab_size_of(text),
+        })
     return manifest
 
 
-def split_manifest(manifest: List[Dict], train_frac: float = 0.8,
-                   val_frac: float = 0.1) -> List[Dict]:
-    """按 story 切分：80% train / 10% val / 10% test（字符级语料少时，先整 story 切分）。
-    注意：当前每个 corpus 只有 1 个 story，所以这一版会整体作为 train，需要更多 story 后
-    再用时间或哈希重分。此函数主要是给未来多 story 场景用。"""
-    out = []
-    for i, e in enumerate(manifest):
-        if e['split'] != 'train':
-            out.append(e)
+def assign_splits(manifest: List[Dict], train_frac: float = 0.8,
+                  val_frac: float = 0.1) -> List[Dict]:
+    """按作品切分 train/val/test：同一桶内按 hash 稳定排序后按比例切，
+    保证「同一部作品的各章节不跨集合」（本管线里每部作品整体属于一个 split）。"""
+    by_bucket: Dict[str, List[Dict]] = {}
+    for e in manifest:
+        if e['split'] == 'unsplit':
+            by_bucket.setdefault(e['bucket'], []).append(e)
+
+    for bucket, entries in by_bucket.items():
+        entries.sort(key=lambda e: e['hash'] or e['title'])
+        n = len(entries)
+        if n < 3:
+            for e in entries:
+                e['split'] = 'train'
             continue
-        r = i % 10
-        if r < int(train_frac * 10):
-            e['split'] = 'train'
-        elif r < int((train_frac + val_frac) * 10):
-            e['split'] = 'val'
-        else:
-            e['split'] = 'test'
-        out.append(e)
-    return out
+        n_train = max(1, int(math.floor(n * train_frac)))
+        n_val = max(1, int(math.floor(n * val_frac))) if n >= 10 else (1 if n >= 8 else 0)
+        for i, e in enumerate(entries):
+            if i < n_train:
+                e['split'] = 'train'
+            elif i < n_train + n_val:
+                e['split'] = 'val'
+            else:
+                e['split'] = 'test'
+    return manifest
 
 
 def audit(manifest: List[Dict]) -> Dict:
-    """生成 split 审计信息：字数、story 数、检查是否有 hash 冲突或跨 split 的 parent。"""
-    stats = {}
-    hashes = {}
-    issues = []
+    """split 审计：字数 / 作品数 / 哈希冲突 / 跨 split 的 parent。"""
+    stats: Dict[str, Dict] = {}
+    by_bucket: Dict[str, Dict[str, int]] = {}
+    hashes: Dict[str, str] = {}
+    issues: List[str] = []
+
     for e in manifest:
         sp = e['split']
-        stats.setdefault(sp, {'stories': 0, 'chars': 0})
-        stats[sp]['stories'] += 1
-        stats[sp]['chars'] += e['chars']
+        stats.setdefault(sp, {'works': 0, 'chars': 0})
+        stats[sp]['works'] += 1
+        stats[sp]['chars'] += e.get('chars') or 0
 
-        h = e['hash']
-        if h in hashes:
-            issues.append(f"hash collision: {e['story_id']} vs {hashes[h]}")
-        hashes[h] = e['story_id']
+        b = e.get('bucket', 'unknown')
+        by_bucket.setdefault(b, {})
+        by_bucket[b][sp] = by_bucket[b].get(sp, 0) + 1
 
-    # parent 检查：父故事必须在同 split 或不被允许跨 split
+        h = e.get('hash')
+        if h:
+            if h in hashes:
+                issues.append(f"hash collision: {e['story_id']} vs {hashes[h]}")
+            hashes[h] = e['story_id']
+
     parent_to_split = {e['story_id']: e['split'] for e in manifest}
     for e in manifest:
         pid = e.get('parent_story_id')
-        if pid and pid in parent_to_split:
-            if parent_to_split[pid] != e['split']:
-                issues.append(f"cross-split parent: {e['story_id']}({e['split']}) -> {pid}({parent_to_split[pid]})")
+        if pid and pid in parent_to_split and parent_to_split[pid] != e['split']:
+            issues.append(f"cross-split parent: {e['story_id']}({e['split']}) "
+                          f"-> {pid}({parent_to_split[pid]})")
 
     return {
-        'total_stories': len(manifest),
+        'total_works': len(manifest),
+        'total_chars': sum((e.get('chars') or 0) for e in manifest),
         'splits': stats,
-        'hash_count': len(hashes),
+        'by_bucket': by_bucket,
+        'unique_hashes': len(hashes),
         'issues': issues,
         'ok': len(issues) == 0,
     }
@@ -121,31 +180,51 @@ def audit(manifest: List[Dict]) -> Dict:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--corpus', default=os.path.join(HERE, 'corpus.json'))
+    ap.add_argument('--sources', default=DEFAULT_SOURCES,
+                    help='来源审计（优先）；不存在则回退 --corpus')
+    ap.add_argument('--corpus', default=FALLBACK_CORPUS)
     ap.add_argument('--out', default=os.path.join(ROOT, 'data', 'manifest.jsonl'))
     ap.add_argument('--audit', default=os.path.join(ROOT, 'data', 'split_audit.json'))
-    ap.add_argument('--split', action='store_true', help='是否执行 train/val/test 切分')
+    ap.add_argument('--split', action='store_true', help='按作品执行 train/val/test 切分')
     ap.add_argument('--train_frac', type=float, default=0.8)
     ap.add_argument('--val_frac', type=float, default=0.1)
     args = ap.parse_args()
 
-    manifest = build_manifest(args.corpus, default_split='train')
+    bucket_of_title: Dict[str, str] = {}
+    if os.path.exists(args.corpus):
+        with open(args.corpus, 'r', encoding='utf-8') as f:
+            for k, v in json.load(f).items():
+                for s in (v.get('stories') or []):
+                    bucket_of_title[s['title']] = k
+
+    if os.path.exists(args.sources):
+        manifest = build_manifest_from_sources(args.sources, bucket_of_title)
+        print(f'[*] 来源：{args.sources}（逐作品）')
+    else:
+        manifest = build_manifest_from_corpus(args.corpus)
+        print(f'[!] 未找到 {args.sources}，回退到桶级记录 {args.corpus}')
+
     if args.split:
-        manifest = split_manifest(manifest, args.train_frac, args.val_frac)
+        manifest = assign_splits(manifest, args.train_frac, args.val_frac)
 
     os.makedirs(os.path.dirname(args.out), exist_ok=True)
     with open(args.out, 'w', encoding='utf-8') as f:
         for e in manifest:
             f.write(json.dumps(e, ensure_ascii=False) + '\n')
-    print(f'[*] manifest -> {args.out} ({len(manifest)} stories)')
+    print(f'[*] manifest -> {args.out} ({len(manifest)} 条作品记录)')
 
-    audit_res = audit(manifest)
+    res = audit(manifest)
     with open(args.audit, 'w', encoding='utf-8') as f:
-        json.dump(audit_res, f, ensure_ascii=False, indent=2)
+        json.dump(res, f, ensure_ascii=False, indent=2)
     print(f'[*] audit -> {args.audit}')
-    print(f'    ok={audit_res["ok"]} issues={len(audit_res["issues"])}')
-    for sp, st in audit_res['splits'].items():
-        print(f'    {sp}: {st["stories"]} stories / {st["chars"]} chars')
+    print(f'    ok={res["ok"]} issues={len(res["issues"])} '
+          f'total={res["total_works"]} works / {res["total_chars"]} chars')
+    for sp, st in sorted(res['splits'].items()):
+        print(f'    {sp:<8}: {st["works"]:>3} 部 / {st["chars"]:>9} 字')
+    for b, d in sorted(res['by_bucket'].items()):
+        print(f'    [{b}] ' + ', '.join(f'{k}={v}' for k, v in sorted(d.items())))
+    for i in res['issues']:
+        print('    [!]', i)
 
 
 if __name__ == '__main__':

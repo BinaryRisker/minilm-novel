@@ -1,0 +1,42 @@
+{
+  "corpus": "gudian",
+  "size": 1000000,
+  "size_label": "1000000",
+  "seed": 1234,
+  "steps": 2000,
+  "proportional_steps": true,
+  "batch": 8,
+  "lr": 0.004,
+  "cfg": {
+    "ctx": 32,
+    "d": 40,
+    "layers": 2,
+    "heads": 4,
+    "ffMul": 4
+  },
+  "V": 5243,
+  "min_freq": 3,
+  "train_chars": 1000000,
+  "test_chars": 200006,
+  "n_positions": 200000,
+  "model": {
+    "top1": 13.753,
+    "top5": 26.168,
+    "final_loss": 5.97701215672493
+  },
+  "trigram": {
+    "top1": 15.153,
+    "top5": 28.8435,
+    "nll": 6.908858803850179,
+    "ppl": 1001.1041339756434,
+    "backoff": {
+      "1": 522,
+      "2": 53816,
+      "3": 145662
+    }
+  },
+  "wallclock": {
+    "model": 69.28708100318909,
+    "trigram": 28.132341861724854
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "meta": {
+    "corpus": "scifi",
+    "corpus_chars": 132013,
+    "train_size": 20000,
+    "steps": 20,
+    "batch": 8,
+    "lr": 0.004,
+    "seeds": [
+      42
+    ],
+    "cfg": {
+      "ctx": 32,
+      "d": 40,
+      "layers": 2,
+      "heads": 4,
+      "ffMul": 4
+    },
+    "trigram_top1": 7.463592233009709,
+    "trigram_top5": 16.42141990291262,
+    "trigram_nll": 7.410254856989503
+  },
+  "runs": [
+    {
+      "label": "h4",
+      "head": 4,
+      "zero_pos": false,
+      "seeds": 1,
+      "top1_mean": 1.9341626213592233,
+      "top1_std": 0.0,
+      "top5_mean": 14.153519417475728,
+      "top5_std": 0.0,
+      "params": 164440,
+      "per_seed": [
+        {
+          "top1": 1.9341626213592233,
+          "top5": 14.153519417475728,
+          "final_loss": 7.269495558738709,
+          "n": 13184,
+          "params": 164440,
+          "V": 3091,
+          "head": 4,
+          "zero_pos": false,
+          "seed": 42,
+          "seconds": 7.0
+        }
+      ]
+    },
+    {
+      "label": "h4_nopos",
+      "head": 4,
+      "zero_pos": true,
+      "seeds": 1,
+      "top1_mean": 1.6611043689320388,
+      "top1_std": 0.0,
+      "top5_mean": 13.410194174757281,
+      "top5_std": 0.0,
+      "params": 164440,
+      "per_seed": [
+        {
+          "top1": 1.6611043689320388,
+          "top5": 13.410194174757281,
+          "final_loss": 7.268695187568665,
+          "n": 13184,
+          "params": 164440,
+          "V": 3091,
+          "head": 4,
+          "zero_pos": true,
+          "seed": 42,
+          "seconds": 1.9
+        }
+      ]
+    }
+  ]
+}

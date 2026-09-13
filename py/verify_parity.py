@@ -211,13 +211,29 @@ def main():
         print(f'[4] adam {k:30s}  D={ma:.2e}  rel={mr:.2e}  {"PASS" if ok else "FAIL"}')
         if not ok: bad_step.append(k)
 
+    # 汇总：分子是「通过数」而不是「失败数」。
+    # 早期这里打印的是 len(bad)（失败数）却配了 «FAIL» 字样，
+    # 导致全绿时输出成 «0/20 FAIL»，看起来像挂了，实际含义是「20 项全过、0 项失败」。
+    n_fwd = 2
+    n_fwd_ok = (1 if ok_logits else 0) + (1 if ok_loss else 0)
     print()
-    print(f'forward: logits {"PASS" if ok_logits else "FAIL"}   loss {"PASS" if ok_loss else "FAIL"}')
-    print(f'backward (raw):   {len(bad)}/{len(grads_pt)} FAIL')
-    print(f'grad-clip:        {len(bad_clip)}/{len(clip_pt)} FAIL')
-    print(f'adam-step:        {len(bad_step)}/{len(step_pt)} FAIL')
+    print(f'forward:            {n_fwd_ok}/{n_fwd} 通过'
+          f'  （logits {"PASS" if ok_logits else "FAIL"} / '
+          f'loss {"PASS" if ok_loss else "FAIL"}）')
+    print(f'backward (raw):     {len(grads_pt) - len(bad)}/{len(grads_pt)} 通过')
+    print(f'grad-clip:          {len(clip_pt) - len(bad_clip)}/{len(clip_pt)} 通过')
+    print(f'adam-step:          {len(step_pt) - len(bad_step)}/{len(step_pt)} 通过')
 
-    sys.exit(0 if (not bad and not bad_clip and not bad_step and ok_logits and ok_loss) else 1)
+    all_ok = not bad and not bad_clip and not bad_step and ok_logits and ok_loss
+    if all_ok:
+        print('\n结论：✓ 前向 / 反向 / 裁剪 / Adam 一步全部对齐'
+              '（最大差异在 float64 精度范围内）')
+    else:
+        print('\n结论：✗ 存在未对齐项，逐项见上方 FAIL 行：')
+        for k in bad + bad_clip + bad_step:
+            print(f'  [!] {k}')
+
+    sys.exit(0 if all_ok else 1)
 
 
 if __name__ == '__main__':

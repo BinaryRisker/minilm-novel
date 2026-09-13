@@ -1,0 +1,42 @@
+{
+  "corpus": "scifi",
+  "size": 118811,
+  "size_label": "all",
+  "seed": 1234,
+  "steps": 400,
+  "proportional_steps": false,
+  "batch": 8,
+  "lr": 0.004,
+  "cfg": {
+    "ctx": 32,
+    "d": 40,
+    "layers": 2,
+    "heads": 4,
+    "ffMul": 4
+  },
+  "V": 2127,
+  "min_freq": 3,
+  "train_chars": 118811,
+  "test_chars": 13202,
+  "n_positions": 13184,
+  "model": {
+    "top1": 8.616504854368932,
+    "top5": 16.444174757281555,
+    "final_loss": 6.113800402879715
+  },
+  "trigram": {
+    "top1": 12.879247572815533,
+    "top5": 22.603155339805824,
+    "nll": 6.647134286582604,
+    "ppl": 770.5729172692778,
+    "backoff": {
+      "1": 278,
+      "2": 5852,
+      "3": 7054
+    }
+  },
+  "wallclock": {
+    "model": 17.899049520492554,
+    "trigram": 1.9390063285827637
+  }
+}

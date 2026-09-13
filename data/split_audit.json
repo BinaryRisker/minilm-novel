@@ -1,12 +1,42 @@
 {
-  "total_stories": 3,
+  "total_works": 90,
+  "total_chars": 24882232,
   "splits": {
     "train": {
-      "stories": 3,
-      "chars": 7360
+      "works": 70,
+      "chars": 18376671
+    },
+    "test": {
+      "works": 13,
+      "chars": 3723741
+    },
+    "val": {
+      "works": 7,
+      "chars": 2781820
     }
   },
-  "hash_count": 3,
+  "by_bucket": {
+    "gudian": {
+      "train": 29,
+      "test": 5,
+      "val": 3
+    },
+    "scifi": {
+      "test": 1,
+      "train": 3
+    },
+    "urban": {
+      "train": 20,
+      "test": 4,
+      "val": 2
+    },
+    "wuxia": {
+      "train": 18,
+      "test": 3,
+      "val": 2
+    }
+  },
+  "unique_hashes": 90,
   "issues": [],
   "ok": true
 }

@@ -30,88 +30,121 @@ DEFAULT_ALPHAS: Tuple[float, ...] = (0.01, 0.05, 0.1, 0.5, 1.0)
 
 class NGram:
     """加 α 平滑、带回退的字符 n-gram 语言模型。
-    P(t | c) = (count(c,t) + α) / (count(c) + α·V)  当 count(c) > 0
+
+    P(t | c) = (count(c,t) + α) / (count(c) + α·V)   当 count(c) > 0
     否则回退到低一阶；一阶（unigram）永远有定义。
+
+    存储为**稀疏计数**：上下文用整型编码当键（key = Σ tok·V^k），值只记实际出现过的
+    后继（dict: tgt → count）。早期版本给每个上下文分配一个 V 维 float64 数组，
+    在 200 万字语料上会膨胀到几十 GB（约 10^6 个三元上下文 × 4500 维 × 8B ≈ 36 GB），
+    实测直接把数据量扫描挂死。现在按需在 dist() 里临时构造稠密数组（36 KB/次）。
     """
 
     def __init__(self, train_ids: Iterable[int], order: int = 3,
                  alpha: float = 0.1, V: int = 0):
         self.order = max(1, int(order))
         self.alpha = float(alpha)
-        self.V = int(V)
+        self.V = max(1, int(V))
         ids = list(train_ids)
         self.N = len(ids)
 
         # unigram：全词表计数
-        self.uni = np.zeros(self.V, dtype=np.float64)
+        uni = [0] * self.V
         for t in ids:
-            self.uni[t] += 1
+            uni[t] += 1
+        self.uni = np.asarray(uni, dtype=np.float64)
 
-        # n>=2：ctxTotal[n][key]、ctxCount[n][key][tgt]
-        self.ctxTotal: Dict[int, Dict[Tuple[int, ...], int]] = {}
-        self.ctxCount: Dict[int, Dict[Tuple[int, ...], np.ndarray]] = {}
+        # n >= 2：ctxTotal[n][key] = 上下文出现次数；ctxCount[n][key] = {tgt: count}
+        self.ctxTotal: Dict[int, Dict[int, int]] = {}
+        self.ctxCount: Dict[int, Dict[int, Dict[int, int]]] = {}
         for n in range(2, self.order + 1):
-            tot: Dict[Tuple[int, ...], int] = {}
-            cnt: Dict[Tuple[int, ...], np.ndarray] = {}
+            need = n - 1
+            tot: Dict[int, int] = {}
+            cnt: Dict[int, Dict[int, int]] = {}
             for j in range(len(ids) - n + 1):
-                key = tuple(ids[j:j + n - 1])
+                key = 0
+                for k in range(need):
+                    key = key * self.V + ids[j + k]
                 tgt = ids[j + n - 1]
-                if key not in tot:
-                    tot[key] = 0
-                    cnt[key] = np.zeros(self.V, dtype=np.float64)
-                tot[key] += 1
-                cnt[key][tgt] += 1
+                d = cnt.get(key)
+                if d is None:
+                    cnt[key] = {tgt: 1}
+                    tot[key] = 1
+                else:
+                    d[tgt] = d.get(tgt, 0) + 1
+                    tot[key] += 1
             self.ctxTotal[n] = tot
             self.ctxCount[n] = cnt
 
+    def _key(self, hist: List[int], need: int) -> int:
+        key = 0
+        for tok in hist[-need:]:
+            key = key * self.V + tok
+        return key
+
+    def _backoff(self, hist: List[int]):
+        """按回退规则挑出最合适的计数来源。
+        返回 (counts, total, used_order)；counts 为 self.uni（numpy）或 {tgt: count}。"""
+        n = self.order
+        while n > 1:
+            need = n - 1
+            if len(hist) >= need:
+                key = self._key(hist, need)
+                tot = self.ctxTotal[n].get(key)
+                if tot:
+                    return self.ctxCount[n][key], tot, n
+            n -= 1
+        return self.uni, self.N, 1
+
     def log_prob(self, hist: List[int], target: int) -> float:
         """带回退的单点 logP；hist 是从早到晚的上文 token 序列。"""
-        n = self.order
-        while n > 1:
-            need = n - 1
-            if len(hist) >= need:
-                key = tuple(hist[-need:])
-                tot = self.ctxTotal[n].get(key)
-                if tot is not None and tot > 0:
-                    c = self.ctxCount[n][key][target]
-                    return math.log((c + self.alpha) / (tot + self.alpha * self.V))
-            n -= 1
-        return math.log((self.uni[target] + self.alpha) / (self.N + self.alpha * self.V))
+        counts, tot, _ = self._backoff(hist)
+        if counts is self.uni:
+            c = float(self.uni[target])
+        else:
+            c = float(counts.get(target, 0))
+        return math.log((c + self.alpha) / (tot + self.alpha * self.V))
 
     def dist(self, hist: List[int]) -> np.ndarray:
-        """完整对数概率分布，shape=[V]"""
-        out = np.zeros(self.V, dtype=np.float64)
-        for v in range(self.V):
-            out[v] = self.log_prob(hist, v)
-        return out
+        """完整对数概率分布，shape=[V]（按需构造稠密数组，不常驻）"""
+        counts, tot, _ = self._backoff(hist)
+        if counts is self.uni:
+            dense = self.uni
+        else:
+            dense = np.zeros(self.V, dtype=np.float64)
+            for t, c in counts.items():
+                dense[t] = c
+        return np.log((dense + self.alpha) / (tot + self.alpha * self.V))
 
     def used_order(self, hist: List[int]) -> int:
-        n = self.order
-        while n > 1:
-            need = n - 1
-            if len(hist) >= need:
-                key = tuple(hist[-need:])
-                tot = self.ctxTotal[n].get(key)
-                if tot is not None and tot > 0:
-                    return n
-            n -= 1
-        return 1
+        return self._backoff(hist)[2]
 
 
 # ---------------------------- 评测滑窗 ----------------------------
 
 def for_each_position(test_ids: List[int], ctx: int):
     """生成器：(hist, target)，每次返回一个 (上下文 token 序列, 下一字 id)。
-    与 eval/protocol.js 的 forEachPosition 完全一致：起点 s=0, 每 ctx 步一窗，
-    直到 s+ctx+1 > len(test_ids) 停止。每个窗口内逐位置给 (hist, target)。"""
-    for s in range(0, len(test_ids) - ctx):
+    与 eval/protocol.js 的 forEachPosition 完全一致：起点 s=0, **每 ctx 步一窗**，
+    直到 s+ctx+1 > len(test_ids) 停止。每个窗口内逐位置给 (hist, target)。
+    注意：必须与 minilm_torch.holdout_eval 的步长一致，否则模型与基线不在同一批
+    评测位上比较（曾因步长写成 1 导致基线被评测 32 倍的位置、耗时爆炸）。"""
+    n = len(test_ids)
+    s = 0
+    while s + ctx + 1 <= n:
         window = test_ids[s:s + ctx + 1]
         for i in range(ctx):
             yield window[:i + 1], window[i + 1]
+        s += ctx
 
 
 def count_positions(test_ids: List[int], ctx: int) -> int:
-    return max(0, len(test_ids) - ctx) * ctx
+    n = len(test_ids)
+    c = 0
+    s = 0
+    while s + ctx + 1 <= n:
+        c += ctx
+        s += ctx
+    return c
 
 
 # ---------------------------- 评估累加 ----------------------------

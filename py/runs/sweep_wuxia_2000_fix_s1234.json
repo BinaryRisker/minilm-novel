@@ -1,0 +1,42 @@
+{
+  "corpus": "wuxia",
+  "size": 2000,
+  "size_label": "2000",
+  "seed": 1234,
+  "steps": 400,
+  "proportional_steps": false,
+  "batch": 8,
+  "lr": 0.004,
+  "cfg": {
+    "ctx": 32,
+    "d": 40,
+    "layers": 2,
+    "heads": 4,
+    "ffMul": 4
+  },
+  "V": 4480,
+  "min_freq": 3,
+  "train_chars": 2000,
+  "test_chars": 200005,
+  "n_positions": 200000,
+  "model": {
+    "top1": 8.138,
+    "top5": 13.719,
+    "final_loss": 3.6413944000005722
+  },
+  "trigram": {
+    "top1": 8.735,
+    "top5": 14.068,
+    "nll": 7.675581275282438,
+    "ppl": 2155.076014105196,
+    "backoff": {
+      "1": 67505,
+      "2": 110284,
+      "3": 22211
+    }
+  },
+  "wallclock": {
+    "model": 41.61393594741821,
+    "trigram": 39.74585771560669
+  }
+}

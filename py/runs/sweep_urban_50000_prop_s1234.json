@@ -1,0 +1,42 @@
+{
+  "corpus": "urban",
+  "size": 50000,
+  "size_label": "50000",
+  "seed": 1234,
+  "steps": 100,
+  "proportional_steps": true,
+  "batch": 8,
+  "lr": 0.004,
+  "cfg": {
+    "ctx": 32,
+    "d": 40,
+    "layers": 2,
+    "heads": 4,
+    "ffMul": 4
+  },
+  "V": 4677,
+  "min_freq": 3,
+  "train_chars": 50000,
+  "test_chars": 200005,
+  "n_positions": 200000,
+  "model": {
+    "top1": 7.8435,
+    "top5": 16.1465,
+    "final_loss": 6.482586026191711
+  },
+  "trigram": {
+    "top1": 10.406,
+    "top5": 20.186,
+    "nll": 7.3754522797116,
+    "ppl": 1596.3136475312733,
+    "backoff": {
+      "1": 13808,
+      "2": 99229,
+      "3": 86963
+    }
+  },
+  "wallclock": {
+    "model": 39.423704385757446,
+    "trigram": 28.893773317337036
+  }
+}
