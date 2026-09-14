@@ -43,7 +43,7 @@
 - 实验日志与内容素材库：`LOG.md`
 - **当前位置**：JS 实验台完成并全量验证；**L0 已通过**（2026-09-13）——PyTorch 复刻版与手写 JS 版
   在多种子对比下不可区分（损失曲线偏差 ≤0.030，Top-1 均值差在种子噪声内，见 `py/align_report.md`）；
-  正在做 **L3 数据工程**：语料已达 **1091 部 / 2682 万字**（公版 + 开放许可，见 `data/sources.json`），
+  正在做 **L3 数据工程**：语料已达 **1126 部 / 2793 万字**（公版 + 开放许可，见 `data/sources.json`），
   2026-09-14 起用**按作品切分**的 `data/splits/{train,val,test}.txt` 替代旧的「整桶连续 90/10」口径
   （旧切分会把同一部作品劈进 train 和 test；新口径 train/val/test 不跨作品，见 `py/data/build_splits.py`、
   `train.py --splits`）。**下一步**：把 `sweep_data_scale.py` / `eval_story.py` 迁到新口径，再启动
@@ -94,10 +94,11 @@ node test_novel.js       # 中文小说生成能力测试，产出 report_eviden
 | `py/sweep_worksplit.py` | **数据量扫描 + 收敛曲线 + 多种子误差棒**（吃 `data/splits/`，模型与 trigram 同口径记 NLL/PPL；`--tag` 并列多套主体，`--leak_probe` 只换留出集的受控 A/B） |
 | `py/compare_cfg.py` | **两组同协议、只换模型主体**的结果逐格对照（ΔTop-1 / ΔNLL + 参数量分账），回答"差距是容量还是结构" |
 | `py/compare_ctx.py` | **多组同协议、只换上下文长度**的结果对照：逐格 ΔTop-1 / ΔTop-5 / ΔNLL 边距 + 基线自身漂移 + compute-matched 核对 |
+| `py/compare_budget.py` | **预算给足**对照：固定 ctx/档位、只改步数的边距 × 步数表 + 曲线图（`docs/img/budget_steps.png`） |
 | `py/plot_ctx_mechanism.py` | 机制图：把各实验臂按**训练步数**对齐画出，用来分辨"上下文效应"与"步数效应"（`docs/img/ctx_mechanism.png`） |
 | `py/sweep_data_scale.py` | 早期数据量扫描（桶内**连续** 90/10 切分，**含同作品泄漏**，已被上一个脚本取代，留作历史口径） |
 | `py/sweep_report.py` | 把各批次 `sweep_*.json` 合并成一张对比表 + 折线图 |
-| `data/` | 语料审计产物：`sources.json`（**1091 部**作品的来源/许可/哈希）、`manifest.jsonl`、`split_report.json`、`splits/` |
+| `data/` | 语料审计产物：`sources.json`（**1126 部**作品的来源/许可/哈希）、`manifest.jsonl`、`split_report.json`、`splits/` |
 | `docs/experiments/` | 每个实验一份记录（问题/假设/唯一变量/结果/失败样本/结论边界/复现命令） |
 | `eval/` | **评估协议与基线**：`protocol.js`（位置/上文/指标的唯一定定义）、`baselines.js`（unigram/bigram/trigram 基线）、`metrics.js`（重复率/重合度/OOV）、`fixtures/`（手算样本） |
 | `中文小说生成测试报告.md` | **中文小说生成能力测试报告**（结论、数据、局限） |
@@ -118,16 +119,16 @@ node build.js && node smoke.js && node uidom.js && node test_rng.js
 
 ---
 
-## 语料：公版中文小说 · 2682 万字 / 1091 部作品
+## 语料：公版中文小说 · 2793 万字 / 1126 部作品
 
 `corpus.js` 里那三段语料是手写的（合计 7360 字），只够让实验台跑起来。
 真正训练用的语料分三个层级（数字都由脚本生成、可复查）：
 
 | 产物 | 规模 | 用途 |
 |---|---|---|
-| `data/sources.json` + `data/processed/<桶>/*.txt` | **1091 部 / 2682 万字**（逐作品全文，**未截断**） | 审计真源；`build_splits.py` 从这里取正文 |
-| `data/splits/{train,val,test}.txt` | train 871 部 / 2025 万字 · val 107 部 / 281 万字 · test 113 部 / 375 万字 | **无泄漏实验（推荐口径）**：train/val/test 不跨作品 |
-| `py/data/corpus.json` | **807 万字**（按桶均分截断，每桶上限 200 万字） | 早期扫描与 JS 对齐口径（桶内连续 90/10，**有同作品泄漏**） |
+| `data/sources.json` + `data/processed/<桶>/*.txt` | **1126 部 / 2793 万字**（逐作品全文，**未截断**） | 审计真源；`build_splits.py` 从这里取正文 |
+| `data/splits/{train,val,test}.txt` | train 899 部 / 2065 万字 · val 110 部 / 293 万字 · test 117 部 / 436 万字 | **无泄漏实验（推荐口径）**：train/val/test 不跨作品 |
+| `py/data/corpus.json` | **918 万字**（按桶均分截断，每桶上限 200 万字） | 早期扫描与 JS 对齐口径（桶内连续 90/10，**有同作品泄漏**） |
 
 来源与许可（逐作品清单见 `data/sources.json`；判定标准见 `docs/DATA_CANDIDATES.md`）：
 
@@ -142,11 +143,12 @@ node build.js && node smoke.js && node uidom.js && node test_rng.js
 
 | 桶 | 作品数 | 清洗后字数 | 代表作品 | 可作证据？ |
 |---|---|---|---|---|
-| `scifi` 科幻 · 清末科学小说 + 现代幻想 | 5 | 179 万 | 月界旅行、猫城记、新纪元、电世界 | ❌ **只作跨域对照**（见下） |
+| `scifi` 科幻 · 清末科学小说 + 现代幻想 | 5 | 180 万 | 月界旅行、猫城记、新纪元、电世界 | ❌ **只作跨域对照**（见下） |
 | `wuxia` 武侠 · 侠义公案 | 23 | 808 万 | 水浒传、三侠五义、儿女英雄传、荡寇志、施公案 | ✅ |
 | `urban` 都市 · 世情谴责 | 26 | 543 万 | 官场现形记、二十年目睹之怪现状、老残游记、孽海花 | ✅ |
 | `gudian` 古典 · 神魔笔记 | 37 | 1125 万 | 红楼梦、西游记、三国演义、封神演义、聊斋志异、三言二拍 | ✅ |
 | `story` 短故事 · 简单现代汉语 | 1000 | 27 万 | 合成短篇（单篇约 253 字，**机翻模板文本**） | ⚠️ **只作工程样本** |
+| `xiandai` 现代 · 民国新文学公版 | 35 | 110 万 | 鲁迅、老舍、郁达夫、萧红 | ✅ **现代白话主力桶** |
 
 > ⚠️ **两个桶不可按字面读（2026-09-14 实测，详见 `docs/experiments/2026-09-14-worksplit-nll-converge.md` §9.1–9.3）**
 > - **`scifi` 是跨域对照，不是科幻域泛化**：池里 92.6% 的字数来自**一部现代网文**
@@ -162,7 +164,7 @@ node build.js && node smoke.js && node uidom.js && node test_rng.js
 （保证每部作品都有代表，而不是只剩最长的两三部）。
 
 注意**截断只发生在 `corpus.json` 这一层**：`data/splits/` 用的是 `data/processed/`
-里每部作品的全文，所以它的总字数（2682 万字）比 `corpus.json`（807 万字）大得多。
+里每部作品的全文，所以它的总字数（2793 万字）比 `corpus.json`（918 万字）大得多。
 
 ```bash
 python py/data/fetch_corpus.py --list-sources            # 先看清单，不下载
@@ -278,7 +280,7 @@ python py/data/prepare.py --split                        # 逐作品 manifest + 
 > 修正协议的完整结果见 `docs/experiments/2026-09-13-sweep-data-scale.md`。
 > ⚠️ 这一轮的留出集是"桶内连续 90/10"，**有同作品泄漏**，结论已被第三轮取代。
 
-> **第三轮（现行结论 · 2026-09-14）**：语料扩到 **2682 万字 / 1091 部**并改为
+> **第三轮（现行结论 · 2026-09-14）**：语料扩到 **2793 万字 / 1126 部**并改为
 > **按作品整篇切分**（`data/splits/`，train/val/test 不跨作品），同时补上
 > **留出集 NLL**、**3 个种子**、**训到接近收敛**（3 epoch）。三点变化：
 >
@@ -323,6 +325,14 @@ python py/data/prepare.py --split                        # 逐作品 manifest + 
 > 也要按 1/ctx 缩，否则下限会静默改变预算。完整记录见
 > `docs/experiments/2026-09-14-ctx-length-control.md`，
 > 逐格对照用 `py/compare_ctx.py`，机制图见 `docs/img/ctx_mechanism.png`。
+>
+> **第六轮（同日 · 预算给足）**：固定 ctx=64、20 万字档，只把步数 293 → 1172 → 2344
+> （3→12→24 epoch，lr 调度按各自总步数归一）。结论：**Top-1 边距随步数在 3 个桶全部转正**
+> （gudian −3.19 → +0.62；逐种子 9/9 格为正）——**缺口确系优化预算问题**，
+> 20 万字档的实操答案 ≈12 epoch；但 **NLL 边距在 2344 步明显回升**（urban −0.92 → −0.39）：
+> **Top-1（峰值）晚于 NLL（分布）过拟合**，只报 Top-1 会掩盖退化。
+> 完整记录见 `docs/experiments/2026-09-14-budget-steps.md`，
+> 对照脚本 `py/compare_budget.py`，图 `docs/img/budget_steps.png`。
 
 > 关于梯度检查的一个坑：**必须用 float64**。
 > 用 float32 时量化噪声（~1e-6）会淹没小梯度分量，
@@ -335,7 +345,7 @@ python py/data/prepare.py --split                        # 逐作品 manifest + 
 ## 已知限制
 
 - 语料只有几千字的那个版本（浏览器实验台）会过拟合：模型"会背"而不是"会写"，请控制训练步数。
-  Python 链路已备有 **2682 万字公版语料（1091 部作品）**。按作品切分、训到接近收敛后：
+  Python 链路已备有 **2793 万字公版语料（1126 部作品）**。按作品切分、训到接近收敛后：
   **留出集 NLL 从 1 万字起在全部 5 个桶上胜过 trigram**，但 **Top-1 只在 `wuxia` 上稳定领先**
   —— 模型的分布整体更准，峰值位置不如"只数最近两个字"的统计模型尖。
   详见 `docs/experiments/2026-09-14-worksplit-nll-converge.md`。
