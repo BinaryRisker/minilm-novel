@@ -26,6 +26,27 @@ Python 链路内部还有**两个层级**，别混：
 `dev/export_fixture.js` 从 `corpus.js` 导出（小配置 V=9），因此对齐结论只依赖
 `corpus.js` 与 `minilm_torch.py` 的数学，与公版语料无关。
 
+### ⚠️ 分桶比较前先看这张分级表
+
+`wsplit_*` 的结果按桶列出，但**5 个桶的可比性不一样**（2026-09-14 审计）：
+
+| 分级 | 桶 | 为什么 |
+|---|---|---|
+| **A 可用作证据** | `gudian` / `wuxia` / `urban` | 公版自然文本、多部作品、按作品留出 |
+| **B 只作工程样本** | `story` | 1000 部全是 `TinyStoriesChinese`（**GPT 生成 + 机翻**合成短篇，中位 253 字，留出是 100 个碎片）→ trigram 异常强，与自然文本桶并列排名无意义 |
+| **C 只作跨域对照** | `scifi` | 池里 **92.6%** 是**一部现代网文**（HF 上传、许可存疑），唯一留出作品《貓城記》是 **1932 年**作品 → 测的是跨域迁移；且单部作品**无法既训练又留出**，不具备独立成桶的资格 |
+
+**不要只删数字，要把「这一列为什么不能读」写进文档**——完整依据见
+`docs/experiments/2026-09-14-worksplit-nll-converge.md` §9.1–9.3 与 `docs/DATA_CANDIDATES.md` §1.2。
+
+### ⚠️ Top-1 落后不是「模型太小」
+
+同日做了**只换主体**的容量对照（40,800 → 202,112 参数，**4.95×**，数据/步数/种子/评测全不变）：
+≥5 万字档 Top-1 边距一致改善 **+0.3 ~ +3.4pt**，但 **A 级桶最大档仍 −0.2 ~ −3.5pt，缺口没被填平**；
+而 **NLL 优势继续扩大**。代价 **2.2× 耗时**。结论是**指标口径**问题（trigram 的 Top-1 随语料增长涨得更快），
+方向应转向 `ctx` / 目标函数 / 解码，不是继续加参数。
+见 `docs/experiments/2026-09-14-bigbody-capacity-control.md`，逐格对照用 `py/compare_cfg.py`。
+
 ## 这一站回答一个问题
 
 > **手写的 `minilm.js` 和 PyTorch 训出来的是不是同一个模型？**
@@ -58,9 +79,13 @@ python py/data/build_splits.py                       # 按作品整篇切 → da
 # ④ 数据量扫描 + 收敛 + 多种子（**推荐口径：按作品切分，无泄漏**）
 python py/sweep_worksplit.py                         # 5 桶 × 5 尺寸 × 3 种子 × 3 epoch
 python py/sweep_worksplit.py --buckets scifi --sizes 2000,10000,50000 --seeds 1234 --epochs 2
-python py/sweep_worksplit.py --report_only           # 只把已有结果合并成报告 + 两张图
-#    大模型对照（容量 vs 训练预算）：
-python py/sweep_worksplit.py --cfg_d 64 --cfg_layers 4 --cfg_heads 8 --tag big --buckets wuxia
+python py/sweep_worksplit.py --report_only           # 只把**本 tag** 的结果合并成报告 + 两张图
+#    大模型对照（容量 vs 结构）：训练数据/步数/种子/评测协议全不变，只换模型主体。
+#    --tag 会插进所有输出文件名（含图与报告），所以两套结果可并列、互不覆盖；
+#    注意 --report_only 必须带上同一个 --tag，否则合并的是小主体那一套。
+python py/sweep_worksplit.py --cfg_d 64 --cfg_layers 4 --cfg_heads 8 --tag big --no_report
+python py/sweep_worksplit.py --report_only --tag big  # → wsplit_report_big.md + worksplit_*_big.png
+python py/compare_cfg.py                              # 大/小主体逐格对照 ΔTop-1 / ΔNLL + 参数量分账
 #    泄漏受控 A/B（同一训练、只换留出集，量化泄漏对模型/基线各自的影响）：
 python py/sweep_worksplit.py --buckets wuxia --sizes 200000 --leak_probe \
        --no_report --no_alpha_probe --out_dir py/runs/leakprobe
@@ -90,7 +115,8 @@ python -m unittest discover -s py/tests -t . -v
 | `verify_parity.py` | 逐位对齐：forward logits/loss、原始梯度、裁剪后梯度、Adam 一步（float64，20 参数逐项） |
 | `align.py` | 多种子对齐验证驱动，产出 `align_report.md` |
 | `baselines.py` | 统计基线：unigram / bigram / trigram（加 α 平滑 + 回退），**稀疏计数**存储；`for_each_position` 定义共享评测滑窗（每 `ctx` 步一窗，与模型同口径） |
-| `sweep_worksplit.py` | **数据量扫描 + 收敛曲线 + 多种子误差棒**（现行口径）。吃 `data/splits/`，留出作品不参与训练；模型与 trigram 同口径记 NLL/PPL；`--report_only` 合并结果 |
+| `sweep_worksplit.py` | **数据量扫描 + 收敛曲线 + 多种子误差棒**（现行口径）。吃 `data/splits/`，留出作品不参与训练；模型与 trigram 同口径记 NLL/PPL；`--tag` 并列多套模型主体；`--report_only` 只合并**同 tag** 的结果 |
+| `compare_cfg.py` | 两组**同协议、仅模型主体不同**的结果对照：逐格 ΔTop-1 / ΔNLL + 参数量分账（词表嵌入 vs 主体），回答「差距是容量还是结构」 |
 | `sweep_data_scale.py` | 早期数据量扫描（桶内**连续** 90/10，含同作品泄漏）。**已停止维护**，仅作历史口径对照 |
 | `sweep_report.py` | 合并 `runs/sweep_*.json` 全部批次 → `runs/sweep_report.md` + `docs/img/sweep_data_scale.png` |
 | `ablation.py` | 结构消融：注意力头数 ∈ {1,2,4,8} × 位置嵌入（学习式 / 置零冻结） |

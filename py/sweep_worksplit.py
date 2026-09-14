@@ -33,10 +33,10 @@ py/sweep_worksplit.py — 在「按作品切分」的语料上做数据量扫描
   若 size=2k 时另建一个小词表，数据量与词表两个变量会纠缠在一起。
   测试切片上用该词表编码，UNK 占比会记进结果（oov）。
 
-输出：
+输出（带 --tag X 时下列文件名统一插入 _X，用来并列小主体与大主体两套结果）：
   py/runs/wsplit_<bucket>_<label>_s<seed>.json     单条结果（含 curve）
-  py/runs/wsplit_tri_<bucket>_<label>_t<n>.json    trigram 缓存（与 seed 无关，避免重复算）
-  py/runs/wsplit_summary.json                      合并汇总
+  py/runs/wsplit_tri_<bucket>_<label>_t<n>.json    trigram 缓存（与 seed/cfg 无关，可跨 --tag 复用）
+  py/runs/wsplit_summary.json                      合并汇总（--report_only 写）
   py/runs/wsplit_report.md                         表格（逐桶：模型 mean±std vs trigram）
   docs/img/worksplit_scaling.png                   数据量曲线（Top-1 与 NLL 两行）
   docs/img/worksplit_converge.png                  收敛曲线（NLL vs epoch，逐 seed）
@@ -339,10 +339,12 @@ def main():
                 continue          # 汇总与 trigram 缓存不是单条结果
             with open(fp, 'r', encoding='utf-8') as f:
                 d = json.load(f)
-            if 'bucket' in d and 'curve' in d:
+            # 只收本轮 tag 的单条结果：否则同目录里小主体（tag=''）和大主体（tag='big'）
+            # 会被混进同一张表/同一张图，cfg 不同却看不出（踩过）。
+            if 'bucket' in d and 'curve' in d and d.get('tag', '') == args.tag:
                 runs.append(d)
         if not runs:
-            sys.exit('没有找到 wsplit_*_s*.json')
+            sys.exit(f"没有找到 tag='{args.tag}' 的 wsplit_*_s*.json")
         print(f'[*] 合并 {len(runs)} 条结果')
         # 合并版汇总（权威），另写一份 wsplit_summary.json 供下游消费
         seeds = sorted({r['seed'] for r in runs})
@@ -357,10 +359,18 @@ def main():
                      'note': '按作品切分（无同作品跨 train/test 泄漏）；词表在该桶全部训练作品上建、'
                              '不随 size 变化；NLL 对完整 V 维归一化，与 trigram 同口径'},
             'runs': runs}
-        with open(os.path.join(args.out_dir, 'wsplit_summary.json'), 'w',
-                  encoding='utf-8') as f:
+        # 合并汇总也带 tag：否则 `--report_only --tag big` 会用大主体的结果
+        # 覆盖掉 py/runs/wsplit_summary.json（那份 75 条小主体的权威汇总，踩过）。
+        # tag='' 时文件名仍是 wsplit_summary.json，下游消费不受影响。
+        merged_fn = f'wsplit_summary{tag}.json'
+        merged_path = os.path.join(args.out_dir, merged_fn)
+        with open(merged_path, 'w', encoding='utf-8') as f:
             json.dump(merged, f, ensure_ascii=False, indent=2)
-        print(f'✓ 合并汇总写入 {os.path.join(args.out_dir, "wsplit_summary.json")}')
+        print(f'✓ 合并汇总写入 {merged_path}')
+        # 表头/图标题的 cfg、epochs 一律取结果里的真实值，不取 CLI 默认值
+        # （--report_only 时 CLI 往往没带 --cfg_*，默认值会把大主体的表头写错）
+        cfg = runs[0]['cfg']
+        args.epochs = max(r['epochs'] for r in runs)
         write_report(runs, cfg, args, tag)
         if not args.no_plot:
             try:

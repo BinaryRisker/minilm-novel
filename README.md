@@ -91,7 +91,8 @@ node test_novel.js       # 中文小说生成能力测试，产出 report_eviden
 | `py/data/fetch_corpus.py` | **公版语料抓取管线**：Gutenberg / GitHub 古典文库 / 维基文库 → 清洗 → 分桶 → `corpus.json` |
 | `py/data/prepare.py` | 逐作品 manifest 与 train/val/test split 审计（`data/manifest.jsonl`、`data/split_audit.json`） |
 | `py/data/build_splits.py` | **按作品整篇切分**语料 → `data/splits/{train,val,test}.txt`（train/val/test 不跨作品，杜绝同作品泄漏） |
-| `py/sweep_worksplit.py` | **数据量扫描 + 收敛曲线 + 多种子误差棒**（吃 `data/splits/`，模型与 trigram 同口径记 NLL/PPL） |
+| `py/sweep_worksplit.py` | **数据量扫描 + 收敛曲线 + 多种子误差棒**（吃 `data/splits/`，模型与 trigram 同口径记 NLL/PPL；`--tag` 并列多套主体，`--leak_probe` 只换留出集的受控 A/B） |
+| `py/compare_cfg.py` | **两组同协议、只换模型主体**的结果逐格对照（ΔTop-1 / ΔNLL + 参数量分账），回答"差距是容量还是结构" |
 | `py/sweep_data_scale.py` | 早期数据量扫描（桶内**连续** 90/10 切分，**含同作品泄漏**，已被上一个脚本取代，留作历史口径） |
 | `py/sweep_report.py` | 把各批次 `sweep_*.json` 合并成一张对比表 + 折线图 |
 | `data/` | 语料审计产物：`sources.json`（**1091 部**作品的来源/许可/哈希）、`manifest.jsonl`、`split_report.json`、`splits/` |
@@ -126,19 +127,32 @@ node build.js && node smoke.js && node uidom.js && node test_rng.js
 | `data/splits/{train,val,test}.txt` | train 871 部 / 2025 万字 · val 107 部 / 281 万字 · test 113 部 / 375 万字 | **无泄漏实验（推荐口径）**：train/val/test 不跨作品 |
 | `py/data/corpus.json` | **807 万字**（按桶均分截断，每桶上限 200 万字） | 早期扫描与 JS 对齐口径（桶内连续 90/10，**有同作品泄漏**） |
 
-来源与许可（全部为公有领域或开放许可，逐作品清单见 `data/sources.json`）：
+来源与许可（逐作品清单见 `data/sources.json`；判定标准见 `docs/DATA_CANDIDATES.md`）：
 
 - **Project Gutenberg** 中文公版图书（`gutenberg.org`，Public Domain）
 - **GitHub `xp44mm/hanchuancaolu`** 中国古典文学原文（Public Domain）
 - **中文维基文库** 清末「科学小说」与公版白话小说（CC BY-SA 4.0 / PD）
+- ⚠️ **`adam89/TinyStoriesChinese`**（CDLA-Sharing-1.0，`story` 桶）—— 许可是干净的，
+  但它是 **GPT 生成 + 机器翻译的合成文本**，不是自然汉语。
+- ❌ **`asd567557275/chinese_novel`**（`scifi` 桶内 1 部）—— **现代网文，上传者自贴 CC BY 4.0
+  但并非权利人，标签不覆盖原著版权**。按项目标准**不应视为许可干净**；
+  它同时占了 `scifi` 训练区的 **96.4%**，使该桶失去作证据的资格。**保留数据、仅作本地学习与跨域对照**（详见下）。
 
-| 桶 | 作品数 | 清洗后字数 | 代表作品 |
-|---|---|---|---|
-| `scifi` 科幻 · 清末科学小说 + 现代幻想 | 5 | 179 万 | 月界旅行（鲁迅译凡尔纳）、猫城记、新纪元、电世界 |
-| `wuxia` 武侠 · 侠义公案 | 23 | 808 万 | 水浒传、三侠五义、儿女英雄传、荡寇志、施公案 |
-| `urban` 都市 · 世情谴责 | 26 | 543 万 | 官场现形记、二十年目睹之怪现状、老残游记、孽海花 |
-| `gudian` 古典 · 神魔笔记 | 37 | 1125 万 | 红楼梦、西游记、三国演义、封神演义、聊斋志异、三言二拍 |
-| `story` 短故事 · 简单现代汉语 | 1000 | 27 万 | 简短现代白话短篇（单篇约 270 字，用于「现代文风」对照） |
+| 桶 | 作品数 | 清洗后字数 | 代表作品 | 可作证据？ |
+|---|---|---|---|---|
+| `scifi` 科幻 · 清末科学小说 + 现代幻想 | 5 | 179 万 | 月界旅行、猫城记、新纪元、电世界 | ❌ **只作跨域对照**（见下） |
+| `wuxia` 武侠 · 侠义公案 | 23 | 808 万 | 水浒传、三侠五义、儿女英雄传、荡寇志、施公案 | ✅ |
+| `urban` 都市 · 世情谴责 | 26 | 543 万 | 官场现形记、二十年目睹之怪现状、老残游记、孽海花 | ✅ |
+| `gudian` 古典 · 神魔笔记 | 37 | 1125 万 | 红楼梦、西游记、三国演义、封神演义、聊斋志异、三言二拍 | ✅ |
+| `story` 短故事 · 简单现代汉语 | 1000 | 27 万 | 合成短篇（单篇约 253 字，**机翻模板文本**） | ⚠️ **只作工程样本** |
+
+> ⚠️ **两个桶不可按字面读（2026-09-14 实测，详见 `docs/experiments/2026-09-14-worksplit-nll-converge.md` §9.1–9.3）**
+> - **`scifi` 是跨域对照，不是科幻域泛化**：池里 92.6% 的字数来自**一部现代网文**
+>   （HF 上传、许可存疑），而它唯一的留出作品《貓城記》是 **1932 年**作品。
+>   且它是**单部作品**，按「按作品留出」无法既训练又留出 → **不具备独立成桶的资格**。
+> - **`story` 是合成模板文本**：1000 部全部来自 `TinyStoriesChinese`，留出是 100 个约 254 字的碎片。
+>   拿它的 Top-1/NLL 与公版自然文本桶**并列排名没有意义**。
+> - 结论：**只有 `gudian`/`wuxia`/`urban` 三个公版自然文本桶可作证据。**
 
 处理链路要点（踩坑记录见 `docs/experiments/2026-09-13-public-domain-corpus.md`）：
 去 Gutenberg 头尾 → 硬换行重排回自然段 → 标点归一 → 繁转简（opencc）→
@@ -270,6 +284,9 @@ python py/data/prepare.py --split                        # 逐作品 manifest + 
 >    交叉点在 2,000~10,000 字之间。
 > 2. **Top-1：混合**。`wuxia` 在 1 万~100 万字四档**全部胜出**；
 >    `urban` 两胜；`scifi`/`gudian`/`story` 仍负（`story` −1.9~−10.4pt 最多）。
+>    ⚠️ **但 `scifi` 与 `story` 两桶有构造陷阱，不能按字面读**（详见下面的语料章节）：
+>    `scifi` 训练区 96.4% 是一部现代网文、留出却是 1932 年作品（跨域）；
+>    `story` 是机翻合成模板文本。**可用作证据的只有 `gudian`/`wuxia`/`urban` 三个自然文本桶。**
 > 3. **上一轮"模型全负"主要是留出集泄漏造成的**。受控 A/B（同一训练、同一步数，
 >    只换留出集）：泄漏把 **trigram** 的 Top-1 平均抬高 **+33.5pt**，
 >    只把模型抬高 **+6.1pt**（**5.5×**）—— 越"记忆型"的基线被泄漏抬得越多，
@@ -277,6 +294,14 @@ python py/data/prepare.py --split                        # 逐作品 manifest + 
 >
 > 完整记录见 `docs/experiments/2026-09-14-worksplit-nll-converge.md`，
 > 图见 `docs/img/worksplit_scaling.png` 与 `worksplit_converge.png`。
+>
+> **第四轮（同日 · 容量对照）**：把 Transformer 主体放大 **4.95×**（40,800 → 202,112 参数），
+> 数据 / 步数 / 种子 / 评测协议**全部不变**。结论：**容量只解释一小部分**——
+> ≥5 万字档 Top-1 边距一致改善 **+0.3 ~ +3.4pt**，但 **A 级桶最大档仍是 `gudian` −3.5pt / `urban` −0.2pt**，
+> **缺口没被填平**；而 **NLL 优势反而继续扩大**（`gudian` 100 万字档 −1.185 → −1.308 nat）。
+> 另外 2,000 字档大主体**一致更差**（参数/字数比 ≈305 参数/字，纯记忆区间）→ **加容量必须同时加数据**。
+> 代价是 **2.2× 训练耗时**，换回 ~0.8pt，**性价比很低**。完整记录见
+> `docs/experiments/2026-09-14-bigbody-capacity-control.md`，逐格对照用 `py/compare_cfg.py`。
 
 > 关于梯度检查的一个坑：**必须用 float64**。
 > 用 float32 时量化噪声（~1e-6）会淹没小梯度分量，
@@ -293,8 +318,19 @@ python py/data/prepare.py --split                        # 逐作品 manifest + 
   **留出集 NLL 从 1 万字起在全部 5 个桶上胜过 trigram**，但 **Top-1 只在 `wuxia` 上稳定领先**
   —— 模型的分布整体更准，峰值位置不如"只数最近两个字"的统计模型尖。
   详见 `docs/experiments/2026-09-14-worksplit-nll-converge.md`。
+- ⚠️ **Top-1 落后不是"模型太小"造成的**：把主体放大 **4.95×**（其余全不变）后，≥5 万字档 Top-1 只改善
+  +0.3~+3.4pt，**缺口没被填平**（`gudian` 100 万字档仍 −3.5pt），而 **NLL 优势反而扩大**。
+  代价是 **2.2× 训练耗时**。要追 Top-1，方向应转向**结构**（`ctx` 仍是 32、目标函数、解码），
+  而不是继续堆主体参数。见 `docs/experiments/2026-09-14-bigbody-capacity-control.md`。
+- **加容量必须同时加数据**：2,000 字档下大主体在 5/5 桶都更差（参数/字数比 ≈305 参数/字）。
 - **留出作品数偏少**：`scifi` 只有 1 部留出作品、`wuxia` 3 部、`urban` 4 部。
   这些桶的方差主要来自"换哪部作品当留出"，不是种子——所以别把它们的绝对值当稳定结论。
+- ⚠️ **只有 3 个桶可作证据**：`gudian`/`wuxia`/`urban`（公版自然文本、多部作品）。
+  `scifi` 训练区 96.4% 是**一部现代网文**（HF 上传、许可存疑）、留出为 1932 年作品 →
+  只作**跨域对照**；`story` 是**机翻合成模板文本** → 只作**工程样本**。
+  两者的胜负数字都是**桶构造的产物**，不能用来判断模型能力。
+- 语料里混入了 **1 部许可存疑的现代网文**（HF 自贴 CC BY 4.0、上传者非权利人）。
+  决定是**保留数据、只做标注**（不删除），但它**已从评测桶降级**——见 `docs/DATA_CANDIDATES.md` §1.2。
 - 字符级建模，不认词。中文没有空格，所以"词"要靠模型自己从字序里学。
 - 生成是逐字采样的，长文本会不可避免地漂移。
 - 没有 KV Cache，每生成一个字都要重算整个上下文。够小所以还能忍。
