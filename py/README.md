@@ -75,6 +75,11 @@ Top-1 边距 3 桶全部转正（gudian −3.19→+0.62），缺口确系优化�
 在 2344 步回升（Top-1 晚于 NLL 过拟合）。见 `docs/experiments/2026-09-14-budget-steps.md`，
 对照与图用 `py/compare_budget.py`。
 
+**数据量扩展**（同日第七轮）：20 万→500 万字（3 epoch token 对齐，步数 6× 阈值）——
+Top-1 缺口**总体变宽**（gudian 5M −6.60 全程最差），trigram Top-1 随数据涨得比模型快；
+NLL 边距继续扩大。**≥1M 档缺口是数据效应，预算杠杆失效；NLL 才是模型的可持续优势**。
+见 `docs/experiments/2026-09-14-datascale-to-5m.md`，对照与图用 `py/compare_datascale.py`。
+
 ## 这一站回答一个问题
 
 > **手写的 `minilm.js` 和 PyTorch 训出来的是不是同一个模型？**
@@ -125,6 +130,7 @@ python py/sweep_worksplit.py --report_only --tag ctx64
 python py/compare_ctx.py --tags 'base=,ctx64'        # 逐格 Top-1/Top-5/NLL 边距 + 基线漂移 + 预算核对
 python py/plot_ctx_mechanism.py                      # 按「训练步数」对齐的机制图 → docs/img/ctx_mechanism.png
 python py/compare_budget.py                          # 预算给足：边距 × 步数表 + 曲线 → docs/img/budget_steps.png
+python py/compare_datascale.py                       # 数据量扩展：跨档位边距走势 + 增量分解 → docs/img/datascale_margins.png
 #    泄漏受控 A/B（同一训练、只换留出集，量化泄漏对模型/基线各自的影响）：
 python py/sweep_worksplit.py --buckets wuxia --sizes 200000 --leak_probe \
        --no_report --no_alpha_probe --out_dir py/runs/leakprobe
@@ -158,6 +164,7 @@ python -m unittest discover -s py/tests -t . -v
 | `compare_cfg.py` | 两组**同协议、仅模型主体不同**的结果对照：逐格 ΔTop-1 / ΔNLL + 参数量分账（词表嵌入 vs 主体），回答「差距是容量还是结构」 |
 | `compare_ctx.py` | 多组**同协议、仅上下文长度不同**的结果对照：逐格 Top-1/Top-5/NLL **边距**（模型 − trigram）+ **基线自身漂移** + compute-matched 核对（打印每格的 `ctx/步数/有效 epoch`），回答「差距是不是上下文太短」 |
 | `compare_budget.py` | **预算给足**对照：固定 ctx/档位、只改步数（epochs），输出边距 × 步数表 + 曲线图（`docs/img/budget_steps.png`），并逐种子核对稳定性，回答「差距是不是优化预算不够 / 预算给足后会不会过拟合」 |
+| `compare_datascale.py` | **数据量扩展**对照：同一 tag 家族内跨档位（200k→5M）的边距走势 + **基线/模型增量分解**（谁随数据涨得快）+ 最大档逐种子核对，回答「缺口随数据加大是收敛还是变宽」 |
 | `plot_ctx_mechanism.py` | 把各实验臂按**训练步数**对齐画在一张图里（`docs/img/ctx_mechanism.png`）：同 ctx 的曲线随步数下移，而不同 ctx 在相同步数处重合 → 一眼区分「上下文效应」与「步数效应」 |
 | `sweep_data_scale.py` | 早期数据量扫描（桶内**连续** 90/10，含同作品泄漏）。**已停止维护**，仅作历史口径对照 |
 | `sweep_report.py` | 合并 `runs/sweep_*.json` 全部批次 → `runs/sweep_report.md` + `docs/img/sweep_data_scale.png` |

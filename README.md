@@ -95,6 +95,7 @@ node test_novel.js       # 中文小说生成能力测试，产出 report_eviden
 | `py/compare_cfg.py` | **两组同协议、只换模型主体**的结果逐格对照（ΔTop-1 / ΔNLL + 参数量分账），回答"差距是容量还是结构" |
 | `py/compare_ctx.py` | **多组同协议、只换上下文长度**的结果对照：逐格 ΔTop-1 / ΔTop-5 / ΔNLL 边距 + 基线自身漂移 + compute-matched 核对 |
 | `py/compare_budget.py` | **预算给足**对照：固定 ctx/档位、只改步数的边距 × 步数表 + 曲线图（`docs/img/budget_steps.png`） |
+| `py/compare_datascale.py` | **数据量扩展**对照：tag 家族内跨档位（200k→5M）的边距走势 + 基线/模型增量分解 + 逐种子核对（`docs/img/datascale_margins.png`） |
 | `py/plot_ctx_mechanism.py` | 机制图：把各实验臂按**训练步数**对齐画出，用来分辨"上下文效应"与"步数效应"（`docs/img/ctx_mechanism.png`） |
 | `py/sweep_data_scale.py` | 早期数据量扫描（桶内**连续** 90/10 切分，**含同作品泄漏**，已被上一个脚本取代，留作历史口径） |
 | `py/sweep_report.py` | 把各批次 `sweep_*.json` 合并成一张对比表 + 折线图 |
@@ -119,16 +120,16 @@ node build.js && node smoke.js && node uidom.js && node test_rng.js
 
 ---
 
-## 语料：公版中文小说 · 2793 万字 / 1126 部作品
+## 语料：公版中文小说 · 2793 万字 / 1126 部作品 + 本地学习桶 12977 条 / 2438 万字
 
 `corpus.js` 里那三段语料是手写的（合计 7360 字），只够让实验台跑起来。
 真正训练用的语料分三个层级（数字都由脚本生成、可复查）：
 
 | 产物 | 规模 | 用途 |
 |---|---|---|
-| `data/sources.json` + `data/processed/<桶>/*.txt` | **1126 部 / 2793 万字**（逐作品全文，**未截断**） | 审计真源；`build_splits.py` 从这里取正文 |
-| `data/splits/{train,val,test}.txt` | train 899 部 / 2065 万字 · val 110 部 / 293 万字 · test 117 部 / 436 万字 | **无泄漏实验（推荐口径）**：train/val/test 不跨作品 |
-| `py/data/corpus.json` | **918 万字**（按桶均分截断，每桶上限 200 万字） | 早期扫描与 JS 对齐口径（桶内连续 90/10，**有同作品泄漏**） |
+| `data/sources.json` + `data/processed/<桶>/*.txt` | 证据桶 **1126 部 / 2793 万字** + 本地学习桶 12,977 部 / 2,438 万字（逐作品全文，**未截断**） | 审计真源；`build_splits.py` 从这里取正文 |
+| `data/splits/{train,val,test}.txt` | train 11,280 部 / 3,828 万字 · val 1,407 部 / 705 万字 · test 1,416 部 / 698 万字 | **无泄漏实验（推荐口径）**：train/val/test 不跨作品 |
+| `py/data/corpus.json` | **1719 万字**（按桶均分截断，每桶上限 200 万字；`localugc` 单独 800 万） | 早期扫描与 JS 对齐口径（桶内连续 90/10，**有同作品泄漏**） |
 
 来源与许可（逐作品清单见 `data/sources.json`；判定标准见 `docs/DATA_CANDIDATES.md`）：
 
@@ -140,6 +141,12 @@ node build.js && node smoke.js && node uidom.js && node test_rng.js
 - ❌ **`asd567557275/chinese_novel`**（`scifi` 桶内 1 部）—— **现代网文，上传者自贴 CC BY 4.0
   但并非权利人，标签不覆盖原著版权**。按项目标准**不应视为许可干净**；
   它同时占了 `scifi` 训练区的 **96.4%**，使该桶失去作证据的资格。**保留数据、仅作本地学习与跨域对照**（详见下）。
+- 🧪 **`localugc` 本地学习桶**（仅在**明确本地学习**前提下启用）—— 4 份 HF 知乎问答集
+  + `wdndev/webnovel-chinese` 流式首片前 30 MB 切片（70 部 / 1,051 万字）
+  + 天涯莲蓬鬼话论坛对话（GitHub 抓取，2,907 帖 / 105 万字）
+  + `data/raw/_cache/localugc/*.txt` 本地导入位（猫扑等无现成源，自己放 dump 即入库）；
+  现代文学期刊另设 `data/raw/_cache/zazhi/*.txt`（今古传奇 / 科幻世界 / 人民文学 / 收获 等）。
+  **仅个人本地实验，不可再分发 / 商用 / 入评测桶。**
 
 | 桶 | 作品数 | 清洗后字数 | 代表作品 | 可作证据？ |
 |---|---|---|---|---|
@@ -149,6 +156,7 @@ node build.js && node smoke.js && node uidom.js && node test_rng.js
 | `gudian` 古典 · 神魔笔记 | 37 | 1125 万 | 红楼梦、西游记、三国演义、封神演义、聊斋志异、三言二拍 | ✅ |
 | `story` 短故事 · 简单现代汉语 | 1000 | 27 万 | 合成短篇（单篇约 253 字，**机翻模板文本**） | ⚠️ **只作工程样本** |
 | `xiandai` 现代 · 民国新文学公版 | 35 | 110 万 | 鲁迅、老舍、郁达夫、萧红 | ✅ **现代白话主力桶** |
+| `localugc` 本地学习 · 知乎 / 网文 / 天涯 | 12977 | 2438 万（堆） | 知乎问答 4 份、网文切片 70 部、天涯对话 2907 帖 | ❌ **仅本地实验**（不入评测桶） |
 
 > ⚠️ **两个桶不可按字面读（2026-09-14 实测，详见 `docs/experiments/2026-09-14-worksplit-nll-converge.md` §9.1–9.3）**
 > - **`scifi` 是跨域对照，不是科幻域泛化**：池里 92.6% 的字数来自**一部现代网文**
@@ -156,7 +164,28 @@ node build.js && node smoke.js && node uidom.js && node test_rng.js
 >   且它是**单部作品**，按「按作品留出」无法既训练又留出 → **不具备独立成桶的资格**。
 > - **`story` 是合成模板文本**：1000 部全部来自 `TinyStoriesChinese`，留出是 100 个约 254 字的碎片。
 >   拿它的 Top-1/NLL 与公版自然文本桶**并列排名没有意义**。
-> - 结论：**只有 `gudian`/`wuxia`/`urban` 三个公版自然文本桶可作证据。**
+> - 结论：**可作证据的公版自然文本桶是 `gudian`/`wuxia`/`urban` + 新加的 `xiandai`（民国白话）。**
+
+### 本地学习桶 `localugc` 怎么用
+
+默认抓取已包含它（`--only` 的默认值是 `gutenberg,hcc,wikisource,hf,localugc`）。想跳过就用
+`--only gutenberg,hcc,wikisource,hf`。桶内是**问答体 + 抓取网文**，与小说叙事不是一回事，
+**只用于个人本地实验**，不要发布、不要商用、也不要拿它做评测结论。
+
+**天涯**接的是 GitHub 上真实抓取 `zhaoqixu/tianya-forum-scrapper/LXZ_chi(B).xml`（莲蓬鬼话板，
+18,550 帖），取 ≥200 字的前 3,000 帖 → 实际入库 2,907 帖 / 105 万字；
+⚠️ 它是**论坛辩论体，不是小说**。
+另一份 `TianYa-Zatan`（60 个按日 CSV）实测**只有标题+URL+回复数、没有正文**，对训练无用，未接入。
+**猫扑**在 GitHub / HF 双向检索都没有可核验的叙事数据集，未接入。
+
+任何自有 dump：存成 `data/raw/_cache/localugc/<标题>.txt`（UTF-8，文件名即作品名），重跑
+`python py/data/fetch_corpus.py` 即自动作为一部作品入库，走同一套清洗与按作品切分。
+
+扫描数字与两组失败样本见 `docs/experiments/2026-09-14-localugc-sweep.md`；
+`xiandai` 桶见 `docs/experiments/2026-09-14-xiandai-public-domain-sweep.md`。
+
+> ⚠️ **`--only 某源` 会覆盖 `data/sources.json`**（它默认写规范路径，不跟 `--out` 走）。
+> 试跑务必带上 `--sources-out`，否则其它源的审计记录会被这次的部分抓取盖掉。
 
 处理链路要点（踩坑记录见 `docs/experiments/2026-09-13-public-domain-corpus.md`）：
 去 Gutenberg 头尾 → 硬换行重排回自然段 → 标点归一 → 繁转简（opencc）→
@@ -333,6 +362,16 @@ python py/data/prepare.py --split                        # 逐作品 manifest + 
 > **Top-1（峰值）晚于 NLL（分布）过拟合**，只报 Top-1 会掩盖退化。
 > 完整记录见 `docs/experiments/2026-09-14-budget-steps.md`，
 > 对照脚本 `py/compare_budget.py`，图 `docs/img/budget_steps.png`。
+>
+> **第七轮（同日 · 数据量扩展到 500 万字）**：tag=`ctx64` 家族内 20 万→100 万→200 万→
+> 400/500 万（3 epoch token 对齐，本档步数 2930~7325 ≈ 6× 预算阈值）。结论：
+> **Top-1 缺口随数据量总体变宽**（gudian 5M 档 −6.60 为全程最差，7325 步也救不回），
+> 增量分解显示 trigram 的 Top-1 随数据涨得比模型快（gudian +11.68 vs +8.27）——
+> **≥1M 档的缺口主体是数据效应，预算杠杆失效**；而 **NLL 边距继续随数据扩大**
+> （urban 2M −1.00）。**Top-1 对小模型近似「语料 k-gram 覆盖率」，不是「越多资源越接近」
+> 的指标；分布质量（NLL）才是模型对 trigram 的可持续优势。**
+> 完整记录见 `docs/experiments/2026-09-14-datascale-to-5m.md`，
+> 对照脚本 `py/compare_datascale.py`，图 `docs/img/datascale_margins.png`。
 
 > 关于梯度检查的一个坑：**必须用 float64**。
 > 用 float32 时量化噪声（~1e-6）会淹没小梯度分量，
