@@ -93,6 +93,8 @@ node test_novel.js       # 中文小说生成能力测试，产出 report_eviden
 | `py/data/build_splits.py` | **按作品整篇切分**语料 → `data/splits/{train,val,test}.txt`（train/val/test 不跨作品，杜绝同作品泄漏） |
 | `py/sweep_worksplit.py` | **数据量扫描 + 收敛曲线 + 多种子误差棒**（吃 `data/splits/`，模型与 trigram 同口径记 NLL/PPL；`--tag` 并列多套主体，`--leak_probe` 只换留出集的受控 A/B） |
 | `py/compare_cfg.py` | **两组同协议、只换模型主体**的结果逐格对照（ΔTop-1 / ΔNLL + 参数量分账），回答"差距是容量还是结构" |
+| `py/compare_ctx.py` | **多组同协议、只换上下文长度**的结果对照：逐格 ΔTop-1 / ΔTop-5 / ΔNLL 边距 + 基线自身漂移 + compute-matched 核对 |
+| `py/plot_ctx_mechanism.py` | 机制图：把各实验臂按**训练步数**对齐画出，用来分辨"上下文效应"与"步数效应"（`docs/img/ctx_mechanism.png`） |
 | `py/sweep_data_scale.py` | 早期数据量扫描（桶内**连续** 90/10 切分，**含同作品泄漏**，已被上一个脚本取代，留作历史口径） |
 | `py/sweep_report.py` | 把各批次 `sweep_*.json` 合并成一张对比表 + 折线图 |
 | `data/` | 语料审计产物：`sources.json`（**1091 部**作品的来源/许可/哈希）、`manifest.jsonl`、`split_report.json`、`splits/` |
@@ -281,7 +283,7 @@ python py/data/prepare.py --split                        # 逐作品 manifest + 
 > **留出集 NLL**、**3 个种子**、**训到接近收敛**（3 epoch）。三点变化：
 >
 > 1. **NLL：从 1 万字起，模型在全部 5 个桶上胜过 trigram**（−0.64 ~ −1.19 nat）。
->    交叉点在 2,000~10,000 字之间。
+>    交叉点在 2,000~10,000 字之间（注：该"档位"里混着**训练步数**这个变量，见第五轮）。
 > 2. **Top-1：混合**。`wuxia` 在 1 万~100 万字四档**全部胜出**；
 >    `urban` 两胜；`scifi`/`gudian`/`story` 仍负（`story` −1.9~−10.4pt 最多）。
 >    ⚠️ **但 `scifi` 与 `story` 两桶有构造陷阱，不能按字面读**（详见下面的语料章节）：
@@ -302,6 +304,25 @@ python py/data/prepare.py --split                        # 逐作品 manifest + 
 > 另外 2,000 字档大主体**一致更差**（参数/字数比 ≈305 参数/字，纯记忆区间）→ **加容量必须同时加数据**。
 > 代价是 **2.2× 训练耗时**，换回 ~0.8pt，**性价比很低**。完整记录见
 > `docs/experiments/2026-09-14-bigbody-capacity-control.md`，逐格对照用 `py/compare_cfg.py`。
+>
+> **第五轮（同日 · 上下文长度对照）**：`ctx` 32→64（**token 预算对齐**）→
+> **≥1 万字的 20 格 Top-1 没有一格变好**；只有 2,000 字档（≈102 epoch 的记忆区间）变好
+> （NLL −0.56~−1.15 nat，但那是"记忆容量"不是"泛化"）。
+>
+> 更关键的是**步数对齐**的归因（20 万字档，7 臂 × 3 桶 × 3 种子）：
+> **决定边距的是训练步数（更新次数），不是上下文长度。**
+> 同为 293 步时 `ctx32` 与 `ctx64` 的边距**逐格相同**（−1.81 vs −1.83）；
+> 步数 586→293→146 时 Top-1 边距 **−0.33 → −1.83 → −3.35**；
+> 而同为 586 步时 ctx 32→64→128 只买到 **−0.33 → −0.09 → +0.04**
+> ——**在 586 步下模型终于在 Top-1 上与 trigram 打平**。
+>
+> ⚠️ **方法学警告**：`steps = epochs × 语料量 / (batch × ctx)`，
+> 所以"固定 N 个 epoch"= 固定 token，但**步数 ∝ 1/ctx**。
+> 直接比 ctx 会**把"优化预算被砍半"误读成"长上下文有害"**（这正是本轮 token 对齐下的表象）。
+> 扫 ctx 时必须显式声明对齐的是 token 还是步数，两条都报；另外 `min_steps` 下限
+> 也要按 1/ctx 缩，否则下限会静默改变预算。完整记录见
+> `docs/experiments/2026-09-14-ctx-length-control.md`，
+> 逐格对照用 `py/compare_ctx.py`，机制图见 `docs/img/ctx_mechanism.png`。
 
 > 关于梯度检查的一个坑：**必须用 float64**。
 > 用 float32 时量化噪声（~1e-6）会淹没小梯度分量，
@@ -320,8 +341,16 @@ python py/data/prepare.py --split                        # 逐作品 manifest + 
   详见 `docs/experiments/2026-09-14-worksplit-nll-converge.md`。
 - ⚠️ **Top-1 落后不是"模型太小"造成的**：把主体放大 **4.95×**（其余全不变）后，≥5 万字档 Top-1 只改善
   +0.3~+3.4pt，**缺口没被填平**（`gudian` 100 万字档仍 −3.5pt），而 **NLL 优势反而扩大**。
-  代价是 **2.2× 训练耗时**。要追 Top-1，方向应转向**结构**（`ctx` 仍是 32、目标函数、解码），
-  而不是继续堆主体参数。见 `docs/experiments/2026-09-14-bigbody-capacity-control.md`。
+  代价是 **2.2× 训练耗时**。见 `docs/experiments/2026-09-14-bigbody-capacity-control.md`。
+- ⚠️ **Top-1 落后也不是"上下文太短"造成的**：`ctx` 32→64（token 预算对齐）后，≥1 万字的
+  **20 格 Top-1 没有一格变好**。步数对齐的归因显示 **起作用的是训练步数**：同 293 步时
+  `ctx32` 与 `ctx64` 边距**逐格相同**（−1.81 vs −1.83）；步数 586→293→146 时
+  Top-1 边距 **−0.33 → −1.83 → −3.35**；**在 586 步下模型终于在 Top-1 上与 trigram 打平（+0.04）**。
+  所以下一步该动的是**训练步数 / 学习率调度 / 目标函数 / 解码**，
+  以及**先验证"预算给足后缺口是否自然消失"**。见 `docs/experiments/2026-09-14-ctx-length-control.md`。
+- ⚠️ **扫超参时 `steps = epochs × 语料量 / (batch × ctx)`**：固定 `epochs` = 固定 token，
+  但**步数 ∝ 1/ctx**。直接比 ctx 会把"优化预算被砍半"误读成"长上下文有害"。
+  另外 `min_steps` 下限在小档位会静默改变预算，扫 ctx 时要按 1/ctx 缩下限。
 - **加容量必须同时加数据**：2,000 字档下大主体在 5/5 桶都更差（参数/字数比 ≈305 参数/字）。
 - **留出作品数偏少**：`scifi` 只有 1 部留出作品、`wuxia` 3 部、`urban` 4 部。
   这些桶的方差主要来自"换哪部作品当留出"，不是种子——所以别把它们的绝对值当稳定结论。

@@ -43,9 +43,32 @@ Python 链路内部还有**两个层级**，别混：
 
 同日做了**只换主体**的容量对照（40,800 → 202,112 参数，**4.95×**，数据/步数/种子/评测全不变）：
 ≥5 万字档 Top-1 边距一致改善 **+0.3 ~ +3.4pt**，但 **A 级桶最大档仍 −0.2 ~ −3.5pt，缺口没被填平**；
-而 **NLL 优势继续扩大**。代价 **2.2× 耗时**。结论是**指标口径**问题（trigram 的 Top-1 随语料增长涨得更快），
-方向应转向 `ctx` / 目标函数 / 解码，不是继续加参数。
+而 **NLL 优势继续扩大**。代价 **2.2× 耗时**。结论是**指标口径**问题（trigram 的 Top-1 随语料增长涨得更快）。
 见 `docs/experiments/2026-09-14-bigbody-capacity-control.md`，逐格对照用 `py/compare_cfg.py`。
+
+### ⚠️ Top-1 落后也不是「上下文太短」
+
+同日又做了**只换 ctx**的对照（32 → 64，**token 预算对齐**）：≥1 万字的 **20 格 Top-1 没有一格变好**；
+只有 2,000 字档（≈102 epoch 的记忆区间）变好，而那属于"记忆容量"不是"泛化"。
+
+决定性的是**步数对齐**的 7 臂归因（20 万字档 × 3 桶 × 3 种子）：
+
+| 步数（更新次数） | ctx=32 | ctx=64 | ctx=128 |
+|---|---|---|---|
+| 293 | −1.81 | **−1.83** | — |
+| 586 | −0.33 | −0.09 | **+0.04** |
+
+（表内 = Top-1 边距「模型 − trigram」）**同为 293 步时 ctx32 与 ctx64 逐格相同**——
+差距来自**更新次数**，不是上下文长度。步数 586→293→146 时边距 −0.33 → −1.83 → −3.35。
+**在 586 步下，模型终于在 Top-1 上与 trigram 打平。**
+
+> ⚠️ **扫超参时的陷阱**：`steps = epochs × 语料量 / (batch × ctx)`。
+> 「固定 epochs」= 固定 **token**，但**步数 ∝ 1/ctx** —— 直接比 ctx 会把
+> "优化预算被砍半"误读成"长上下文有害"。扫 ctx 前先决定对齐 **token** 还是**步数**；
+> 若沿用 `min_steps` 下限，还要按 1/ctx 缩（否则小档位的预算被下限静默改变）。
+
+见 `docs/experiments/2026-09-14-ctx-length-control.md`，
+逐格对照用 `py/compare_ctx.py`，机制图用 `py/plot_ctx_mechanism.py`。
 
 ## 这一站回答一个问题
 
@@ -86,6 +109,16 @@ python py/sweep_worksplit.py --report_only           # 只把**本 tag** 的结�
 python py/sweep_worksplit.py --cfg_d 64 --cfg_layers 4 --cfg_heads 8 --tag big --no_report
 python py/sweep_worksplit.py --report_only --tag big  # → wsplit_report_big.md + worksplit_*_big.png
 python py/compare_cfg.py                              # 大/小主体逐格对照 ΔTop-1 / ΔNLL + 参数量分账
+#    上下文长度对照（ctx 32 vs 64 vs 128）：**必须先决定对齐 token 还是步数**。
+#    steps = epochs × 语料量 / (batch × ctx)，所以「固定 epochs」= 固定 token、步数 ∝ 1/ctx。
+#    还要把 min_steps 按 1/ctx 缩（32→200 / 64→100 / 128→50），否则下限会静默改变预算。
+for bk in scifi wuxia urban gudian story; do
+  python py/sweep_worksplit.py --buckets $bk --sizes 2000,10000,50000,200000,1000000 \
+         --seeds 1234,42,2024 --epochs 3 --ctx 64 --min_steps 100 --tag ctx64 --no_report --no_plot &
+done; wait
+python py/sweep_worksplit.py --report_only --tag ctx64
+python py/compare_ctx.py --tags 'base=,ctx64'        # 逐格 Top-1/Top-5/NLL 边距 + 基线漂移 + 预算核对
+python py/plot_ctx_mechanism.py                      # 按「训练步数」对齐的机制图 → docs/img/ctx_mechanism.png
 #    泄漏受控 A/B（同一训练、只换留出集，量化泄漏对模型/基线各自的影响）：
 python py/sweep_worksplit.py --buckets wuxia --sizes 200000 --leak_probe \
        --no_report --no_alpha_probe --out_dir py/runs/leakprobe
@@ -117,6 +150,8 @@ python -m unittest discover -s py/tests -t . -v
 | `baselines.py` | 统计基线：unigram / bigram / trigram（加 α 平滑 + 回退），**稀疏计数**存储；`for_each_position` 定义共享评测滑窗（每 `ctx` 步一窗，与模型同口径） |
 | `sweep_worksplit.py` | **数据量扫描 + 收敛曲线 + 多种子误差棒**（现行口径）。吃 `data/splits/`，留出作品不参与训练；模型与 trigram 同口径记 NLL/PPL；`--tag` 并列多套模型主体；`--report_only` 只合并**同 tag** 的结果 |
 | `compare_cfg.py` | 两组**同协议、仅模型主体不同**的结果对照：逐格 ΔTop-1 / ΔNLL + 参数量分账（词表嵌入 vs 主体），回答「差距是容量还是结构」 |
+| `compare_ctx.py` | 多组**同协议、仅上下文长度不同**的结果对照：逐格 Top-1/Top-5/NLL **边距**（模型 − trigram）+ **基线自身漂移** + compute-matched 核对（打印每格的 `ctx/步数/有效 epoch`），回答「差距是不是上下文太短」 |
+| `plot_ctx_mechanism.py` | 把各实验臂按**训练步数**对齐画在一张图里（`docs/img/ctx_mechanism.png`）：同 ctx 的曲线随步数下移，而不同 ctx 在相同步数处重合 → 一眼区分「上下文效应」与「步数效应」 |
 | `sweep_data_scale.py` | 早期数据量扫描（桶内**连续** 90/10，含同作品泄漏）。**已停止维护**，仅作历史口径对照 |
 | `sweep_report.py` | 合并 `runs/sweep_*.json` 全部批次 → `runs/sweep_report.md` + `docs/img/sweep_data_scale.png` |
 | `ablation.py` | 结构消融：注意力头数 ∈ {1,2,4,8} × 位置嵌入（学习式 / 置零冻结） |
