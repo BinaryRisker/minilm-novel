@@ -197,19 +197,25 @@ def train(text, steps=400, batch=8, lr=0.004, seed=1234, cfg=None,
 
 @torch.no_grad()
 def eval_ids(model, ids, ctx=None):
-    """在**显式给定**的 id 序列上评测 top-1/top-5（32 字窗口逐位置，与 holdout_eval 同口径）。
+    """在**显式给定**的 id 序列上评测 top-1/top-5/NLL（32 字窗口逐位置，与 holdout_eval 同口径）。
     与 holdout_eval 的区别：不自己切 90/10、不重建词表——用于「按作品切分」的
-    train/val/test（data/splits/*.txt）。ids 一般由 encode(test_text, 训练集 stoi) 得到。"""
+    train/val/test（data/splits/*.txt）。ids 一般由 encode(test_text, 训练集 stoi) 得到。
+    NLL = -logP(target) 逐位置平均（对完整 V 维归一化），与 baselines.Acc 同口径。"""
     ctx = ctx or model.cfg['ctx']
     model.eval()
     top1 = top5 = total = 0
+    nll_sum = 0.0
     s = 0
     while s + ctx + 1 <= len(ids):
         chunk = torch.tensor([ids[s:s + ctx]], dtype=torch.long)
         tgt = ids[s + 1:s + 1 + ctx]
         with torch.no_grad():
             logits, _ = model(chunk)
-        topv, topi = logits[0].topk(5)
+        lg = logits[0]
+        topv, topi = lg.topk(5)
+        logp = torch.log_softmax(lg.float(), dim=-1)
+        tgt_t = torch.tensor(tgt, dtype=torch.long)
+        nll_sum += float(-logp[torch.arange(ctx), tgt_t].sum())
         for i in range(ctx):
             pred = topi[i].tolist()
             total += 1
@@ -218,12 +224,16 @@ def eval_ids(model, ids, ctx=None):
             if tgt[i] in pred:
                 top5 += 1
         s += ctx
-    return {'top1': 100 * top1 / total if total else 0.0,
-            'top5': 100 * top5 / total if total else 0.0, 'n': total}
+    n = max(1, total)
+    nll = nll_sum / n
+    return {'top1': 100 * top1 / n,
+            'top5': 100 * top5 / n,
+            'nll': nll, 'ppl': math.exp(nll) if nll < 700 else float('inf'),
+            'n': total}
 
 
 def holdout_eval(model, text, seed=1234, min_freq=1, max_vocab=None):
-    """复刻 test_novel.js 的留出集评测：后 10% 分成 32 字窗口逐位置测 top-k。"""
+    """复刻 test_novel.js 的留出集评测：后 10% 分成 32 字窗口逐位置测 top-k + NLL。"""
     torch.manual_seed(seed)
     itos, stoi = build_vocab(text, min_freq=min_freq, max_vocab=max_vocab)
     ids = encode(text, stoi)
@@ -232,12 +242,17 @@ def holdout_eval(model, text, seed=1234, min_freq=1, max_vocab=None):
     ctx = model.cfg['ctx']
     model.eval()
     top1 = top5 = total = 0
+    nll_sum = 0.0
     s = 0
     while s + ctx + 1 <= len(test_ids):
         chunk = torch.tensor([test_ids[s:s + ctx]], dtype=torch.long)
         tgt = test_ids[s + 1:s + 1 + ctx]
         logits, _ = model(chunk)
-        topv, topi = logits[0].topk(5)
+        lg = logits[0]
+        topv, topi = lg.topk(5)
+        logp = torch.log_softmax(lg.float(), dim=-1)
+        tgt_t = torch.tensor(tgt, dtype=torch.long)
+        nll_sum += float(-logp[torch.arange(ctx), tgt_t].sum())
         for i in range(ctx):
             pred = topi[i].tolist()
             total += 1
@@ -246,5 +261,8 @@ def holdout_eval(model, text, seed=1234, min_freq=1, max_vocab=None):
             if tgt[i] in pred:
                 top5 += 1
         s += ctx
-    return {'top1': 100 * top1 / total, 'top5': 100 * top5 / total, 'n': total,
-            'final_loss': None}
+    n = max(1, total)
+    nll = nll_sum / n
+    return {'top1': 100 * top1 / n, 'top5': 100 * top5 / n,
+            'nll': nll, 'ppl': math.exp(nll) if nll < 700 else float('inf'),
+            'n': total, 'final_loss': None}

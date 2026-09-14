@@ -63,6 +63,12 @@ def write_report(runs: List[Dict], out_md: str):
         by.setdefault(r['corpus'], {}).setdefault(mode_of(r), {})[r['size']] = r
 
     L = ['# 数据量扫描：模型 vs Trigram（公版语料 613 万字）', '',
+         '> ⚠️ **本报告是「桶内连续 90/10」口径的历史存档，已被取代。**',
+         '> 它有两个已知问题：① 留出集与训练集来自同一批作品（**同作品泄漏**）；',
+         '> ② 只记 Top-1、没记留出集 NLL，且只跑了单种子。',
+         '> 现行结论见 `docs/experiments/2026-09-14-worksplit-nll-converge.md`',
+         '> （按作品切分 + NLL 同口径 + 3 种子 + 收敛曲线），脚本为 `py/sweep_worksplit.py`。',
+         '> 另注意本文档里 **scifi 一列对应的是已被重建的旧语料**（13.2 万字，现为 179 万字）。', '',
          '> 回答「模型到底需要多少训练字才能超过 trigram？」',
          '> 模型配置固定（ctx=32 d=40 layers=2 heads=4 ffMul=4）、Adam lr=0.004、'
          'batch=8、seed=1234、词频下限 min_freq=3；测试集始终是全文最后 10%。', '',

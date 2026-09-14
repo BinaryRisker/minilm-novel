@@ -86,7 +86,8 @@ def model_eval(text: str, train_ids: List[int], test_ids: List[int],
     test_ids_v = [t for t in test_ids if t < V]
 
     if len(train_ids_v) < cfg['ctx'] + 2:
-        return {'top1': 0.0, 'top5': 0.0, 'final_loss': float('nan'), 'n': 0}
+        return {'top1': 0.0, 'top5': 0.0, 'final_loss': float('nan'),
+                'nll': float('nan'), 'ppl': float('nan'), 'n': 0}
 
     model = MiniLM(V, cfg)
     opt = torch.optim.Adam(model.parameters(), lr=lr)
@@ -109,8 +110,12 @@ def model_eval(text: str, train_ids: List[int], test_ids: List[int],
     final_loss = seg_loss / seg_n
 
     # 留出集评测（基于 test_ids_v，与 sweep 用的 test 切分一致）
+    # 除 top-k 外还记录 **留出集 NLL**：与 trigram 的 NLL 同口径（都对完整 V 维做归一化，
+    # NLL = -logP(target) 逐位置平均），这样「峰值精度」和「整体分布质量」两个维度都能比。
+    # 之前只记 final_loss（训练集上的滑动窗口 loss），既不是留出集、口径也不同，无法与基线正面比。
     model.eval()
     top1 = top5 = total = 0
+    nll_sum = 0.0
     s = 0
     ctx = cfg['ctx']
     while s + ctx + 1 <= len(test_ids_v):
@@ -118,8 +123,13 @@ def model_eval(text: str, train_ids: List[int], test_ids: List[int],
         tgt = test_ids_v[s + 1:s + 1 + ctx]
         with torch.no_grad():
             logits, _ = model(chunk)
-        topv, topi = logits[0].topk(5)
+        lg = logits[0]                                  # [ctx, V]
+        topv, topi = lg.topk(5)
         pred = topi.tolist()
+        # NLL：向量化取每个位置 target 的 log-softmax
+        logp = torch.log_softmax(lg.float(), dim=-1)
+        tgt_t = torch.tensor(tgt, dtype=torch.long)
+        nll_sum += float(-logp[torch.arange(ctx), tgt_t].sum())
         for i in range(ctx):
             if pred[i][0] == tgt[i]:
                 top1 += 1
@@ -127,9 +137,13 @@ def model_eval(text: str, train_ids: List[int], test_ids: List[int],
                 top5 += 1
             total += 1
         s += ctx
+    n = max(1, total)
+    nll = nll_sum / n
     return {
-        'top1': 100.0 * top1 / max(1, total),
-        'top5': 100.0 * top5 / max(1, total),
+        'top1': 100.0 * top1 / n,
+        'top5': 100.0 * top5 / n,
+        'nll': nll,
+        'ppl': math.exp(nll) if nll < 700 else float('inf'),
         'final_loss': final_loss,
         'n': total,
     }
@@ -201,6 +215,8 @@ def sweep_one(corpus_key: str, full_text: str, size: int,
         'model': {
             'top1': mod['top1'],
             'top5': mod['top5'],
+            'nll': mod['nll'],
+            'ppl': mod['ppl'],
             'final_loss': mod['final_loss'],
         },
         'trigram': {
@@ -261,8 +277,8 @@ def main():
                               proportional=args.proportional_steps,
                               prop_ref=args.prop_ref, prop_cap=args.prop_cap)
                 all_runs.append(r)
-                print(f'    model Top-1={r["model"]["top1"]:.1f}%  '
-                      f'trigram Top-1={r["trigram"]["top1"]:.1f}%  '
+                print(f'    model Top-1={r["model"]["top1"]:.1f}% NLL={r["model"]["nll"]:.3f}  '
+                      f'trigram Top-1={r["trigram"]["top1"]:.1f}% NLL={r["trigram"]["nll"]:.3f}  '
                       f'steps={r["steps"]}  '
                       f'wallclock={r["wallclock"]["model"]:.1f}s',
                       flush=True)
@@ -333,13 +349,16 @@ def write_report(runs: List[Dict], args):
         rows.sort(key=lambda r: r['size'])
         L.append(f'## {ck}')
         L.append('')
-        L.append('| 训练字数 | 步数 | 留出集字数 | Model Top-1 | Model Top-5 | Trigram Top-1 | Trigram NLL | 胜负 |')
-        L.append('|---|---|---|---|---|---|---|---|')
+        L.append('| 训练字数 | 步数 | Model Top-1 | Model Top-5 | Model NLL | Model PPL | Trigram Top-1 | Trigram NLL | Trigram PPL | Top-1 胜负 | NLL 胜负 |')
+        L.append('|---|---|---|---|---|---|---|---|---|---|---|')
         for r in rows:
             win = '模型胜' if r['model']['top1'] > r['trigram']['top1'] else '模型负'
-            L.append(f'| {r["size"]} | {r["steps"]} | {r["test_chars"]} | '
+            nll_win = '模型胜' if r['model']['nll'] < r['trigram']['nll'] else '模型负'
+            L.append(f'| {r["size"]} | {r["steps"]} | '
                      f'{r["model"]["top1"]:.1f}% | {r["model"]["top5"]:.1f}% | '
-                     f'{r["trigram"]["top1"]:.1f}% | {r["trigram"]["nll"]:.3f} | {win} |')
+                     f'{r["model"]["nll"]:.3f} | {r["model"]["ppl"]:.1f} | '
+                     f'{r["trigram"]["top1"]:.1f}% | {r["trigram"]["nll"]:.3f} | '
+                     f'{r["trigram"]["ppl"]:.1f} | {win} | {nll_win} |')
         L.append('')
     out = os.path.join(HERE, 'runs', 'sweep_report.md')
     with open(out, 'w', encoding='utf-8') as f:

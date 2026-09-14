@@ -90,9 +90,11 @@ node test_novel.js       # 中文小说生成能力测试，产出 report_eviden
 | `py/` | **Python + PyTorch 训练链路**（L0 起的真源）：复刻版 + 多种子对齐验证（已通过） |
 | `py/data/fetch_corpus.py` | **公版语料抓取管线**：Gutenberg / GitHub 古典文库 / 维基文库 → 清洗 → 分桶 → `corpus.json` |
 | `py/data/prepare.py` | 逐作品 manifest 与 train/val/test split 审计（`data/manifest.jsonl`、`data/split_audit.json`） |
-| `py/sweep_data_scale.py` | 数据量扫描实验：模型 vs trigram，支持固定步数与步数随数据放大两种模式 |
-| `py/sweep_report.py` | 把各批次扫描结果合并成一张对比表 + 折线图 |
-| `data/` | 语料审计产物：`sources.json`（90 部作品的来源/许可/哈希）、`manifest.jsonl` |
+| `py/data/build_splits.py` | **按作品整篇切分**语料 → `data/splits/{train,val,test}.txt`（train/val/test 不跨作品，杜绝同作品泄漏） |
+| `py/sweep_worksplit.py` | **数据量扫描 + 收敛曲线 + 多种子误差棒**（吃 `data/splits/`，模型与 trigram 同口径记 NLL/PPL） |
+| `py/sweep_data_scale.py` | 早期数据量扫描（桶内**连续** 90/10 切分，**含同作品泄漏**，已被上一个脚本取代，留作历史口径） |
+| `py/sweep_report.py` | 把各批次 `sweep_*.json` 合并成一张对比表 + 折线图 |
+| `data/` | 语料审计产物：`sources.json`（**1091 部**作品的来源/许可/哈希）、`manifest.jsonl`、`split_report.json`、`splits/` |
 | `docs/experiments/` | 每个实验一份记录（问题/假设/唯一变量/结果/失败样本/结论边界/复现命令） |
 | `eval/` | **评估协议与基线**：`protocol.js`（位置/上文/指标的唯一定定义）、`baselines.js`（unigram/bigram/trigram 基线）、`metrics.js`（重复率/重合度/OOV）、`fixtures/`（手算样本） |
 | `中文小说生成测试报告.md` | **中文小说生成能力测试报告**（结论、数据、局限） |
@@ -113,29 +115,38 @@ node build.js && node smoke.js && node uidom.js && node test_rng.js
 
 ---
 
-## 语料：公版中文小说 · 613 万字 / 90 部作品
+## 语料：公版中文小说 · 2682 万字 / 1091 部作品
 
 `corpus.js` 里那三段语料是手写的（合计 7360 字），只够让实验台跑起来。
-真正训练用的是 `py/data/corpus.json`：从三个**公版**来源抓取、清洗、分桶后的
-**613 万字 / 90 部作品**。
+真正训练用的语料分三个层级（数字都由脚本生成、可复查）：
 
-| 桶 | 作品数 | 入库字数 | 代表作品 |
-|---|---|---|---|
-| `scifi` 科幻 · 清末科学小说 | 4 | 13.2 万 | 月界旅行（鲁迅译凡尔纳）、猫城记、新纪元、电世界 |
-| `wuxia` 武侠 · 侠义公案 | 23 | 200 万 | 水浒传、三侠五义、儿女英雄传、荡寇志、施公案 |
-| `urban` 都市 · 世情谴责 | 26 | 200 万 | 官场现形记、二十年目睹之怪现状、老残游记、孽海花 |
-| `gudian` 古典 · 神魔笔记 | 37 | 200 万 | 红楼梦、西游记、三国演义、封神演义、聊斋志异、三言二拍 |
+| 产物 | 规模 | 用途 |
+|---|---|---|
+| `data/sources.json` + `data/processed/<桶>/*.txt` | **1091 部 / 2682 万字**（逐作品全文，**未截断**） | 审计真源；`build_splits.py` 从这里取正文 |
+| `data/splits/{train,val,test}.txt` | train 871 部 / 2025 万字 · val 107 部 / 281 万字 · test 113 部 / 375 万字 | **无泄漏实验（推荐口径）**：train/val/test 不跨作品 |
+| `py/data/corpus.json` | **807 万字**（按桶均分截断，每桶上限 200 万字） | 早期扫描与 JS 对齐口径（桶内连续 90/10，**有同作品泄漏**） |
 
 来源与许可（全部为公有领域或开放许可，逐作品清单见 `data/sources.json`）：
 
 - **Project Gutenberg** 中文公版图书（`gutenberg.org`，Public Domain）
 - **GitHub `xp44mm/hanchuancaolu`** 中国古典文学原文（Public Domain）
-- **中文维基文库** 清末「科学小说」（CC BY-SA 4.0 / PD）
+- **中文维基文库** 清末「科学小说」与公版白话小说（CC BY-SA 4.0 / PD）
+
+| 桶 | 作品数 | 清洗后字数 | 代表作品 |
+|---|---|---|---|
+| `scifi` 科幻 · 清末科学小说 + 现代幻想 | 5 | 179 万 | 月界旅行（鲁迅译凡尔纳）、猫城记、新纪元、电世界 |
+| `wuxia` 武侠 · 侠义公案 | 23 | 808 万 | 水浒传、三侠五义、儿女英雄传、荡寇志、施公案 |
+| `urban` 都市 · 世情谴责 | 26 | 543 万 | 官场现形记、二十年目睹之怪现状、老残游记、孽海花 |
+| `gudian` 古典 · 神魔笔记 | 37 | 1125 万 | 红楼梦、西游记、三国演义、封神演义、聊斋志异、三言二拍 |
+| `story` 短故事 · 简单现代汉语 | 1000 | 27 万 | 简短现代白话短篇（单篇约 270 字，用于「现代文风」对照） |
 
 处理链路要点（踩坑记录见 `docs/experiments/2026-09-13-public-domain-corpus.md`）：
 去 Gutenberg 头尾 → 硬换行重排回自然段 → 标点归一 → 繁转简（opencc）→
 字符白名单（丢弃版式残渣）→ **跨源按标题去重取最长版本** → 按桶**均分截断**
 （保证每部作品都有代表，而不是只剩最长的两三部）。
+
+注意**截断只发生在 `corpus.json` 这一层**：`data/splits/` 用的是 `data/processed/`
+里每部作品的全文，所以它的总字数（2682 万字）比 `corpus.json`（807 万字）大得多。
 
 ```bash
 python py/data/fetch_corpus.py --list-sources            # 先看清单，不下载
@@ -249,6 +260,23 @@ python py/data/prepare.py --split                        # 逐作品 manifest + 
 > **613 万字（833 倍）**后重跑，结论是**仍然没有在留出集 Top-1 上整体超过 trigram**，
 > 但上一轮"数据变多模型反而更差"的部分是**评测步长 bug + 训练不足**造成的假象。
 > 修正协议的完整结果见 `docs/experiments/2026-09-13-sweep-data-scale.md`。
+> ⚠️ 这一轮的留出集是"桶内连续 90/10"，**有同作品泄漏**，结论已被第三轮取代。
+
+> **第三轮（现行结论 · 2026-09-14）**：语料扩到 **2682 万字 / 1091 部**并改为
+> **按作品整篇切分**（`data/splits/`，train/val/test 不跨作品），同时补上
+> **留出集 NLL**、**3 个种子**、**训到接近收敛**（3 epoch）。三点变化：
+>
+> 1. **NLL：从 1 万字起，模型在全部 5 个桶上胜过 trigram**（−0.64 ~ −1.19 nat）。
+>    交叉点在 2,000~10,000 字之间。
+> 2. **Top-1：混合**。`wuxia` 在 1 万~100 万字四档**全部胜出**；
+>    `urban` 两胜；`scifi`/`gudian`/`story` 仍负（`story` −1.9~−10.4pt 最多）。
+> 3. **上一轮"模型全负"主要是留出集泄漏造成的**。受控 A/B（同一训练、同一步数，
+>    只换留出集）：泄漏把 **trigram** 的 Top-1 平均抬高 **+33.5pt**，
+>    只把模型抬高 **+6.1pt**（**5.5×**）—— 越"记忆型"的基线被泄漏抬得越多，
+>    于是结论被系统性推向"模型打不过基线"。
+>
+> 完整记录见 `docs/experiments/2026-09-14-worksplit-nll-converge.md`，
+> 图见 `docs/img/worksplit_scaling.png` 与 `worksplit_converge.png`。
 
 > 关于梯度检查的一个坑：**必须用 float64**。
 > 用 float32 时量化噪声（~1e-6）会淹没小梯度分量，
@@ -261,7 +289,12 @@ python py/data/prepare.py --split                        # 逐作品 manifest + 
 ## 已知限制
 
 - 语料只有几千字的那个版本（浏览器实验台）会过拟合：模型"会背"而不是"会写"，请控制训练步数。
-  Python 链路已备有 **613 万字公版语料**，但按当前训练预算（0.5 epoch）仍不足以胜过 trigram。
+  Python 链路已备有 **2682 万字公版语料（1091 部作品）**。按作品切分、训到接近收敛后：
+  **留出集 NLL 从 1 万字起在全部 5 个桶上胜过 trigram**，但 **Top-1 只在 `wuxia` 上稳定领先**
+  —— 模型的分布整体更准，峰值位置不如"只数最近两个字"的统计模型尖。
+  详见 `docs/experiments/2026-09-14-worksplit-nll-converge.md`。
+- **留出作品数偏少**：`scifi` 只有 1 部留出作品、`wuxia` 3 部、`urban` 4 部。
+  这些桶的方差主要来自"换哪部作品当留出"，不是种子——所以别把它们的绝对值当稳定结论。
 - 字符级建模，不认词。中文没有空格，所以"词"要靠模型自己从字序里学。
 - 生成是逐字采样的，长文本会不可避免地漂移。
 - 没有 KV Cache，每生成一个字都要重算整个上下文。够小所以还能忍。

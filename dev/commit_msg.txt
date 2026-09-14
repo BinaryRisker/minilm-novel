@@ -1,43 +1,40 @@
-L3 语料工程：公版中文小说扩到 613 万字；修正基线评测协议后重跑数据量扫描
+扫描迁到按作品切分：补留出集 NLL / 多种子 / 收敛 / 泄漏受控实验
 
-语料（全部公版 / 开放许可）
-- 新增 py/data/fetch_corpus.py：Gutenberg + GitHub hanchuancaolu + 中文维基文库 三源抓取。
-  清洗链：去头尾 → 硬换行重排回自然段 → 标点归一 → 繁转简(opencc) → 字符白名单
-  → 跨源按标题去重取最长版本 → 按桶均分截断
-- py/data/corpus.json 重生成：scifi 13.2 万 / wuxia 200 万 / urban 200 万 / gudian 200 万
-  = 613 万字、90 部作品（原 7360 字，833×）
-- 新增 data/sources.json：90 部作品的来源 / 许可 / 字数 / sha256 / 链接审计
-- py/data/prepare.py 改为逐作品 manifest（train/val/test 不跨作品）+ split 审计：70/7/13 部，无哈希冲突
-- .gitignore 新增 data/raw/、data/processed/（原始缓存与逐作品副本可由脚本重建，不入库）
+问题（接 LOG.md 上一节留的"把 sweep_data_scale.py 迁到 data/splits/"）：
+旧扫描有三个问题——留出集是"桶内连续 90/10"（同作品泄漏）、只记 Top-1/Top-5 而没有留出集 NLL、
+单种子无法判断 1pt 级胜负；且预算只有 0.5 epoch，明显训练不足。
 
-基线 bug 修复（上一轮结论作废的直接原因）
-- py/baselines.py：for_each_position 滑窗步长 1 → ctx（原基线被评测 32 倍位置，且与模型不在同一批位置）
-- py/baselines.py：NGram 由「每上下文一个 V 维 float64 数组」改为稀疏计数 + 向量化 dist
-  （180 万字语料原需约 36 GB，实测挂死扫描）；修复后建表 5.0s、评测 29.2s，约 32000× 提速
-- 新增 py/tests/test_baselines.py：稀疏实现对稠密参考实现逐点差分（9 项全过，证明语义未变）
-  + 滑窗步长协议的显式断言
+做法：不改旧脚本（保留历史口径，只加"已被取代"提示），新增 py/sweep_worksplit.py：
 
-数据量扫描重跑（新增按数据量放大步数的模式）
-- py/sweep_data_scale.py：新增 --proportional_steps（步数随训练字数放大，≈恒定 0.5 epoch）；
-  --min_freq 默认 3（长尾生僻字映射 UNK，控制嵌入表规模）
-- 新增 py/sweep_report.py：合并全部批次的 sweep_*.json → runs/sweep_report.md
-  + runs/sweep_summary.json（含 fix 与 prop 两种模式）+ docs/img/sweep_data_scale.png
-- py/runs/sweep_*_{fix,prop}_s1234.json：48 条结果（4 语料 × 6 尺寸 × 2 模式）
-- 结论：修正协议后「模型全负」不成立 —— fix 轮有 4 组微胜（wuxia 1 万/5 万、urban 1 万、gudian 1 万，
-  +0.2~1.6pt）；大数据量处仍落后 trigram 1.6~5.4pt；
-  fix → prop 在最大数据量处追回 4.4~8.6pt，说明上一轮「数据越多模型越差」主体是训练不足
+- 吃 data/splits/{train,val,test}.txt（按作品整篇切分，train/val/test 不跨作品）
+- 补留出集 NLL/PPL，与 baselines.Acc 同口径（对完整 V 维归一化、同一批评测位）
+- 3 种子（1234/42/2024）报 mean±σ；按评测点记录收敛曲线
+- 留出切片从留出作品轮流取前缀（避免被一部长篇独占）
+- 词表在该桶全部训练作品上建、不随 size 变化（隔离"数据量"这一个变量）
+- --report_only 合并结果；--leak_probe 是只换留出集的受控 A/B
 
-文档与纠错
-- 新增 docs/experiments/2026-09-13-public-domain-corpus.md（语料采集全过程与 6 个坑）
-- docs/experiments/2026-09-13-sweep-data-scale.md：加「两轮」指引 + §10 第二轮完整结果，旧结论标注作废
-- py/verify_parity.py：汇总行把「失败数」当分子却配 FAIL 字样 → 全绿时输出 0/20 FAIL，看着像挂了。
-  改为「通过数/总数」+ 一行明确结论（判定逻辑与退出码一直是对的）
-- py/README.md：补「两条语料线」对照表 —— 原先写的「corpus.json 由 corpus.js 导出、JS 是唯一真源」
-  在加入公版语料后已不成立
-- README.md / LOG.md：新增「续七」并给旧「全负」结论加作废标注；重排章节顺序
-- docs/experiments/2026-09-13-pytorch-parity.md：同步修正被误导的输出块
-- 回归：node test.js --grad 688/688 · build.js 产物 86.9 KB 且与提交版逐字节一致 ·
-  smoke.js 23/23 · uidom.js 41/41 · eval/test_eval.js 68/68 ·
-  python -m unittest 13/13 · verify_parity 2/2 + 20/20 + 20/20 + 20/20
+结果（5 桶 × 5 档 × 3 种子 × 3 epoch = 75 条）：
+- NLL：从 1 万字起模型在全部 5 个桶上胜过 trigram（-0.64~-1.19 nat），
+  交叉点都落在 2,000~10,000 字之间
+- Top-1：混合。wuxia 在 1 万~100 万字四档全胜；urban 两胜；
+  scifi/gudian/story 仍负（story 最多 -10.4pt）
+- 种子噪声：100 万字档 Top-1 ±0.1pt、NLL ±0.008~0.033 → 1pt 级差异约 10σ
+- 3 epoch 已基本收敛（末段 ΔNLL 仅 -0.019~-0.043）→ 落后不能再归因于训练不足
+- 泄漏受控 A/B（同一训练/同一步数/同一种子，只换留出集）：
+  泄漏把 trigram 的 Top-1 平均抬高 +33.5pt，只把模型抬高 +6.1pt（5.5×）
+  → 上一轮"模型全负"主要是留出集泄漏造成的，且泄漏系统性地偏向记忆型基线
 
-注：docs/content/ 下的文章正文正由另一条并发的内容工作流改写中，本提交未纳入该目录。
+顺带：
+- minilm_torch.eval_ids/holdout_eval 补 NLL/PPL（纯增量，调用方不受影响）
+- "5.5 万参数"只对原小语料成立：d=40 L=2 的 Transformer 主体恒为 40,800 参数，
+  总参数随词表涨到 11 万(story)~30 万(gudian)，嵌入/输出表占 63%~86%
+- trigram 的 α=0.1 设弱了（5 桶最优都是 0.01，差 0.12~0.59 nat），但即便用最优 α 模型 NLL 仍全胜
+
+文档：
+- 新增 docs/experiments/2026-09-14-worksplit-nll-converge.md（14 节，含结论边界与 7 个坑）
+- README / py/README 更新现行结论；旧扫描文档与 sweep_report.md 加"已被取代"提示
+- 新增 docs/img/worksplit_scaling.png、worksplit_converge.png
+
+验证：test.js --grad ✓ · build.js 86.9KB 且 index.html 与提交版逐字节一致 ·
+smoke 23/23 · uidom 41/41 · eval 68/68 · test_rng 11/11 · unittest 13/13 ·
+parity 2/2 + 20/20×3 · 泄漏自检（跨 split 的 hash/标题冲突 0，每桶 train∩test = ∅）

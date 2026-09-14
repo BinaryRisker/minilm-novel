@@ -9,9 +9,18 @@
 
 | | 浏览器实验台 | Python 训练链路 |
 |---|---|---|
-| 语料文件 | `corpus.js`（项目自写 3 篇，**7360 字**） | `py/data/corpus.json`（公版抓取，**613 万字 / 90 部**） |
-| 谁生成 | 人工撰写 | `py/data/fetch_corpus.py` |
+| 语料文件 | `corpus.js`（项目自写 3 篇，**7360 字**） | `py/data/corpus.json`（公版抓取，**807 万字**）＋ `data/splits/`（按作品切分，**2682 万字**） |
+| 谁生成 | 人工撰写 | `py/data/fetch_corpus.py` → `py/data/build_splits.py` |
 | 为何分开 | 单文件 HTML 要能双击即开，不宜内联几兆文本 | 训练需要量级更大的真实语料 |
+
+Python 链路内部还有**两个层级**，别混：
+
+- `py/data/corpus.json` —— 按桶**均分截断**（每桶 ≤200 万字）的桶级拼接文本。
+  桶内按 `len*0.9` 连续切留出，**会把同一部作品劈进 train 和 test**。
+  早期扫描（`sweep_data_scale.py`）走这条。
+- `data/splits/{train,val,test}.txt` —— **按作品整篇切分**，train/val/test 不跨作品，
+  正文取 `data/processed/` 里的逐作品全文（不截断）。**做质量结论请用这条**
+  （`py/sweep_worksplit.py`、`py/train.py --splits`）。
 
 两条线**互不覆盖**。唯一需要小心的是逐位对齐验证：它的 fixture 由
 `dev/export_fixture.js` 从 `corpus.js` 导出（小配置 V=9），因此对齐结论只依赖
@@ -40,14 +49,24 @@ python align.py                   # 5 种子 × 3 语料全量验证，生成 al
 python align.py --corpus scifi    # 只跑一段（结果缓存在 runs/）
 python align.py --seeds 42 7      # 指定种子
 
-# ③ 语料管线（公版抓取 → 清洗 → 去重 → 分桶 → 审计）
+# ③ 语料管线（公版抓取 → 清洗 → 去重 → 分桶 → 审计 → 按作品切分）
 python py/data/fetch_corpus.py --list-sources        # 只看源清单，不下载
 python py/data/fetch_corpus.py --max-chars 2000000   # 抓取 + 清洗 + 分桶
 python py/data/prepare.py --split                    # 逐作品 manifest + split 审计
+python py/data/build_splits.py                       # 按作品整篇切 → data/splits/{train,val,test}.txt
 
-# ④ 数据量扫描（模型 vs trigram，"到底要多少字"）
+# ④ 数据量扫描 + 收敛 + 多种子（**推荐口径：按作品切分，无泄漏**）
+python py/sweep_worksplit.py                         # 5 桶 × 5 尺寸 × 3 种子 × 3 epoch
+python py/sweep_worksplit.py --buckets scifi --sizes 2000,10000,50000 --seeds 1234 --epochs 2
+python py/sweep_worksplit.py --report_only           # 只把已有结果合并成报告 + 两张图
+#    大模型对照（容量 vs 训练预算）：
+python py/sweep_worksplit.py --cfg_d 64 --cfg_layers 4 --cfg_heads 8 --tag big --buckets wuxia
+#    泄漏受控 A/B（同一训练、只换留出集，量化泄漏对模型/基线各自的影响）：
+python py/sweep_worksplit.py --buckets wuxia --sizes 200000 --leak_probe \
+       --no_report --no_alpha_probe --out_dir py/runs/leakprobe
+
+# ④′ 早期口径（桶内连续 90/10，**含同作品泄漏**，仅作历史对照）
 python py/sweep_data_scale.py --sizes 2000,10000,50000,200000,1000000,all --steps 400 --min_freq 3
-python py/sweep_data_scale.py ... --proportional_steps   # 步数随数据量放大（≈固定 epoch）
 python py/sweep_report.py                                # 合并全部批次 → 报告 + 折线图
 
 # ⑤ 测试
@@ -71,12 +90,14 @@ python -m unittest discover -s py/tests -t . -v
 | `verify_parity.py` | 逐位对齐：forward logits/loss、原始梯度、裁剪后梯度、Adam 一步（float64，20 参数逐项） |
 | `align.py` | 多种子对齐验证驱动，产出 `align_report.md` |
 | `baselines.py` | 统计基线：unigram / bigram / trigram（加 α 平滑 + 回退），**稀疏计数**存储；`for_each_position` 定义共享评测滑窗（每 `ctx` 步一窗，与模型同口径） |
-| `sweep_data_scale.py` | 数据量扫描：固定模型配置，只改训练集大小 |
+| `sweep_worksplit.py` | **数据量扫描 + 收敛曲线 + 多种子误差棒**（现行口径）。吃 `data/splits/`，留出作品不参与训练；模型与 trigram 同口径记 NLL/PPL；`--report_only` 合并结果 |
+| `sweep_data_scale.py` | 早期数据量扫描（桶内**连续** 90/10，含同作品泄漏）。**已停止维护**，仅作历史口径对照 |
 | `sweep_report.py` | 合并 `runs/sweep_*.json` 全部批次 → `runs/sweep_report.md` + `docs/img/sweep_data_scale.png` |
 | `ablation.py` | 结构消融：注意力头数 ∈ {1,2,4,8} × 位置嵌入（学习式 / 置零冻结） |
 | `data/fetch_corpus.py` | **公版语料抓取管线**：Gutenberg / GitHub 古典文库 / 维基文库 → 清洗 → 跨源去重 → 分桶均分截断 |
 | `data/prepare.py` | 逐作品 manifest（train/val/test 不跨作品）+ split 审计 |
-| `data/corpus.json` | 训练语料（公版，613 万字 / 90 部），**由 `fetch_corpus.py` 生成**，不再从 `corpus.js` 导出 |
+| `data/build_splits.py` | 按作品**整篇**切分 → `data/splits/{train,val,test}.txt`（含无跨集合 + 字数守恒自检） |
+| `data/corpus.json` | 桶级训练语料（公版，807 万字，按桶均分截断），**由 `fetch_corpus.py` 生成**，不再从 `corpus.js` 导出 |
 | `tokenizer.py` | 极简 BPE tokenizer（学习用，无外部依赖） |
 | `train.py` | 训练 CLI：save/resume checkpoint、导出 `itos.json` 与 `meta.json` |
 | `eval_story.py` | 场景写作评测：按 `eval/prompts.jsonl` 续写 + 自动指标 |
