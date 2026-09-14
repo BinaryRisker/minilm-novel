@@ -1,40 +1,18 @@
-扫描迁到按作品切分：补留出集 NLL / 多种子 / 收敛 / 泄漏受控实验
+内容重组：全库按「原理篇/实践篇/论文解读篇」分类编号；新增原理篇 01~11 骨架
 
-问题（接 LOG.md 上一节留的"把 sweep_data_scale.py 迁到 data/splits/"）：
-旧扫描有三个问题——留出集是"桶内连续 90/10"（同作品泄漏）、只记 Top-1/Top-5 而没有留出集 NLL、
-单种子无法判断 1pt 级胜负；且预算只有 0.5 epoch，明显训练不足。
+起因
+- 读者反馈「名词突兀」：全文扫描证实 NLL 首现实践篇02、17 篇裸用、定义在实践篇25；trigram/Top-1/留出集 16~18 篇裸用、无定义文；OOV 与 UNK 的关系隔了 26 篇才接上
 
-做法：不改旧脚本（保留历史口径，只加"已被取代"提示），新增 py/sweep_worksplit.py：
+重组（dev/reorganize_by_category.py，幂等可重跑）
+- 33 篇改名：原理篇01~03 / 实践篇01~30 / 论文解读01；原理篇从第 1 篇起排；实践篇编号不变（历史「文 NN」≡ 实践篇 NN；23 升格为论文解读01，留空位）
+- 系列行加分类标记；30 篇加「前置阅读」行（N 代号换算为原理篇编号）；正文交叉引用「第 N 篇」→「实践篇第 N 篇」
 
-- 吃 data/splits/{train,val,test}.txt（按作品整篇切分，train/val/test 不跨作品）
-- 补留出集 NLL/PPL，与 baselines.Acc 同口径（对完整 V 维归一化、同一批评测位）
-- 3 种子（1234/42/2024）报 mean±σ；按评测点记录收敛曲线
-- 留出切片从留出作品轮流取前缀（避免被一部长篇独占）
-- 词表在该桶全部训练作品上建、不随 size 变化（隔离"数据量"这一个变量）
-- --report_only 合并结果；--leak_probe 是只换留出集的受控 A/B
+新增原理篇 01~11（通俗幽默版骨架，从 0 到 1 拆零件，数字全部引自实践篇）
+- 总览 / 词表·OOV·UNK / embedding / 位置编码 / 注意力与因果掩码 / logits 与 softmax / loss 与交叉熵 / 反向传播与 Adam / 解码与采样 / 训练四本账 / 评测与基线（收官）
+- 每篇一个生活化比喻 + index.html 可观察现象 + 边界声明 + 四行 footer
 
-结果（5 桶 × 5 档 × 3 种子 × 3 epoch = 75 条）：
-- NLL：从 1 万字起模型在全部 5 个桶上胜过 trigram（-0.64~-1.19 nat），
-  交叉点都落在 2,000~10,000 字之间
-- Top-1：混合。wuxia 在 1 万~100 万字四档全胜；urban 两胜；
-  scifi/gudian/story 仍负（story 最多 -10.4pt）
-- 种子噪声：100 万字档 Top-1 ±0.1pt、NLL ±0.008~0.033 → 1pt 级差异约 10σ
-- 3 epoch 已基本收敛（末段 ΔNLL 仅 -0.019~-0.043）→ 落后不能再归因于训练不足
-- 泄漏受控 A/B（同一训练/同一步数/同一种子，只换留出集）：
-  泄漏把 trigram 的 Top-1 平均抬高 +33.5pt，只把模型抬高 +6.1pt（5.5×）
-  → 上一轮"模型全负"主要是留出集泄漏造成的，且泄漏系统性地偏向记忆型基线
-
-顺带：
-- minilm_torch.eval_ids/holdout_eval 补 NLL/PPL（纯增量，调用方不受影响）
-- "5.5 万参数"只对原小语料成立：d=40 L=2 的 Transformer 主体恒为 40,800 参数，
-  总参数随词表涨到 11 万(story)~30 万(gudian)，嵌入/输出表占 63%~86%
-- trigram 的 α=0.1 设弱了（5 桶最优都是 0.01，差 0.12~0.59 nat），但即便用最优 α 模型 NLL 仍全胜
-
-文档：
-- 新增 docs/experiments/2026-09-14-worksplit-nll-converge.md（14 节，含结论边界与 7 个坑）
-- README / py/README 更新现行结论；旧扫描文档与 sweep_report.md 加"已被取代"提示
-- 新增 docs/img/worksplit_scaling.png、worksplit_converge.png
-
-验证：test.js --grad ✓ · build.js 86.9KB 且 index.html 与提交版逐字节一致 ·
-smoke 23/23 · uidom 41/41 · eval 68/68 · test_rng 11/11 · unittest 13/13 ·
-parity 2/2 + 20/20×3 · 泄漏自检（跨 split 的 hash/标题冲突 0，每桶 train∩test = ∅）
+文档与工具
+- 新增《内容重组_从0到1阅读路径_V1.md》：三部曲主线、术语依赖表、实践篇 P0~P6 挂载、文体铁律
+- dev/lint_content.py 支持分类编号检查（唯一性/文件名一致性；空位仅提示）；dev/add_prereq_lines.py 留档
+- 选题表/发布说明/审计文档同步（含第五批/结构消融轮记录）
+- lint 41/41 通过；阅读顺序 = 原理篇 01→11 → 实践篇 P0~P6 → 论文解读篇
