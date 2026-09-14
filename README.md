@@ -29,15 +29,19 @@
 
 所以：**想看得见原理 —— 用它；想真正产出会写小说的模型 —— 走 Python + PyTorch。**
 
-**执行路线以 [`docs/PRD_NOVEL_MODEL_LEARNING_V1.md`](docs/PRD_NOVEL_MODEL_LEARNING_V1.md) 为准**
-（配套清单 [`docs/TODO_NOVEL_MODEL_LEARNING_V1.md`](docs/TODO_NOVEL_MODEL_LEARNING_V1.md)）。
-`小模型写小说_从零学习方案_2026-09.md` 已降级为**技术背景材料**，仅保留设计依据与实测数据，不作为排期或验收依据。
+**执行路线以 [`docs/PRD_NOVEL_MODEL_LEARNING_V3.md`](docs/PRD_NOVEL_MODEL_LEARNING_V3.md) 为准**
+（配套清单 [`docs/TODO_NOVEL_MODEL_LEARNING_V3.md`](docs/TODO_NOVEL_MODEL_LEARNING_V3.md)、
+[研究核查](docs/research/NOVEL_SCRATCH_RESEARCH_20260914.md)、[人工验收协议](docs/NOVEL_HUMAN_EVAL_V1.md)）。
+2026-09-15 经用户确认采用 V3 口径：**参数全部从随机初始化训练、不加载任何外部预训练权重**，
+首个交付目标是两类受限中文短篇（日常故事 / 轻悬疑，6000–10000 字、6–10 场景、3–5 人物），
+模型规模按 V3 的微型 → 30M 候选推进，硬件预算按 8GB 显存设计并由 `doctor` 实测确认。
 
-> ⚠️ **路线待确认（2026-09-15）**：`docs/PRD_NOVEL_MODEL_LEARNING_V2.md` / `V3.md` 已于 2026-09-14 起草，
-> 且 **V3 的 P0 正在实施**（`py/novellm/`、4090/8GB、30M 配置、自建 tokenizer）。
-> 上面这句「以 V1 为准」是旧声明，**尚未经确认由 V3 取代**；两版验收口径不同
-> （V1＝字符级教学实验台 + 百万字语料；V3＝6000–10000 字受限短篇 + 不加载外部权重）。
-> 硬约束「尺寸不能太大」在 V3 下是否按 30M 参数 / 8GB 显存重设，也待确认。见 `LOG.md` 2026-09-15 条目。
+历史版本**保留为审计记录、不再作为排期或验收依据**，并在此索引指向 V3：
+[`V1`](docs/PRD_NOVEL_MODEL_LEARNING_V1.md) / [`V1 清单`](docs/TODO_NOVEL_MODEL_LEARNING_V1.md)
+（字符级教学实验台 + 数据管线，L0 对齐与 L3 数据工程的证据仍在其中）、
+[`V2`](docs/PRD_NOVEL_MODEL_LEARNING_V2.md) / [`V2 清单`](docs/TODO_NOVEL_MODEL_LEARNING_V2.md)
+（代码审计与 P0 修复项**仍然有效**，只是「采用外部基座」的选项已被 V3 覆盖）。
+`小模型写小说_从零学习方案_2026-09.md` 为**技术背景材料**。
 
 ---
 

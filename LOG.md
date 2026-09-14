@@ -1059,3 +1059,60 @@ HF `chinese fiction/novel/classical chinese`、`GitHub chinese classical text co
 - V3 P0 余项：数据/缓存身份与配置指纹强制校验、历史 test 标 exploratory 并另建锁定测试族。
 - 引用 `localugc` 的既有结果：补数据版本标注或按新 splits 重跑。
 
+---
+
+## 2026-09-15 · Day 3（续）· 路线定为 V3，并落地 P0 的「切分身份强制校验」
+
+**决定**：用户拍板 **按 V3 最新口径推进**。README 的路线声明已从「以 V1 为准」改为
+**以 `docs/PRD_NOVEL_MODEL_LEARNING_V3.md` 为准**，V1/V2 降级为**审计记录**并加索引（V2 的代码审计与
+P0 修复项仍有效，只有「采用外部基座」被 V3 覆盖）。上一轮列的两条待决，第 1 条（权威路线 + 尺寸预算）
+就此关闭；第 2 条（LOG 编号重复且数字自相矛盾）仍待人工处理。定时任务的指令也已同步改成 V3 口径。
+
+**做了（V3 P0 第 3 项的可执行部分）**：把「不合规数据和不匹配缓存非零退出」从口号变成代码。
+
+- `py/splits.py` 新增 `split_fingerprint()` / `duplicate_hashes()` / `verify()` 与 `SplitIdentityError`，
+  并在 `bucket_texts()` **每次加载时**先校验两件事：
+  1) **split 版本**：manifest 现算指纹 == `data/split_report.json` 记录的指纹；
+  2) **家族/内容去重**：manifest 内不得有逐字重复作品。
+  任一不成立 → 抛 `SplitIdentityError`、非零退出，并给出**可直接照做的修复命令**。
+- `py/data/build_splits.py`：把指纹写进报告；并在切分前 `assert_family_dedupe()`，
+  **带重复正文的 manifest 直接拒绝切分**。
+- 顺手删掉 `build_splits.py` 里自己那份 `slug` / `read_manifest`，改为 import `py/splits.py`。
+  理由：指纹算法若两处各写一遍，就会「自己校验自己永远通过」——校验也就失去意义。
+
+**为什么正是这一条**：连续两轮自检都踩到同一个失效模式——抓取/去重重跑后 manifest 与审计是新的，
+而**实验真正消费的** `data/splits/*.txt` 还是旧的，脚本照跑不误、跑出不可复现的数字。
+上轮只能靠人工比对 mtime 发现；现在由加载层强制拦截。
+
+**数字 / 验证**
+
+| 检查 | 结果 |
+|---|---|
+| `py/tests/test_splits.py`（新增契约测试） | **11 项通过**（指纹稳定且与顺序无关、改 split 即变、过期报告报错、缺报告报错、未去重报错并指明保留谁） |
+| 真实数据正常加载 | `verify()` 通过，works=32,036，指纹 `4bafc1993955d29c`；退出码 **0** |
+| 篡改报告指纹（模拟过期缓存） | 抛 `SplitIdentityError`；退出码 **1** |
+| 全量 python 测试 | `unittest discover py/tests` **24/24 OK**（13 旧 + 11 新） |
+| 端到端 | `train.py --bucket story --steps 15` 跑通（`vocab_source=train_only`，按作品留出） |
+| JS 回归 | `node smoke.js` 23 项通过（本轮未改 JS/数学，未重跑 parity） |
+
+**意外发现**
+
+1. **并发工作线已经开始复用我这轮的校验。** 写完后 `py/splits.py` 被另一条线扩展出
+   `report_path` 参数（配合它新增的 `py/dedup_works.py` 用不同 manifest 跑实验）——
+   说明"加载时强制校验"这个接缝正好落在它也需要的位置上。
+2. **校验函数只能有一份。** 我最初在 `build_splits.py` 和 `splits.py` 各写了一遍指纹，
+   两边就算一致，**也永远校验不出漂移**——因为生产方与消费方各自认定自己的算法。
+   已改成 `build_splits.py` 反向 import `py/splits.py`。
+
+**边界**
+
+- 本项只覆盖「家族去重 + split 版本」；V3 该条还要求 **用途 allowlist** 与 **配置指纹**，未做，
+  已在 `docs/TODO_NOVEL_MODEL_LEARNING_V3.md` 里标 ⏳，整条不勾。
+- 校验发生在 `py/splits.py` 这个统一入口；直接读 `data/splits/*.txt` 或 `corpus.json`
+  的旧代码路径**不受保护**（如 `--corpus` 的连续切分口径）。
+
+**产出**：`py/splits.py`（verify/fingerprint）、`py/data/build_splits.py`（指纹 + 拒绝未去重）、
+`py/tests/test_splits.py`、`data/split_report.json`（含 `split_fingerprint`）、
+`README.md` 路线声明、V3 TODO 进度标注。
+
+

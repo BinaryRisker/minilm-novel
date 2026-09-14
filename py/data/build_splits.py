@@ -37,24 +37,23 @@ DEFAULT_PROCESSED = os.path.join(ROOT, 'data', 'processed')
 DEFAULT_OUT = os.path.join(ROOT, 'data', 'splits')
 DEFAULT_REPORT = os.path.join(ROOT, 'data', 'split_report.json')
 
+# 指纹算法只在 py/splits.py 定义一份：切分方与消费方必须用同一个函数，
+# 各写一遍就会「自己校验自己永远通过」。
+if os.path.join(ROOT, 'py') not in sys.path:
+    sys.path.insert(0, os.path.join(ROOT, 'py'))
+from splits import split_fingerprint, duplicate_hashes, read_manifest, slug  # noqa: E402
+
 SPLITS = ('train', 'val', 'test')
 
 
-def slug(s: str) -> str:
-    # 与 py/data/fetch_corpus.py 的 slug 保持一致：作品正文落盘用的文件名
-    import re
-    s = re.sub(r'[\\/:*?"<>|\s]+', '_', s.strip())
-    return s[:80] or 'untitled'
-
-
-def read_manifest(path: str) -> list:
-    rows = []
-    with open(path, 'r', encoding='utf-8') as f:
-        for line in f:
-            line = line.strip()
-            if line:
-                rows.append(json.loads(line))
-    return rows
+def assert_family_dedupe(rows: list) -> None:
+    """家族/内容去重必须已生效，否则拒绝切分：重复正文会虚增数据量，
+    且两个副本一旦落进不同 split 就是 train/test 泄漏。"""
+    dup = duplicate_hashes(rows)
+    if dup:
+        raise AssertionError(
+            f'manifest 存在 {len(dup)} 个逐字重复作品（如 {dup[0][0]} vs {dup[0][1]}）；'
+            f'请先跑 python py/data/prepare.py --split 完成内容去重，再切分')
 
 
 def resolve_text(work: dict, processed_dir: str) -> str:
@@ -74,6 +73,7 @@ def build(manifest_path: str, processed_dir: str, out_dir: str, report_path: str
     assert len(ids) == len(set(ids)), 'story_id 不唯一'
     for r in rows:
         assert r['split'] in SPLITS, f'{r["story_id"]} split={r["split"]} 非法（应为 train/val/test）'
+    assert_family_dedupe(rows)   # 含重复正文的 manifest 一律拒绝切分
 
     buckets: dict = {sp: [] for sp in SPLITS}
     per_work = []
@@ -102,6 +102,7 @@ def build(manifest_path: str, processed_dir: str, out_dir: str, report_path: str
                 'file_chars 含作品间 \\n\\n 分隔符。供 L3 之后的质量实验使用；'
                 'minilm_torch.train 的连续 90/10 切分是 JS 对齐路径，与此无关。',
         'splits': report_splits,
+        'split_fingerprint': split_fingerprint(rows),
         'total_works': len(rows),
         'total_chars': sum(v['chars'] for v in report_splits.values()),
         'work_chars_sum': sum(w['chars'] for w in per_work),

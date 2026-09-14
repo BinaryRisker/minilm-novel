@@ -1,0 +1,221 @@
+{
+  "verified_on": "2026-09-14",
+  "method": "Public metadata only; no weights downloaded or models executed",
+  "artifacts": [
+    {
+      "kind": "model",
+      "id": "THUDM/LongWriter-glm4-9b",
+      "url": "https://huggingface.co/api/models/THUDM/LongWriter-glm4-9b",
+      "sha": "2e7f69100db28b2874e80739aed789dae214d3c0",
+      "license": null,
+      "gated": false,
+      "weights_files": 4,
+      "support_files": [
+        "README.md",
+        "config.json",
+        "configuration_chatglm.py",
+        "generation_config.json",
+        "model.safetensors.index.json",
+        "modeling_chatglm.py",
+        "special_tokens_map.json",
+        "tokenization_chatglm.py",
+        "tokenizer_config.json"
+      ]
+    },
+    {
+      "kind": "model",
+      "id": "THUDM/LongWriter-Zero-32B",
+      "url": "https://huggingface.co/api/models/THUDM/LongWriter-Zero-32B",
+      "error": "HTTP Error 401: Unauthorized"
+    },
+    {
+      "kind": "model",
+      "id": "Pageshift-Entertainment/pagestorm-research-preview-14b-full-book",
+      "url": "https://huggingface.co/api/models/Pageshift-Entertainment/pagestorm-research-preview-14b-full-book",
+      "sha": "4bb798750af1b9e9cb8b5012cb079fb767134d0f",
+      "license": "apache-2.0",
+      "gated": false,
+      "weights_files": 17,
+      "support_files": [
+        "README.md",
+        "config.json",
+        "generation_config.json",
+        "model.safetensors.index.json",
+        "params.json",
+        "processor_config.json",
+        "special_tokens_map.json",
+        "story_stage_generation.py",
+        "tekken.json",
+        "tokenizer.json",
+        "tokenizer_config.json"
+      ]
+    },
+    {
+      "kind": "model",
+      "id": "wcn123/Qwen3.5-27B-WebNovel-Writer-zh",
+      "url": "https://huggingface.co/api/models/wcn123/Qwen3.5-27B-WebNovel-Writer-zh",
+      "sha": "6655cb83ed02a5f44489aab6880c11d7a685347f",
+      "license": "other",
+      "gated": false,
+      "weights_files": 13,
+      "support_files": [
+        "README.md",
+        "adapter_config.json",
+        "config.json",
+        "generation_config.json",
+        "model.safetensors.index.json",
+        "tokenizer.json",
+        "tokenizer_config.json"
+      ]
+    },
+    {
+      "kind": "model",
+      "id": "Qwen/Qwen3-4B-Instruct-2507",
+      "url": "https://huggingface.co/api/models/Qwen/Qwen3-4B-Instruct-2507",
+      "sha": "cdbee75f17c01a7cc42f958dc650907174af0554",
+      "license": "apache-2.0",
+      "gated": false,
+      "weights_files": 3,
+      "support_files": [
+        "README.md",
+        "config.json",
+        "generation_config.json",
+        "model.safetensors.index.json",
+        "tokenizer.json",
+        "tokenizer_config.json",
+        "vocab.json"
+      ]
+    },
+    {
+      "kind": "model",
+      "id": "Qwen/Qwen3.5-4B",
+      "url": "https://huggingface.co/api/models/Qwen/Qwen3.5-4B",
+      "sha": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+      "license": "apache-2.0",
+      "gated": false,
+      "weights_files": 2,
+      "support_files": [
+        "README.md",
+        "config.json",
+        "model.safetensors.index.json",
+        "preprocessor_config.json",
+        "tokenizer.json",
+        "tokenizer_config.json",
+        "video_preprocessor_config.json",
+        "vocab.json"
+      ]
+    },
+    {
+      "kind": "model",
+      "id": "Qwen/Qwen3.5-9B",
+      "url": "https://huggingface.co/api/models/Qwen/Qwen3.5-9B",
+      "sha": "c202236235762e1c871ad0ccb60c8ee5ba337b9a",
+      "license": "apache-2.0",
+      "gated": false,
+      "weights_files": 4,
+      "support_files": [
+        "README.md",
+        "config.json",
+        "model.safetensors.index.json",
+        "preprocessor_config.json",
+        "tokenizer.json",
+        "tokenizer_config.json",
+        "video_preprocessor_config.json",
+        "vocab.json"
+      ]
+    },
+    {
+      "kind": "repo",
+      "id": "THUDM/LongWriter",
+      "url": "https://api.github.com/repos/THUDM/LongWriter/git/trees/main?recursive=1",
+      "sha": "447539b356a8b09760b51eca876e19b6fc1f2dd7",
+      "files": [
+        ".github/ISSUE_TEMPLATE/bug_report.yaml",
+        ".github/ISSUE_TEMPLATE/feature-request.yaml",
+        ".github/PULL_REQUEST_TEMPLATE/pr_template.md",
+        ".gitignore",
+        "LICENSE.txt",
+        "README.md",
+        "README_jp.md",
+        "README_zh.md",
+        "agentwrite/plan.py",
+        "agentwrite/prompts/plan.txt",
+        "agentwrite/prompts/write.txt",
+        "agentwrite/write.py",
+        "evaluation/eval_length.py",
+        "evaluation/eval_quality.py",
+        "evaluation/judge.txt",
+        "evaluation/longbench_write.jsonl",
+        "evaluation/longbench_write_en.jsonl",
+        "evaluation/longwrite_ruler.jsonl",
+        "evaluation/pred.py",
+        "requirements.txt",
+        "train/README.md",
+        "train/dataset.py",
+        "train/ds_config/stage1.json",
+        "train/ds_config/stage2.json",
+        "train/ds_config/stage3.json",
+        "train/main.py",
+        "train/patch/modeling_chatglm.py",
+        "train/patch/modeling_llama.py",
+        "train/patch/tokenization_chatglm.py",
+        "train/pre_tokenize_glm4.py",
+        "train/pre_tokenize_llama3.py",
+        "train/scripts/glm4_longwriter.sh",
+        "train/scripts/llama3_longwriter.sh",
+        "train/scripts/llama3_longwriter_lora.sh",
+        "train/sort_and_group.py",
+        "train/trainer.py",
+        "trans_web_demo.py",
+        "vllm_inference.py"
+      ]
+    },
+    {
+      "kind": "repo",
+      "id": "THU-KEG/StoryWriter",
+      "url": "https://api.github.com/repos/THU-KEG/StoryWriter/git/trees/main?recursive=1",
+      "error": "HTTP Error 403: rate limit exceeded"
+    },
+    {
+      "kind": "repo",
+      "id": "Pageshift-ai/pagestorm",
+      "url": "https://api.github.com/repos/Pageshift-ai/pagestorm/git/trees/main?recursive=1",
+      "error": "HTTP Error 404: Not Found"
+    },
+    {
+      "kind": "repo",
+      "id": "OedonLestrange42/webnovelbench",
+      "url": "https://api.github.com/repos/OedonLestrange42/webnovelbench/git/trees/main?recursive=1",
+      "error": "HTTP Error 403: rate limit exceeded"
+    },
+    {
+      "kind": "model",
+      "id": "SimpleStories/SimpleStories-V2-11M",
+      "url": "https://huggingface.co/api/models/SimpleStories/SimpleStories-V2-11M",
+      "sha": "f8e758b2b0952e2e0176d5ff65dde08443f053bb",
+      "license": "mit",
+      "weights_files": 1,
+      "support_files": [
+        "README.md",
+        "config.json",
+        "generation_config.json",
+        "special_tokens_map.json",
+        "tokenizer.json",
+        "tokenizer_config.json"
+      ]
+    },
+    {
+      "kind": "model",
+      "id": "THU-KEG/LongWriter-Zero-32B",
+      "url": "https://huggingface.co/api/models/THU-KEG/LongWriter-Zero-32B",
+      "sha": "115a44b2356bab456cb7aa3b31f48fc15bef956e",
+      "license": "apache-2.0",
+      "weights_files": 17
+    }
+  ],
+  "constraint": "User requires random initialization. All external weights are references or separate baselines only.",
+  "notes": [
+    "HTTP errors are failed metadata requests, not proof of absent projects. LongWriter-Zero correct owner is THU-KEG; Pagestorm default branch is master. Web pages were verified separately.",
+    "Metadata confirms listed artifacts only; it does not verify inference, training reproducibility, or literary quality."
+  ]
+}
