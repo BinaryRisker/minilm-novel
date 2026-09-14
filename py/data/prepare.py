@@ -5,8 +5,9 @@ py/data/prepare.py — 数据管线：作品清单 → manifest.jsonl + split �
   - 读取语料来源审计 data/sources.json（由 py/data/fetch_corpus.py 生成），
     为**每一部作品**生成一条 manifest 记录
   - 记录 story_id / parent_story_id / split / source / license / hash / 字数 / 独立字符数
+  - 按**内容哈希**去重（不同 id、逐字相同的正文只留一部），再切分
   - 输出 data/manifest.jsonl（审计线，train/val/test 不跨作品）
-  - 输出 data/split_audit.json，说明每个 split 的字数与作品数、是否有哈希冲突
+  - 输出 data/split_audit.json，说明每个 split 的字数与作品数、去重情况、是否有哈希冲突
 
 为什么按作品而不是按桶：语料扩充到 90+ 部作品后，按桶切成一条记录会让
 train/val/test 的边界无法追溯；按作品记录才能保证「同一部作品不跨集合」。
@@ -109,6 +110,36 @@ def build_manifest_from_corpus(corpus_path: str) -> List[Dict]:
     return manifest
 
 
+def dedupe_by_content(manifest: List[Dict]) -> "tuple[List[Dict], Dict]":
+    """内容逐字相同的作品只保留一部（按 story_id 稳定顺序保留第一部），其余丢弃并记录。
+
+    为什么必须在 manifest 层做：`fetch_corpus.py` 的跨源去重按**标题**，而 localugc
+    这类切片源里不同 id 可能对应**逐字相同**的正文（本次实测 292 组 / 550 个多余副本 /
+    149.6 万字，标题互不相同故抓不到）。不去重有两个后果：
+      1) 虚增数据量，数据规模实验的「字数」不是真实信息量；
+      2) 同一正文的两个副本被切进不同 split —— 那是货真价实的 train/test 泄漏（本次 1 组）。
+    去重放在 split 分配**之前**，保证留下的那一部只属于一个集合。
+    """
+    seen: Dict[str, str] = {}
+    kept: List[Dict] = []
+    dropped_by_bucket: Dict[str, int] = {}
+    dropped_chars = 0
+    for e in sorted(manifest, key=lambda x: x['story_id']):
+        h = e.get('hash')
+        if h and h in seen:
+            b = e.get('bucket') or 'unknown'
+            dropped_by_bucket[b] = dropped_by_bucket.get(b, 0) + 1
+            dropped_chars += e.get('chars') or 0
+            continue
+        if h:
+            seen[h] = e['story_id']
+        kept.append(e)
+    info = {'dropped_works': sum(dropped_by_bucket.values()),
+            'dropped_chars': dropped_chars,
+            'by_bucket': dropped_by_bucket}
+    return kept, info
+
+
 def assign_splits(manifest: List[Dict], train_frac: float = 0.8,
                   val_frac: float = 0.1) -> List[Dict]:
     """按作品切分 train/val/test：同一桶内按 hash 稳定排序后按比例切，
@@ -204,6 +235,11 @@ def main():
         manifest = build_manifest_from_corpus(args.corpus)
         print(f'[!] 未找到 {args.sources}，回退到桶级记录 {args.corpus}')
 
+    manifest, dedup = dedupe_by_content(manifest)
+    if dedup['dropped_works']:
+        print(f'[*] 内容去重：丢弃 {dedup["dropped_works"]} 部逐字重复作品 / '
+              f'{dedup["dropped_chars"]} 字（{dedup["by_bucket"]}）')
+
     if args.split:
         manifest = assign_splits(manifest, args.train_frac, args.val_frac)
 
@@ -214,6 +250,7 @@ def main():
     print(f'[*] manifest -> {args.out} ({len(manifest)} 条作品记录)')
 
     res = audit(manifest)
+    res['dedupe'] = dedup
     with open(args.audit, 'w', encoding='utf-8') as f:
         json.dump(res, f, ensure_ascii=False, indent=2)
     print(f'[*] audit -> {args.audit}')

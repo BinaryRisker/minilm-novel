@@ -33,6 +33,12 @@
 （配套清单 [`docs/TODO_NOVEL_MODEL_LEARNING_V1.md`](docs/TODO_NOVEL_MODEL_LEARNING_V1.md)）。
 `小模型写小说_从零学习方案_2026-09.md` 已降级为**技术背景材料**，仅保留设计依据与实测数据，不作为排期或验收依据。
 
+> ⚠️ **路线待确认（2026-09-15）**：`docs/PRD_NOVEL_MODEL_LEARNING_V2.md` / `V3.md` 已于 2026-09-14 起草，
+> 且 **V3 的 P0 正在实施**（`py/novellm/`、4090/8GB、30M 配置、自建 tokenizer）。
+> 上面这句「以 V1 为准」是旧声明，**尚未经确认由 V3 取代**；两版验收口径不同
+> （V1＝字符级教学实验台 + 百万字语料；V3＝6000–10000 字受限短篇 + 不加载外部权重）。
+> 硬约束「尺寸不能太大」在 V3 下是否按 30M 参数 / 8GB 显存重设，也待确认。见 `LOG.md` 2026-09-15 条目。
+
 ---
 
 ## 路线与进展
@@ -43,11 +49,13 @@
 - 实验日志与内容素材库：`LOG.md`
 - **当前位置**：JS 实验台完成并全量验证；**L0 已通过**（2026-09-13）——PyTorch 复刻版与手写 JS 版
   在多种子对比下不可区分（损失曲线偏差 ≤0.030，Top-1 均值差在种子噪声内，见 `py/align_report.md`）；
-  正在做 **L3 数据工程**：语料已达 **1126 部 / 2793 万字**（公版 + 开放许可，见 `data/sources.json`），
+  正在做 **L3 数据工程**：语料 **32,036 部 / 1.70 亿字**（公版 + 开放许可，见 `data/sources.json`；
+  2026-09-15 起在 `prepare.py` 里按**内容哈希**去重，剔除 550 部逐字重复 / 149.6 万字，
+  `data/split_audit.json` 的 `dedupe` 字段记录明细），
   2026-09-14 起用**按作品切分**的 `data/splits/{train,val,test}.txt` 替代旧的「整桶连续 90/10」口径
   （旧切分会把同一部作品劈进 train 和 test；新口径 train/val/test 不跨作品，见 `py/data/build_splits.py`、
-  `train.py --splits`）。**下一步**：把 `sweep_data_scale.py` / `eval_story.py` 迁到新口径，再启动
-  「大纲 → 正文」配对数据。
+  `train.py --bucket`）。**下一步**：把内容去重前置到 `fetch_corpus.py`，并推进 V3 P0 的
+  数据/缓存身份校验与锁定测试族。
 
 ---
 
