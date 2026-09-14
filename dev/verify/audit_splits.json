@@ -1,0 +1,285 @@
+{
+  "manifest": {
+    "violations": [],
+    "hash_cross": [],
+    "title_cross": [],
+    "parent_cross": [],
+    "works": 32036
+  },
+  "buckets": {
+    "gudian": {
+      "stats": {
+        "train": {
+          "works": 44,
+          "chars": 11033888
+        },
+        "val": {
+          "works": 5,
+          "chars": 1713201
+        },
+        "test": {
+          "works": 6,
+          "chars": 1297285
+        }
+      },
+      "leak_val": {
+        "probes": 150,
+        "hits": 18,
+        "ratio": 0.12,
+        "span": 40,
+        "seed": 7,
+        "examples": [
+          {
+            "test_off": 316353,
+            "train_off": 3637474,
+            "snippet": "左，严颜军在右，冲杀将来。张任知是计，急回军时，"
+          },
+          {
+            "test_off": 121632,
+            "train_off": 3440926,
+            "snippet": "方之士，故不避羞惭，迳来相投。望乞收录，誓当图报"
+          },
+          {
+            "test_off": 504706,
+            "train_off": 3827398,
+            "snippet": "便退。蜀兵奋力追杀，杀得那雍、凉兵尸横遍野，血流"
+          }
+        ]
+      },
+      "leak_test": {
+        "probes": 150,
+        "hits": 22,
+        "ratio": 0.14666666666666667,
+        "span": 40,
+        "seed": 7,
+        "examples": [
+          {
+            "test_off": 679126,
+            "train_off": 99268,
+            "snippet": "便是。」先生道：「说宅上有一条大蛇，却才二位官人"
+          },
+          {
+            "test_off": 1064169,
+            "train_off": 7750097,
+            "snippet": "，佃其族人田于牌门庄，阖室移居于是。其妻年十八，"
+          },
+          {
+            "test_off": 97690,
+            "train_off": 690557,
+            "snippet": "只道我不知其意，只管歪缠。我也不与他吟词作赋，卖"
+          }
+        ]
+      },
+      "oov": {
+        "vocab": 8511,
+        "val": {
+          "chars": 1713209,
+          "oov": 315,
+          "ratio": 0.00018386548284535044
+        },
+        "test": {
+          "chars": 1297295,
+          "oov": 226,
+          "ratio": 0.00017420864182780325
+        }
+      },
+      "train_dup": {
+        "works": 44,
+        "unique": 44,
+        "dup_groups": 0,
+        "dup_works": 0,
+        "examples": []
+      }
+    },
+    "wuxia": {
+      "stats": {
+        "train": {
+          "works": 18,
+          "chars": 5510896
+        },
+        "val": {
+          "works": 2,
+          "chars": 1425109
+        },
+        "test": {
+          "works": 3,
+          "chars": 1141712
+        }
+      },
+      "leak_val": {
+        "probes": 150,
+        "hits": 0,
+        "ratio": 0.0,
+        "span": 40,
+        "seed": 7,
+        "examples": []
+      },
+      "leak_test": {
+        "probes": 150,
+        "hits": 0,
+        "ratio": 0.0,
+        "span": 40,
+        "seed": 7,
+        "examples": []
+      },
+      "oov": {
+        "vocab": 6163,
+        "val": {
+          "chars": 1425111,
+          "oov": 846,
+          "ratio": 0.0005936379692529214
+        },
+        "test": {
+          "chars": 1141716,
+          "oov": 1093,
+          "ratio": 0.0009573308948985562
+        }
+      },
+      "train_dup": {
+        "works": 18,
+        "unique": 18,
+        "dup_groups": 0,
+        "dup_works": 0,
+        "examples": []
+      }
+    },
+    "urban": {
+      "stats": {
+        "train": {
+          "works": 20,
+          "chars": 4233608
+        },
+        "val": {
+          "works": 2,
+          "chars": 277602
+        },
+        "test": {
+          "works": 4,
+          "chars": 914050
+        }
+      },
+      "leak_val": {
+        "probes": 150,
+        "hits": 0,
+        "ratio": 0.0,
+        "span": 40,
+        "seed": 7,
+        "examples": []
+      },
+      "leak_test": {
+        "probes": 150,
+        "hits": 0,
+        "ratio": 0.0,
+        "span": 40,
+        "seed": 7,
+        "examples": []
+      },
+      "oov": {
+        "vocab": 6146,
+        "val": {
+          "chars": 277604,
+          "oov": 44,
+          "ratio": 0.00015849915707266465
+        },
+        "test": {
+          "chars": 914056,
+          "oov": 670,
+          "ratio": 0.0007329966654121849
+        }
+      },
+      "train_dup": {
+        "works": 20,
+        "unique": 20,
+        "dup_groups": 0,
+        "dup_works": 0,
+        "examples": []
+      }
+    }
+  },
+  "legacy": {
+    "gudian": {
+      "corpus_chars": 2000079,
+      "train_seg": 1800071,
+      "test_seg": 200008,
+      "works_total": 44,
+      "works_in_both_segments": [
+        {
+          "story_id": "gudian_049",
+          "title": "剪灯新话"
+        }
+      ],
+      "works_only_test": [
+        {
+          "story_id": "gudian_050",
+          "title": "山海经"
+        },
+        {
+          "story_id": "gudian_053",
+          "title": "幽明录"
+        },
+        {
+          "story_id": "gudian_054",
+          "title": "搜神后记"
+        },
+        {
+          "story_id": "gudian_055",
+          "title": "西京杂记"
+        }
+      ],
+      "works_only_train": 39,
+      "works_absent": 0,
+      "truncation_loss": 0.8187330703374912,
+      "full_works_chars": 11033888
+    },
+    "wuxia": {
+      "corpus_chars": 2000042,
+      "train_seg": 1800037,
+      "test_seg": 200005,
+      "works_total": 18,
+      "works_in_both_segments": [],
+      "works_only_test": [
+        {
+          "story_id": "wuxia_021",
+          "title": "金石缘"
+        },
+        {
+          "story_id": "wuxia_022",
+          "title": "明镜公案"
+        },
+        {
+          "story_id": "wuxia_023",
+          "title": "剑侠传"
+        }
+      ],
+      "works_only_train": 15,
+      "works_absent": 0,
+      "truncation_loss": 0.6370749874430582,
+      "full_works_chars": 5510896
+    },
+    "urban": {
+      "corpus_chars": 2000044,
+      "train_seg": 1800039,
+      "test_seg": 200005,
+      "works_total": 20,
+      "works_in_both_segments": [],
+      "works_only_test": [
+        {
+          "story_id": "urban_023",
+          "title": "轰天雷"
+        },
+        {
+          "story_id": "urban_025",
+          "title": "恨海"
+        },
+        {
+          "story_id": "urban_026",
+          "title": "瞎骗奇闻"
+        }
+      ],
+      "works_only_train": 17,
+      "works_absent": 0,
+      "truncation_loss": 0.5275793129642612,
+      "full_works_chars": 4233608
+    }
+  }
+}

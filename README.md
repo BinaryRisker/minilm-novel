@@ -108,6 +108,13 @@ node test_novel.js       # 中文小说生成能力测试，产出 report_eviden
 | `py/compare_ctx.py` | **多组同协议、只换上下文长度**的结果对照：逐格 ΔTop-1 / ΔTop-5 / ΔNLL 边距 + 基线自身漂移 + compute-matched 核对 |
 | `py/compare_budget.py` | **预算给足**对照：固定 ctx/档位、只改步数的边距 × 步数表 + 曲线图（`docs/img/budget_steps.png`） |
 | `py/compare_datascale.py` | **数据量扩展**对照：tag 家族内跨档位（200k→5M）的边距走势 + 基线/模型增量分解 + 逐种子核对（`docs/img/datascale_margins.png`） |
+| `py/splits.py` | 按作品切分的统一读取入口（train/val/test，词表只在 train 上建）；调 `verify()` 做切分身份校验 |
+| `py/repro.py` | 可复现性原语：`set_global_seed`（random/numpy/torch）+ `rng_state/set_rng_state`（续训用） |
+| `py/audit_splits.py` | **数据隔离审计（门禁）**：清单级 / 片段级精确查找 / 词表 OOV / 训练集内重复 / 旧口径对照，违规非零退出 |
+| `py/dedup_works.py` | **近重复合并**：winnowing 锚点找「异名同书 / 选本重复」，并查集合并成簇整簇同 split → `data/manifest_v2.jsonl` |
+| `py/leak_probe.py` | 同源泄漏的值：同一模型在「污染测试集」与「干净测试集」上逐作品对比，量化虚高多少分 |
+| `py/verify_seed.py` / `py/verify_resume.py` / `py/verify_story_eval.py` | 三份可复核判定：种子逐位可复现 / 续训与直训逐位等价 / 出题来自留出集+生成可复现+旧口径不送分 |
+| `py/closed_loop.py` | **随机初始化最小闭环**：训练→中途存盘→续训→留出评测→生成故事，产出报告含失败样本 |
 | `py/plot_ctx_mechanism.py` | 机制图：把各实验臂按**训练步数**对齐画出，用来分辨"上下文效应"与"步数效应"（`docs/img/ctx_mechanism.png`） |
 | `py/sweep_data_scale.py` | 早期数据量扫描（桶内**连续** 90/10 切分，**含同作品泄漏**，已被上一个脚本取代，留作历史口径） |
 | `py/sweep_report.py` | 把各批次 `sweep_*.json` 合并成一张对比表 + 折线图 |

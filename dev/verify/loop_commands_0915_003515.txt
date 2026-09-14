@@ -1,0 +1,36 @@
+===== stage1 训练到中途 (rc=0, 17.5s) =====
+$ C:\Python314\python.exe py/train.py --bucket story --chars 60000 --batch 8 --lr 0.004 --seed 1234 --steps 600 --stop_at 300 --out dev/loop/closed_0915_003515/run
+--- train.py run_id=dev/loop/closed_0915_003515/run resume=False ---
+bucket=story corpus=None chars=60000 vocab=1610 vocab_source=train_only
+cfg={"ctx": 32, "d": 40, "layers": 2, "heads": 4, "ffMul": 4}
+seed=1234 start_step=0 stop_at=300 plan_steps=600 batch=8 lr=0.004
+  step 300/300  loss=4.9705  elapsed=8.1s  val: top1=21.88% nll=4.485
+（阶段存盘 step 300 < 计划 600：本阶段不评 test）
+Checkpoint v2 saved to D:\work\outputs\minilm-lab\dev/loop/closed_0915_003515/run\checkpoint.pt
+
+
+===== stage2 续训到终点 (rc=0, 18.7s) =====
+$ C:\Python314\python.exe py/train.py --resume D:\work\outputs\minilm-lab\dev/loop/closed_0915_003515\run\checkpoint.pt --steps 600
+[*] Resuming from D:\work\outputs\minilm-lab\dev/loop/closed_0915_003515\run\checkpoint.pt
+--- train.py run_id=dev/loop/closed_0915_003515/run resume=True ---
+bucket=story corpus=None chars=60000 vocab=1610 vocab_source=train_only
+cfg={"ctx": 32, "d": 40, "layers": 2, "heads": 4, "ffMul": 4}
+seed=1234 start_step=300 stop_at=600 plan_steps=600 batch=8 lr=0.004
+  step 600/600  loss=3.6850  elapsed=7.4s  val: top1=21.69% nll=4.310
+Holdout test（按作品切分, 词表仅 train, 29888 个位置）: {"top1": 29.8313704496788, "top5": 52.04764453961456, "nll": 3.998350358366711, "ppl": 54.508156900366586, "n": 29888}
+Checkpoint v2 saved to D:\work\outputs\minilm-lab\dev\loop\closed_0915_003515\run\checkpoint.pt
+
+
+===== stage4 故事评测 (rc=0, 10.5s) =====
+$ C:\Python314\python.exe py/eval_story.py --checkpoint D:\work\outputs\minilm-lab\dev/loop/closed_0915_003515\run\checkpoint.pt --bucket story --n_prompts 6 --max_new 120 --seed 1234 --out dev/loop/closed_0915_003515/story_eval.json
+[*] checkpoint=run bucket=story 提示词=6 条（来源：留出作品） seed=1234 temp=0.8 topk=8 rep_pen=1.15
+[*] 训练语料 60,000 字，trigram 基线=开
+
+== 汇总（6 条，指标只在生成段上算）==
+   n_prompts: 6
+   model: generated_chars=120.0 dup4_ratio=0.0556 longest_repeat=6.6667 novelty4=0.6567 oov_unk_ratio=0.0
+   baseline_trigram: generated_chars=120.0 dup4_ratio=0.0114 longest_repeat=2.0 novelty4=0.2094 oov_unk_ratio=0.0
+
+[*] 结果 -> dev/loop/closed_0915_003515/story_eval.json
+
+

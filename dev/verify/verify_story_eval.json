@@ -1,0 +1,78 @@
+{
+  "checkpoint": "dev/loop/closed_0915_003515/run/checkpoint.pt",
+  "bucket": "story",
+  "T1_provenance": {
+    "prompts": [
+      {
+        "prompt_id": "story_001",
+        "title": "ts_zh_0550",
+        "split": "test",
+        "in_train": false,
+        "in_heldout": true
+      },
+      {
+        "prompt_id": "story_006",
+        "title": "ts_zh_0925",
+        "split": "test",
+        "in_train": false,
+        "in_heldout": true
+      },
+      {
+        "prompt_id": "story_009",
+        "title": "ts_zh_0672",
+        "split": "test",
+        "in_train": false,
+        "in_heldout": true
+      }
+    ],
+    "all_from_heldout": true
+  },
+  "T2_determinism": {
+    "same_seed_identical": true,
+    "diff_seed_differs": true,
+    "sample_same_seed": "拉的朋友。他们很快，有一下来来来。他们很高兴奋，有一起玩具面友。\n\n\n莉莉莉的妈妈妈妈妈妈妈妈妈妈妈妈爸爸爸爸爸爸妈妈妈",
+    "sample_other_seed": "姆，莉莉莉的妈妈妈妈说：“我喜欢玩具。”\n“谢谢谢谢我们不到她，你可以看我们，他们可以他们很好。”\n\n\n蒂姆的，但是什么"
+  },
+  "T3_old_protocol": {
+    "facts": [
+      "莉莉",
+      "公园"
+    ],
+    "events": [
+      "他们喜欢在公园骑自行车"
+    ],
+    "rows": [
+      {
+        "prompt_id": "story_001",
+        "prompt": "莉莉和萨姆是朋友。他们喜欢在公园骑自行车。莉莉有一辆新自行车，有粉色的脚踏板。萨",
+        "gen": "拉的朋友。他们很快，有一下来来来。他们很高兴奋，有一起玩具面友。\n\n\n莉莉莉的妈妈妈妈妈妈妈妈妈妈妈妈爸爸爸爸爸爸妈妈妈",
+        "old_fact_hit": 2,
+        "new_fact_hit": 1,
+        "old_event_hit": 1,
+        "new_event_hit": 0
+      },
+      {
+        "prompt_id": "story_006",
+        "prompt": "汤姆和莉莉是一对双胞胎，他们住在一个农场里。他们喜欢和动物们玩耍，帮助爸爸妈妈干",
+        "gen": "。它们可以，有一只名叫他们的玩具。他们有一天后，她的朋友们不会在公园里，但我不喜欢在了一只鸟点点。”\n蒂米。他们不会找到",
+        "old_fact_hit": 2,
+        "new_fact_hit": 1,
+        "old_event_hit": 1,
+        "new_event_hit": 0
+      },
+      {
+        "prompt_id": "story_009",
+        "prompt": "萨姆和莉莉在客厅里玩积木。他们喜欢用积木搭塔、房子和汽车。他们玩得很开心，发出很",
+        "gen": "高兴。\n\n\n\n有一只名叫他们在一个小心。她说“我们的朋友们想起玩耍。他们一起去去。”\n\n\n\n\n\n\n莉莉非常害怕，莉非常高",
+        "old_fact_hit": 1,
+        "new_fact_hit": 1,
+        "old_event_hit": 1,
+        "new_event_hit": 0
+      }
+    ],
+    "old_fact_pass_rate": 0.8333333333333334,
+    "new_fact_pass_rate": 0.5,
+    "old_event_pass_rate": 1.0,
+    "new_event_pass_rate": 0.0
+  }
+}

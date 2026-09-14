@@ -1,0 +1,212 @@
+{
+  "protocol": {
+    "bucket": "gudian",
+    "model_manifest": "manifest.jsonl",
+    "chars": 100000,
+    "steps": 500,
+    "seed": 1234,
+    "cfg": {
+      "ctx": 32,
+      "d": 40,
+      "layers": 2,
+      "heads": 4,
+      "ffMul": 4
+    },
+    "train_seconds": 12.5
+  },
+  "manifests": {
+    "D:\\work\\outputs\\minilm-lab\\data\\manifest.jsonl": {
+      "per_work": [
+        {
+          "story_id": "gudian_006",
+          "title": "三国演义",
+          "split": "val",
+          "chars": 20000,
+          "oov": 1265,
+          "top1": 10.61,
+          "nll": 6.988
+        },
+        {
+          "story_id": "gudian_007",
+          "title": "封神演义",
+          "split": "val",
+          "chars": 20000,
+          "oov": 1578,
+          "top1": 8.4,
+          "nll": 7.202
+        },
+        {
+          "story_id": "gudian_013",
+          "title": "镜花缘",
+          "split": "val",
+          "chars": 20000,
+          "oov": 909,
+          "top1": 9.96,
+          "nll": 6.756
+        },
+        {
+          "story_id": "gudian_043",
+          "title": "搜神记",
+          "split": "val",
+          "chars": 20000,
+          "oov": 1067,
+          "top1": 12.39,
+          "nll": 6.728
+        },
+        {
+          "story_id": "gudian_051",
+          "title": "神仙传",
+          "split": "val",
+          "chars": 20000,
+          "oov": 815,
+          "top1": 10.44,
+          "nll": 6.914
+        },
+        {
+          "story_id": "gudian_012",
+          "title": "二刻拍案惊奇",
+          "split": "test",
+          "chars": 20000,
+          "oov": 1052,
+          "top1": 8.94,
+          "nll": 6.505
+        },
+        {
+          "story_id": "gudian_015",
+          "title": "警世通言",
+          "split": "test",
+          "chars": 20000,
+          "oov": 660,
+          "top1": 11.2,
+          "nll": 6.444
+        },
+        {
+          "story_id": "gudian_021",
+          "title": "新齐谐",
+          "split": "test",
+          "chars": 20000,
+          "oov": 946,
+          "top1": 9.33,
+          "nll": 7.064
+        },
+        {
+          "story_id": "gudian_031",
+          "title": "无声戏",
+          "split": "test",
+          "chars": 20000,
+          "oov": 312,
+          "top1": 9.9,
+          "nll": 6.015
+        },
+        {
+          "story_id": "gudian_044",
+          "title": "斩鬼传",
+          "split": "test",
+          "chars": 20000,
+          "oov": 1628,
+          "top1": 8.89,
+          "nll": 6.797
+        },
+        {
+          "story_id": "gudian_052",
+          "title": "蛮书",
+          "split": "test",
+          "chars": 20000,
+          "oov": 1862,
+          "top1": 8.16,
+          "nll": 7.373
+        }
+      ]
+    },
+    "data/manifest_v2.jsonl": {
+      "per_work": [
+        {
+          "story_id": "gudian_007",
+          "title": "封神演义",
+          "split": "val",
+          "chars": 20000,
+          "oov": 1578,
+          "top1": 8.4,
+          "nll": 7.202
+        },
+        {
+          "story_id": "gudian_013",
+          "title": "镜花缘",
+          "split": "val",
+          "chars": 20000,
+          "oov": 909,
+          "top1": 9.96,
+          "nll": 6.756
+        },
+        {
+          "story_id": "gudian_043",
+          "title": "搜神记",
+          "split": "val",
+          "chars": 20000,
+          "oov": 1067,
+          "top1": 12.39,
+          "nll": 6.728
+        },
+        {
+          "story_id": "gudian_051",
+          "title": "神仙传",
+          "split": "val",
+          "chars": 20000,
+          "oov": 815,
+          "top1": 10.44,
+          "nll": 6.914
+        },
+        {
+          "story_id": "gudian_031",
+          "title": "无声戏",
+          "split": "test",
+          "chars": 20000,
+          "oov": 312,
+          "top1": 9.9,
+          "nll": 6.015
+        },
+        {
+          "story_id": "gudian_044",
+          "title": "斩鬼传",
+          "split": "test",
+          "chars": 20000,
+          "oov": 1628,
+          "top1": 8.89,
+          "nll": 6.797
+        },
+        {
+          "story_id": "gudian_052",
+          "title": "蛮书",
+          "split": "test",
+          "chars": 20000,
+          "oov": 1862,
+          "top1": 8.16,
+          "nll": 7.373
+        }
+      ]
+    }
+  },
+  "group_compare": {
+    "leaked_works": [
+      "三国演义",
+      "二刻拍案惊奇",
+      "警世通言",
+      "新齐谐"
+    ],
+    "clean_works": [
+      "封神演义",
+      "镜花缘",
+      "搜神记",
+      "神仙传",
+      "无声戏",
+      "斩鬼传",
+      "蛮书"
+    ],
+    "leaked_mean_top1": 10.02,
+    "clean_mean_top1": 9.73,
+    "leaked_mean_nll": 6.75,
+    "clean_mean_nll": 6.826,
+    "top1_gap_pt": 0.29,
+    "nll_gap": -0.076
+  }
+}

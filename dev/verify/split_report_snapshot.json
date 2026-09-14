@@ -1,0 +1,7 @@
+{
+  "generated_by": "dev/verify snapshot",
+  "note": "为锚定数字而做的 manifest 快照（live 版正被并发流程重写）",
+  "split_fingerprint": "4bafc1993955d29c",
+  "total_works": 32036,
+  "source": "data/manifest.jsonl"
+}

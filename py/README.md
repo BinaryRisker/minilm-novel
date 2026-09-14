@@ -174,8 +174,8 @@ python -m unittest discover -s py/tests -t . -v
 | `data/build_splits.py` | 按作品**整篇**切分 → `data/splits/{train,val,test}.txt`（含无跨集合 + 字数守恒自检） |
 | `data/corpus.json` | 桶级训练语料（公版，807 万字，按桶均分截断），**由 `fetch_corpus.py` 生成**，不再从 `corpus.js` 导出 |
 | `tokenizer.py` | 极简 BPE tokenizer（学习用，无外部依赖） |
-| `train.py` | 训练 CLI：save/resume checkpoint、导出 `itos.json` 与 `meta.json` |
-| `eval_story.py` | 场景写作评测：按 `eval/prompts.jsonl` 续写 + 自动指标 |
+| `train.py` | 训练 CLI：**种子前置**、checkpoint v2（含优化器/步数/RNG）、真·断点续训（`--resume` + `--stop_at`）、`--bucket` 按桶读按作品切分、val 选点/test 只评一次 |
+| `eval_story.py` | 场景写作评测（重写）：提示词取自**留出作品**（记录 provenance）、`--seed` 可复现、指标只算生成段（旧口径另存作对照）、`--baseline trigram` 同参数对照 |
 | `benchmark.py` | 训练吞吐与资源实测（tokens/s、单步耗时、峰值内存） |
 | `tests/` | 单测：`test_baselines.py`（稀疏 NGram 对稠密参考逐点差分 + 滑窗步长协议）、`test_tokenizer.py` |
 | `runs/` | 每个 语料×种子 的结果缓存（JSON）；扫描结果 `sweep_*.json` 亦在此 |

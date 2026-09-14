@@ -1,0 +1,54 @@
+{
+  "protocol": {
+    "bucket": "story",
+    "chars": 40000,
+    "steps": 30,
+    "batch": 8,
+    "lr": 0.004,
+    "cfg": {
+      "ctx": 32,
+      "d": 40,
+      "layers": 2,
+      "heads": 4,
+      "ffMul": 4
+    }
+  },
+  "T1_seed_before_model": {
+    "init_max_abs_diff": 0.0,
+    "final_max_abs_diff": 0.0,
+    "loss_trajectory_identical": true,
+    "loss_head": [
+      7.252366,
+      7.261347,
+      7.229742
+    ],
+    "loss_tail": [
+      5.58923,
+      5.695403,
+      5.706223
+    ]
+  },
+  "T2_seed_after_model_old_behavior": {
+    "init_max_abs_diff": 0.12172404676675797,
+    "final_max_abs_diff": 0.21808192133903503,
+    "loss_trajectory_identical": false,
+    "loss_head": [
+      7.259628,
+      7.265571,
+      7.236167
+    ],
+    "loss_tail": [
+      5.565506,
+      5.694306,
+      5.68627
+    ]
+  },
+  "T3_different_seed": {
+    "final_max_abs_diff_vs_seed1234": 0.21776798367500305,
+    "loss_tail": [
+      5.883859,
+      5.972839,
+      5.616686
+    ]
+  }
+}

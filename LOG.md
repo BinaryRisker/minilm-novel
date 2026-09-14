@@ -1115,4 +1115,88 @@ P0 修复项仍有效，只有「采用外部基座」被 V3 覆盖）。上一�
 `py/tests/test_splits.py`、`data/split_report.json`（含 `split_fingerprint`）、
 `README.md` 路线声明、V3 TODO 进度标注。
 
+---
+
+## 2026-09-15 · Day 3（续二）· 可复现性四件套（seed / 断点续训 / 数据隔离 / 故事评测）+ 随机初始化最小闭环
+
+**为什么是这一步**：前几轮的数字越堆越多，但支撑它们的四条**底层假设从未被验证过**——
+① 设了 seed 就以为能复现；② 续训后 loss 更低就以为续训对了；③ 按作品切分就以为不泄漏；
+④ 故事评测出个分数就以为是模型的。本轮把四条逐一写成「可判定的脚本」：先能证伪，才谈修，
+最后用随机初始化跑一遍最小闭环收口。
+
+**做了**：
+
+- 新增 `py/repro.py`：`set_global_seed`（random→numpy→torch 含 cuda）+ `rng_state()/set_rng_state()`
+  （把 **python 全局 RNG** 与 **torch RNG** 打包/恢复；恢复失败只告警、不挂训练）。
+- `py/train.py` 重写：**顺序写死**为「先 `set_global_seed` → 再 `build_vocab` → 再 `MiniLM(...)`」；
+  checkpoint 升到 **v2**（`version/model/opt/itos/meta/step/rng`，旧格式仍可读但告警）；
+  新增 `--stop_at`（lr 调度按**计划总步数**归一，否则「先训一半再续训」的 warmup/余弦形状与直训不一致）；续训自动从 meta **沿用 `--chars`**。
+- `py/eval_story.py` 重写：出题只取**留出作品**（记录 `story_id/title/split/offset`）、`--seed` 驱动采样、
+  指标**只在生成段上算**（旧口径另存 `model_old_protocol` 对照）、`--baseline trigram` 同解码参数同种子。
+- 数据侧：`py/dedup_works.py`（winnowing 锚点 + 并查集，产出 `data/manifest_v2.jsonl`，**不改原文件**）、
+  `py/audit_splits.py`（五组检查，违规非零退出）、`py/leak_probe.py`（同模型跨测试集逐作品对比）。
+- 验证脚本：`py/verify_seed.py`、`py/verify_resume.py`、`py/verify_story_eval.py`；最小闭环 `py/closed_loop.py`。
+
+**数字**
+
+| 区域 | 修复前（实测） | 修复后（判据） |
+|---|---|---|
+| seed | 同 seed 跑两次末步差 **2.181e-01**，与换 `seed=4321` 的 **2.178e-01** 同量级 | 同 seed 逐位一致，`max&#124;Δ&#124; = 0` |
+| 续训 | checkpoint 只有 `model/itos/meta`，resume 只打印 no retraining | 直训 N ≡ 训 N/2 + 续训，`max&#124;Δ&#124; = 0.000e+00`，探测 loss 完全相同 |
+| 数据隔离 | 按作品切分后 gudian 留出集仍有 12%~14.7% 的 40 字片段能在 train 逐字找到 | 片段级精确查找命中 **0**（v1 val 18/150、test 22/150 → v2 全 0/150） |
+| 故事评测 | 提示词含在指标里；无基线；出题来自全池 | 事件完成度旧口径 **100% → 新口径 0%**，事实关键词 83% → 50% |
+
+续训归因（基准 A 直训 160 步，探测 loss 5.2746）：
+
+| 变体 | 丢失 | 末步 max&#124;Δ&#124; | 探测 loss | Δloss |
+|---|---|---|---|---|
+| B 完整状态 | — | **0.000e+00** | 5.2746 | +0.0000 |
+| C1 | RNG | 9.202e-02 | 5.2599 | **−0.0147** |
+| C2 | 优化器 | 8.589e-02 | 5.3003 | +0.0257 |
+| C3（= 旧格式） | 全部 | 1.154e-01 | 5.2903 | +0.0156 |
+
+泄漏形态（gudian，**全部是「同内容不同身份」**，不是清洗没做干净）：《新齐谐》↔《子不语》锚点 0.572（精确 0.421）、
+《三国演义》↔《三国志演义》0.552（0.369）、《今古奇观》把三言二拍串成 **7 部同源簇**。
+`dedup_works.py` 后 gudian 由 44/5/6 变 **48/4/3**，审计 v2 全 0/150。
+
+**最小闭环**（story 桶 6 万字 / 600 步 / 中途 300 步存盘再续训，全程 **47s**）：
+val top-1 21.88→21.69、nll 4.485→4.310；test top-1 29.83%、nll 3.998。
+
+**意外发现**
+
+1. **修复前的 seed 是装饰品。** 「同 seed 两次」的差异和「换 seed」一样大——因为初始权重是在设种子**之前**
+   由默认 RNG 生成的，`manual_seed` 只影响后续采样。这类 bug 不会报错，只会让你以为可复现。
+2. **loss 更低 ≠ 续训正确。** C1（丢 RNG）末步漂移 9.2e-2，但探测 loss 反而**低** 0.0147。
+   如果拿 loss 当判据，会把一个错的重启判成「续训很成功」。正确判据只能是**逐位一致**。
+3. **修了泄漏，指标几乎没变。** `leak_probe.py` 同模型跨测试集对比：污染组比干净组 Top-1 仅高
+   **+0.29 / +0.52 / +0.18（均值 +0.33±0.14）**、NLL −0.082±0.005，而**作品间差异本身是 8.16%~12.39%**。
+   泄漏是真的（片段级 0 命中是硬事实），但它的效应量远小于作品噪声——**这不构成「不用修」的理由**，
+   只说明「修完别指望分数跳变」。诚实记录为失败样本。
+4. **故事评测有三道送分题**：提示词包含在指标输入里、出题作品不在留出集、没有 trigram 基线。
+   三道一起修，事件完成度从 100% 塌到 0%。另外 `generate()` 返回文本本就含提示词、调用方又拼一次，
+   导致 `generated_chars` 虚高（160 vs 真实 120）。
+5. **模型「更新颖」是因为在瞎编。** 闭环里模型 novelty4 = 0.657（trigram 0.209），看着很原创，
+   但 longest_repeat = 6.67 字（trigram 2.00）、dup4 0.056（0.011）——它只是把不存在的 4-gram 拼出来。
+   novelty 单指标会被「胡说」骗过。
+6. **一次修 bug 踩了三个独立坑**（续训验证首跑失败 1.691e-01 的真因）：验证脚本覆盖了中途 checkpoint；
+   采样用独立 `Random` 实例而 `rng_state()` 存的是全局流（**两条流不同**）；续训没沿用 `--chars`（数据都不同）。
+   三处任缺其一，等价性都不成立。
+7. **并发碰撞。** 跑本文时另一条线正在同一批数据上重构（manifest 14,121 → 32,036 部、新增指纹门禁）。
+   指纹门禁一度拦住所有读取 → 按其提示重跑 `build_splits.py`（幂等）恢复；live manifest 会在命令之间被重写 →
+   另存快照 `dev/verify/manifest_snapshot.jsonl`（指纹 `4bafc1993955d29c`，32,036 部）**锚定本文所有数字**。
+
+**边界 / 遗留**
+
+- 近重复检测只覆盖 gudian/wuxia/urban；**xiandai、localugc 疑似同源大户未查**；0.05 阈值未做敏感性扫描。
+- gudian 修复后 test 只剩 **3 部**，方差更大；`human_score` 仍为空（需人工盲评）；跨设备续训（CUDA→CPU）未测。
+- 旧口径对照留档：gudian 有 1 部（剪灯新话）跨两段；旧 test 段只含 4 部最短作品；拼接式切分丢弃全池
+  **81.9%** 正文（wuxia 63.7%、urban 52.8%）。
+
+**产出**：`py/repro.py`、`py/train.py`（v2）、`py/eval_story.py`、`py/audit_splits.py`、`py/dedup_works.py`、
+`py/leak_probe.py`、`py/verify_seed.py`、`py/verify_resume.py`、`py/verify_story_eval.py`、`py/closed_loop.py`、
+`py/tests/test_repro.py`（22 条：全套 **35/35** 通过）、`data/manifest_v2.jsonl` + `data/split_report_v2.json`、
+`dev/verify/*`（判据 JSON + 闭环报告 `loop_report_0915_003515.md`，全量样本在 `dev/loop/closed_0915_003515/`）、
+四篇文章（实践篇 32~35，lint **46/46**）、
+`docs/experiments/2026-09-15-repro-four-fixes.md`、`README.md` / `py/README.md` 脚本表。
+
 
