@@ -179,7 +179,7 @@ python -m unittest discover -s py/tests -t . -v
 | `splits.py` | 按作品切分的统一读取入口（`bucket_texts`/`bucket_joined`，词表只在 train 上建）；`verify()` 切分身份校验（指纹不符 / 未去重一律非零退出） |
 | `repro.py` | 可复现性原语：`set_global_seed`（random/numpy/torch）+ `rng_state`/`set_rng_state`（把全局 RNG 与 torch RNG 一起打包，断点续训用） |
 | `audit_splits.py` | 数据隔离审计（门禁）：清单级 / 片段级精确查找 / 词表 OOV / 训练集内重复 / 旧口径对照 |
-| `audit_neardup.py` | **可扩展近重复检测**（19 万部量级）：`auto` 分层——小桶走锚点法（对齐无关，能抓「同书异本」）、大桶走行级倒排；**五道守卫**（行级：df 绝对+占比 / 最少共享行 / 最少共享字数；锚点：锚点 df 过滤 / 精确复核门槛 `--min-exact`）；`--out-manifest` 产出重切分清单、`--out-moves` 只产出增量（427 部 / 64 KB 的可审计差异；完整清单 84.79 MiB 已入库 `data/manifest_v3.jsonl`，距 GitHub 100 MiB 上限还有 15.21 MiB）、`--dump-pairs` 导出逐条边用于诊断并查集链式放大 |
+| `audit_neardup.py` | **可扩展近重复检测**（22 万部量级）：`auto` 分层——小桶走锚点法（对齐无关，能抓「同书异本」）、大桶走行级倒排；**五道守卫**（行级：df 绝对+占比 / 最少共享行 / 最少共享字数；锚点：锚点 df 过滤 / 精确复核门槛 `--min-exact 0.005`——实测分布是双峰的（噪声恰好 0.0000 / 最小真值 0.0159），门槛只能落在这道鸿沟里，旧默认 0.02 越过了真值、把真选本当噪声剔掉，见 `docs/experiments/2026-09-15-min-exact-sensitivity.md`）；`--out-manifest` 产出重切分清单、`--out-moves` 只产出增量（427 部 / 64 KB 的可审计差异）、`--dump-pairs` 导出逐条边用于诊断并查集链式放大与阈值扫描 |
 | `dedup_works.py` | 近重复合并（锚点法）：异名同书 / 选本重复合并成簇整簇同 split → `data/manifest_v2.jsonl`；`resplit()` 抽成函数被 `audit_neardup.py` 复用 |
 | `leak_probe.py` | 同源泄漏值多少分：同一模型在「污染测试集」与「干净测试集」上逐作品对比 |
 | `verify_seed.py` / `verify_resume.py` / `verify_story_eval.py` | 三份可复核判定：种子逐位可复现 / 续训与直训逐位等价 / 出题来自留出集 + 生成可复现 + 旧口径不送分 |

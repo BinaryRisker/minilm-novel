@@ -410,9 +410,17 @@ def main():
     ap.add_argument('--cap', type=int, default=0, help='每部参与比对字数上限（0=全文，锚点法）')
     ap.add_argument('--probe', type=int, default=2000, help='精确复核探针数（锚点法；默认与 dedup_works.py 一致）')
     ap.add_argument('--exact-span', type=int, default=40, help='精确复核片段长度（锚点法）')
-    ap.add_argument('--min-exact', type=float, default=0.02,
+    ap.add_argument('--min-exact', type=float, default=0.005,
                     help='锚点法的精确复核门槛（守卫 2）：锚点重叠够、但逐字片段复核低于此值 → 判噪声。'
-                         '短作品的锚点集太小，重叠可以是统计噪声（story 桶 10 个簇精确复核全 0.0）。')
+                         '0.005 配 --probe 2000 的读法：2,000 个 40 字探针里至少命中 10 个'
+                         '（≈10 处 ≥40 字的连续逐字重合）。'
+                         '实测分布是**双峰**的：story 桶 16 对噪声的精确复核**全部为 0.0000**，'
+                         'gudian 8 对真同源最低 0.0159 —— 门槛只能落在这道鸿沟里。'
+                         '★ 0.02（旧默认）> 0.0159，把《今古奇观》↔《二刻拍案惊奇》这对真选本'
+                         '当噪声剔掉了，gudian/test 因此残留 2.00% 泄漏；更阴的是**跨 split 簇数不变**'
+                         '（一直是 3），聚合指标看不出这个回退，只有簇成员表能看出来。'
+                         '敏感性扫描：--min-exact 0 --dump-pairs 导出全部候选对后离线扫阈值，'
+                         '见 docs/experiments/2026-09-15-min-exact-sensitivity.md。')
     args = ap.parse_args()
 
     src_fp = None

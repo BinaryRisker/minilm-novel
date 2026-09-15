@@ -1,0 +1,38 @@
+{
+  "generated_by": "py/audit_neardup.py",
+  "note": "近重复（转发/同源）簇整体落在同一 split 后的切分；重切分规则与 py/dedup_works.py 共用一份实现（resplit）。",
+  "split_fingerprint": "e1e91f6cc5753cbc",
+  "total_works": 1144,
+  "manifest": "dev/verify/manifest_small_dedup.jsonl",
+  "cluster_count": 3,
+  "cluster_moves": 4,
+  "protocol": {
+    "minline": 12,
+    "thresh": 0.05,
+    "min_shared": 5,
+    "min_shared_chars": 200,
+    "max_df_abs": 200,
+    "max_df_frac": 0.2,
+    "algo": "anchors",
+    "anchor_max": 3000,
+    "anchors": {
+      "k": 20,
+      "w": 20,
+      "cap": 0,
+      "probe": 2000,
+      "exact_span": 40,
+      "min_exact": 0.005
+    },
+    "manifest": "dev/verify/manifest_small.jsonl",
+    "buckets": [
+      "gudian",
+      "wuxia",
+      "urban",
+      "xiandai",
+      "scifi",
+      "story"
+    ],
+    "source_manifest_fingerprint": "9cb09686a8f0e86f",
+    "method": "auto=小桶锚点法(对齐无关) / 大桶行级倒排(可扩展)；行级含三道守卫：df(绝对+占比) / 最少共享行数 / 最少共享字数；锚点法含两道守卫：锚点 df 过滤 / 精确复核门槛"
+  }
+}

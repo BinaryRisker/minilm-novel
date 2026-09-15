@@ -1,0 +1,410 @@
+{
+  "protocol": {
+    "minline": 12,
+    "thresh": 0.05,
+    "min_shared": 5,
+    "min_shared_chars": 200,
+    "max_df_abs": 200,
+    "max_df_frac": 0.2,
+    "algo": "anchors",
+    "anchor_max": 3000,
+    "anchors": {
+      "k": 20,
+      "w": 20,
+      "cap": 0,
+      "probe": 2000,
+      "exact_span": 40,
+      "min_exact": 0.005
+    },
+    "manifest": "dev/verify/manifest_small.jsonl",
+    "buckets": [
+      "gudian",
+      "wuxia",
+      "urban",
+      "xiandai",
+      "scifi",
+      "story"
+    ],
+    "source_manifest_fingerprint": "9cb09686a8f0e86f",
+    "method": "auto=小桶锚点法(对齐无关) / 大桶行级倒排(可扩展)；行级含三道守卫：df(绝对+占比) / 最少共享行数 / 最少共享字数；锚点法含两道守卫：锚点 df 过滤 / 精确复核门槛"
+  },
+  "buckets": {
+    "gudian": {
+      "bucket": "gudian",
+      "algo": "anchors(winnowing)",
+      "works": 55,
+      "works_read": 55,
+      "files_missing": 0,
+      "anchors_total": 1335733,
+      "anchors_dropped_df": 0,
+      "df_abs": 200,
+      "df_frac": 11,
+      "pairs_overlap_pass": 8,
+      "dropped_by_min_exact": 0,
+      "candidate_pairs": 8,
+      "pairs_pass": 8,
+      "k": 20,
+      "w": 20,
+      "probe": 2000,
+      "exact_span": 40,
+      "min_exact": 0.005,
+      "pairs_cross_split": 4,
+      "clusters": 3,
+      "clusters_cross_split": 3,
+      "top_pairs": [
+        {
+          "a": "gudian_020",
+          "b": "gudian_021",
+          "containment": 0.5716,
+          "a_to_b": 0.5666,
+          "b_to_a": 0.5716,
+          "exact_max": 0.4214,
+          "a_split": "train",
+          "b_split": "test"
+        },
+        {
+          "a": "gudian_005",
+          "b": "gudian_006",
+          "containment": 0.5516,
+          "a_to_b": 0.5437,
+          "b_to_a": 0.5516,
+          "exact_max": 0.3693,
+          "a_split": "train",
+          "b_split": "val"
+        },
+        {
+          "a": "gudian_001",
+          "b": "gudian_015",
+          "containment": 0.1351,
+          "a_to_b": 0.0548,
+          "b_to_a": 0.1351,
+          "exact_max": 0.0584,
+          "a_split": "train",
+          "b_split": "test"
+        },
+        {
+          "a": "gudian_001",
+          "b": "gudian_009",
+          "containment": 0.0941,
+          "a_to_b": 0.0546,
+          "b_to_a": 0.0941,
+          "exact_max": 0.0409,
+          "a_split": "train",
+          "b_split": "train"
+        },
+        {
+          "a": "gudian_001",
+          "b": "gudian_018",
+          "containment": 0.0673,
+          "a_to_b": 0.0232,
+          "b_to_a": 0.0673,
+          "exact_max": 0.0442,
+          "a_split": "train",
+          "b_split": "train"
+        },
+        {
+          "a": "gudian_001",
+          "b": "gudian_017",
+          "containment": 0.0672,
+          "a_to_b": 0.026,
+          "b_to_a": 0.0672,
+          "exact_max": 0.022,
+          "a_split": "train",
+          "b_split": "train"
+        },
+        {
+          "a": "gudian_001",
+          "b": "gudian_014",
+          "containment": 0.059,
+          "a_to_b": 0.0252,
+          "b_to_a": 0.059,
+          "exact_max": 0.0254,
+          "a_split": "train",
+          "b_split": "train"
+        },
+        {
+          "a": "gudian_001",
+          "b": "gudian_012",
+          "containment": 0.0519,
+          "a_to_b": 0.0237,
+          "b_to_a": 0.0519,
+          "exact_max": 0.0159,
+          "a_split": "train",
+          "b_split": "test"
+        }
+      ],
+      "top_clusters": [
+        {
+          "members": [
+            "gudian_001",
+            "gudian_009",
+            "gudian_012",
+            "gudian_014",
+            "gudian_015",
+            "gudian_017",
+            "gudian_018"
+          ],
+          "size": 7,
+          "splits": [
+            "test",
+            "train"
+          ],
+          "cross_split": true,
+          "max_containment": 0.1351,
+          "max_exact": 0.0584
+        },
+        {
+          "members": [
+            "gudian_020",
+            "gudian_021"
+          ],
+          "size": 2,
+          "splits": [
+            "test",
+            "train"
+          ],
+          "cross_split": true,
+          "max_containment": 0.5716,
+          "max_exact": 0.4214
+        },
+        {
+          "members": [
+            "gudian_005",
+            "gudian_006"
+          ],
+          "size": 2,
+          "splits": [
+            "train",
+            "val"
+          ],
+          "cross_split": true,
+          "max_containment": 0.5516,
+          "max_exact": 0.3693
+        }
+      ],
+      "cross_split_clusters": [
+        {
+          "size": 7,
+          "splits": [
+            "test",
+            "train"
+          ],
+          "members": [
+            "gudian_001",
+            "gudian_009",
+            "gudian_012",
+            "gudian_014",
+            "gudian_015",
+            "gudian_017",
+            "gudian_018"
+          ],
+          "members_truncated": false,
+          "max_containment": 0.1351,
+          "max_exact": 0.0584
+        },
+        {
+          "size": 2,
+          "splits": [
+            "test",
+            "train"
+          ],
+          "members": [
+            "gudian_020",
+            "gudian_021"
+          ],
+          "members_truncated": false,
+          "max_containment": 0.5716,
+          "max_exact": 0.4214
+        },
+        {
+          "size": 2,
+          "splits": [
+            "train",
+            "val"
+          ],
+          "members": [
+            "gudian_005",
+            "gudian_006"
+          ],
+          "members_truncated": false,
+          "max_containment": 0.5516,
+          "max_exact": 0.3693
+        }
+      ],
+      "seconds": 25.6
+    },
+    "wuxia": {
+      "bucket": "wuxia",
+      "algo": "anchors(winnowing)",
+      "works": 23,
+      "works_read": 23,
+      "files_missing": 0,
+      "anchors_total": 766642,
+      "anchors_dropped_df": 0,
+      "df_abs": 200,
+      "df_frac": 4,
+      "pairs_overlap_pass": 0,
+      "dropped_by_min_exact": 0,
+      "candidate_pairs": 0,
+      "pairs_pass": 0,
+      "k": 20,
+      "w": 20,
+      "probe": 2000,
+      "exact_span": 40,
+      "min_exact": 0.005,
+      "pairs_cross_split": 0,
+      "clusters": 0,
+      "clusters_cross_split": 0,
+      "top_pairs": [],
+      "top_clusters": [],
+      "cross_split_clusters": [],
+      "seconds": 8.7
+    },
+    "urban": {
+      "bucket": "urban",
+      "algo": "anchors(winnowing)",
+      "works": 26,
+      "works_read": 26,
+      "files_missing": 0,
+      "anchors_total": 513867,
+      "anchors_dropped_df": 0,
+      "df_abs": 200,
+      "df_frac": 5,
+      "pairs_overlap_pass": 0,
+      "dropped_by_min_exact": 0,
+      "candidate_pairs": 0,
+      "pairs_pass": 0,
+      "k": 20,
+      "w": 20,
+      "probe": 2000,
+      "exact_span": 40,
+      "min_exact": 0.005,
+      "pairs_cross_split": 0,
+      "clusters": 0,
+      "clusters_cross_split": 0,
+      "top_pairs": [],
+      "top_clusters": [],
+      "cross_split_clusters": [],
+      "seconds": 6.1
+    },
+    "xiandai": {
+      "bucket": "xiandai",
+      "algo": "anchors(winnowing)",
+      "works": 35,
+      "works_read": 35,
+      "files_missing": 0,
+      "anchors_total": 104446,
+      "anchors_dropped_df": 388,
+      "df_abs": 200,
+      "df_frac": 7,
+      "pairs_overlap_pass": 0,
+      "dropped_by_min_exact": 0,
+      "candidate_pairs": 0,
+      "pairs_pass": 0,
+      "k": 20,
+      "w": 20,
+      "probe": 2000,
+      "exact_span": 40,
+      "min_exact": 0.005,
+      "pairs_cross_split": 0,
+      "clusters": 0,
+      "clusters_cross_split": 0,
+      "top_pairs": [],
+      "top_clusters": [],
+      "cross_split_clusters": [],
+      "seconds": 1.0
+    },
+    "scifi": {
+      "bucket": "scifi",
+      "algo": "anchors(winnowing)",
+      "works": 5,
+      "works_read": 5,
+      "files_missing": 0,
+      "anchors_total": 171809,
+      "anchors_dropped_df": 0,
+      "df_abs": 200,
+      "df_frac": 2,
+      "pairs_overlap_pass": 0,
+      "dropped_by_min_exact": 0,
+      "candidate_pairs": 0,
+      "pairs_pass": 0,
+      "k": 20,
+      "w": 20,
+      "probe": 2000,
+      "exact_span": 40,
+      "min_exact": 0.005,
+      "pairs_cross_split": 0,
+      "clusters": 0,
+      "clusters_cross_split": 0,
+      "top_pairs": [],
+      "top_clusters": [],
+      "cross_split_clusters": [],
+      "seconds": 1.7
+    },
+    "story": {
+      "bucket": "story",
+      "algo": "anchors(winnowing)",
+      "works": 1000,
+      "works_read": 1000,
+      "files_missing": 0,
+      "anchors_total": 23457,
+      "anchors_dropped_df": 0,
+      "df_abs": 200,
+      "df_frac": 200,
+      "pairs_overlap_pass": 16,
+      "dropped_by_min_exact": 16,
+      "candidate_pairs": 0,
+      "pairs_pass": 0,
+      "k": 20,
+      "w": 20,
+      "probe": 2000,
+      "exact_span": 40,
+      "min_exact": 0.005,
+      "pairs_cross_split": 0,
+      "clusters": 0,
+      "clusters_cross_split": 0,
+      "top_pairs": [],
+      "top_clusters": [],
+      "cross_split_clusters": [],
+      "seconds": 1.3
+    }
+  },
+  "resplit": {
+    "out_manifest": "dev/verify/manifest_small_dedup.jsonl",
+    "moves": null,
+    "cluster_count": 3,
+    "changed_works": 4,
+    "stats": {
+      "gudian": {
+        "train": 48,
+        "val": 4,
+        "test": 3
+      },
+      "scifi": {
+        "train": 4,
+        "test": 1
+      },
+      "story": {
+        "test": 100,
+        "train": 800,
+        "val": 100
+      },
+      "urban": {
+        "train": 20,
+        "test": 4,
+        "val": 2
+      },
+      "wuxia": {
+        "train": 18,
+        "test": 3,
+        "val": 2
+      },
+      "xiandai": {
+        "test": 4,
+        "train": 28,
+        "val": 3
+      }
+    },
+    "fingerprint": "e1e91f6cc5753cbc"
+  }
+}
