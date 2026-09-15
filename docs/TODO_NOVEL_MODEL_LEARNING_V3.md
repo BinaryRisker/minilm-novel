@@ -4,19 +4,29 @@
 
 ## P0：可信实验底座（阻断后续大训练）
 
-- [ ] 按 V2 P0 修复 `py/train.py` seed/resume、`py/eval_story.py` prompt/continuation、`eval/prompts.jsonl` 两条非法 JSON；添加反例测试。
-  - 进度（2026-09-15 定时自检核对）：`prompts.jsonl` 17/29 两条非法 JSON **已修**，现 30/30 可 `json.loads`；
-    `train.py` seed 与 resume **已修并有反例证据**（`py/verify_seed.py`：同 seed Δ=0、旧顺序不可复现；
-    `py/verify_resume.py`：完整状态续训与直训逐位一致 Δ=0，丢 RNG/丢优化器/旧格式分别 Δ=3.1e-2/2.5e-2/3.7e-2）。
-    ⏳ `py/eval_story.py` 的 prompt/continuation 重复计算本轮未核，故本条不勾选。
+- [x] 按 V2 P0 修复 `py/train.py` seed/resume、`py/eval_story.py` prompt/continuation、`eval/prompts.jsonl` 两条非法 JSON；添加反例测试。 ✅ 2026-09-15
+  - 证据：`prompts.jsonl` 17/29 两条非法 JSON 已修，现 30/30 可 `json.loads`；
+    `train.py` seed 与 resume 已修并有反例证据（`py/verify_seed.py`：同 seed Δ=0、旧顺序不可复现；
+    `py/verify_resume.py`：完整状态续训与直训逐位一致 Δ=0，丢 RNG/丢优化器/旧格式分别 Δ=3.1e-2/2.5e-2/3.7e-2）；
+    `py/eval_story.py` 已重写为「只用 continuation 评分 + 并排展示旧口径送分幅度」，
+    并有 `py/verify_story_eval.py` T1/T2/T3 三项实证（出题来自留出作品、生成可复现、旧口径送分幅度）。
 - [ ] `py/checkpoint.py` 与 `py/run_identity.py` 保存恢复完整状态；验证连续训练与中断恢复下一批数据、学习率和最终权重等价。
 - [ ] 数据准备及 sweep 入口强制验证家族去重、split 版本、用途 allowlist、配置指纹；不复用旧污染缓存。
-  - ✅ 2026-09-15 已做：**家族/内容去重**与 **split 版本指纹**两项由 `py/splits.py:verify()` 强制执行
+  - ✅ 2026-09-15 已做：**家族/内容去重**与 **split 版本指纹**由 `py/splits.py:verify()` 强制执行
     （`bucket_texts()` 每次加载先校验，不成立抛 `SplitIdentityError` → 实测非零退出码 1）；
     指纹算法只在 `py/splits.py` 定义一份，`py/data/build_splits.py` 反向 import，避免「自己校验自己永远通过」。
-    去重动作本身在 `py/data/prepare.py:dedupe_by_content()`（分配 split **之前**）。契约测试 `py/tests/test_splits.py` 11 项。
-  - ⏳ 仍缺：**用途 allowlist**（license/用途未进校验）、**配置指纹**（run 配置→指纹未落盘），
-    以及 `sweep_*` 侧独立入口校验（目前靠 `py/splits.py` 统一拦截）。
+    去重动作在 `py/data/prepare.py:dedupe_by_content()`（分配 split **之前**）。契约测试 `py/tests/test_splits.py` 11 项。
+  - ✅ 2026-09-15（续二）补齐：**配置指纹** = `py/run_identity.py`（数据身份：清单名 / split 指纹 /
+    `near_dup_merged` / 许可分级，+ cfg/seed/steps/batch/lr → 16 位 `run_identity`），由 `train.py`
+    写进 `meta.json`，算不出身份就不存盘；**用途 allowlist** = `py/license_policy.py`（fail-closed
+    七档分级 + `assert_distributable()` 闸门；实测全库仅 **1,126 部 / 0.58% 部数（11.5% 字数）**许可
+    明确可分发）。清单择优 `py/splits.py:resolve_current()`：去重候选必须**经新鲜度校验**
+    （内容哈希集合与默认清单一致）才可作默认——v2 是 32,036 部旧快照、当前 v1 已 192,823 部，
+    无条件优先会静默丢 16 万部。测试 `py/tests/test_identity_policy.py` 11 项。
+  - ⏳ 仍缺：`sweep_*` 侧独立入口校验（目前靠 `py/splits.py` 统一拦截）；
+    `assert_distributable()` 的调用方（`export.py`，属 P4）；
+    **默认清单的近重复/同源泄漏未清零**（门禁仍失败，gudian/test 残余 2.00%），
+    清零前 `near_dup_merged=False` 会如实随每个 run 落盘。
 - [ ] 所有调参改用 val；历史 test 标 exploratory，新锁定测试族。
 - [ ] 修订实践篇 24/31 的泄漏归因、预算推断与错误命令；保留原始数字及勘误原因。
 

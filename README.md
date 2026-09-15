@@ -53,13 +53,18 @@
 - 实验日志与内容素材库：`LOG.md`
 - **当前位置**：JS 实验台完成并全量验证；**L0 已通过**（2026-09-13）——PyTorch 复刻版与手写 JS 版
   在多种子对比下不可区分（损失曲线偏差 ≤0.030，Top-1 均值差在种子噪声内，见 `py/align_report.md`）；
-  正在做 **L3 数据工程**：语料 **32,036 部 / 1.70 亿字**（公版 + 开放许可，见 `data/sources.json`；
-  2026-09-15 起在 `prepare.py` 里按**内容哈希**去重，剔除 550 部逐字重复 / 149.6 万字，
-  `data/split_audit.json` 的 `dedupe` 字段记录明细），
-  2026-09-14 起用**按作品切分**的 `data/splits/{train,val,test}.txt` 替代旧的「整桶连续 90/10」口径
-  （旧切分会把同一部作品劈进 train 和 test；新口径 train/val/test 不跨作品，见 `py/data/build_splits.py`、
-  `train.py --bucket`）。**下一步**：把内容去重前置到 `fetch_corpus.py`，并推进 V3 P0 的
-  数据/缓存身份校验与锁定测试族。
+  正在做 **L3 数据工程**：语料 **192,823 部 / 2.445 亿字**（公版 + 开放许可 + 本地学习用，见 `data/sources.json`；
+  `prepare.py` 已按**内容哈希**去重，`data/split_audit.json` 的 `dedupe` 字段记录明细），
+  2026-09-14 起用**按作品切分**替代旧的「整桶连续 90/10」口径（旧切分会把同一部作品劈进
+  train 和 test；见 `py/data/build_splits.py`、`train.py --bucket`）。
+  **数据治理（2026-09-15 起）**：① `py/splits.py:verify()` 强制校验切分身份（指纹不一致 / 有逐字
+  重复即非零退出）；② `py/run_identity.py` 给每次 run 记**数据身份 + 配置指纹**（含
+  `near_dup_merged` 与许可可分发占比），写进 `meta.json`；③ `py/license_policy.py` 做许可
+  **fail-closed 分级**——当前清单**仅 1,126 部（0.58% 部数 / 11.5% 字数）许可明确可分发**，
+  其余 99.4% 是"权利不清/仅本地学习用"，只能进个人本地训练，**不得进入导出权重或公开数字**。
+  **未了项**：默认清单的**近重复/同源泄漏尚未清零**（`py/audit_splits.py` 门禁仍在失败，
+  gudian/test 残余 2.00%；`py/leak_probe.py` 可量化它对指标的虚高）。**下一步**：等近重复审计
+  出门禁通过的清单，再推进 V3 P0 的锁定测试族与历史 test 标 exploratory。
 
 ---
 

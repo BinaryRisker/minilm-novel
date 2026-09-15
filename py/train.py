@@ -37,6 +37,7 @@ if HERE not in sys.path:
 from minilm_torch import MiniLM, build_vocab, encode, eval_ids, make_batch, lr_at  # noqa
 from repro import set_global_seed, rng_state, set_rng_state  # noqa
 import splits as splits_mod  # noqa
+import run_identity  # noqa
 
 CKPT_VERSION = 2
 
@@ -320,6 +321,15 @@ def main():
     meta['train_chars'] = len(train_ids)
     meta['stop_at'] = stop_at
     meta['eff_epochs'] = stop_at * args.batch * cfg['ctx'] / max(1, len(train_ids))
+    if args.bucket:
+        # 数据身份 + 配置指纹：没有它，跑在「有同源泄漏的清单」和「已合并清单」上的
+        # 结果在仓库里长得一模一样，事后无法区分（见 py/run_identity.py）。
+        # 算不出来就别存盘 —— 直接让它抛，这次 run 不该被当成可追溯的。
+        run_identity.attach(meta, args.manifest, args.report)
+        di, ds = meta['data_identity'], meta['distributable_share']
+        log(f'run_identity={meta["run_identity"]} manifest={di["manifest"]}'
+            f' split_fp={di["split_fingerprint"]} near_dup_merged={di["near_dup_merged"]}'
+            f' 可分发占比=部{ds["works_pct"]}%/字{ds["chars_pct"]}%')
     save_checkpoint(os.path.join(out_dir, 'checkpoint.pt'), model, opt, itos, meta, stop_at)
     with open(os.path.join(out_dir, 'meta.json'), 'w', encoding='utf-8') as f:
         json.dump(meta, f, ensure_ascii=False, indent=2)
