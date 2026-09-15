@@ -66,8 +66,22 @@ def resolve_text(work: dict, processed_dir: str) -> str:
         return f.read()
 
 
-def build(manifest_path: str, processed_dir: str, out_dir: str, report_path: str) -> dict:
-    rows = read_manifest(manifest_path)
+def build(manifest_path: str, processed_dir: str, out_dir: str, report_path: str,
+          exclude: str = 'localugc') -> dict:
+    all_rows = read_manifest(manifest_path)
+    # 全量清单的指纹必须**在排除之前**算：下游 verify() 拿报告指纹对的是整份 manifest，
+    # 若这里记排除后子集的指纹，"同一版"校验就永远对不上、每次加载都误报。
+    full_fingerprint = split_fingerprint(all_rows)
+    rows = all_rows
+    excluded_buckets: list = []
+    if exclude:
+        excluded = {x.strip() for x in exclude.split(',') if x.strip()}
+        excluded_buckets = sorted(excluded)
+        n0 = len(rows)
+        rows = [r for r in rows if r['bucket'] not in excluded]
+        print(f'[*] 排除桶 {excluded_buckets}（供本地实验，走 manifest+processed 直读；'
+              f'否则 splits 会出现数 GB 巨型 txt）：{n0} → {len(rows)} 部；'
+              f'报告指纹仍按全量 {len(all_rows)} 部计算')
 
     ids = [r['story_id'] for r in rows]
     assert len(ids) == len(set(ids)), 'story_id 不唯一'
@@ -88,12 +102,18 @@ def build(manifest_path: str, processed_dir: str, out_dir: str, report_path: str
     for sp in SPLITS:
         # 每 split 的「字数」用逐作品 raw 之和（不含分隔符），才是可审计的作品字数；
         # 落盘文件因 \n\n 拼接会多出 (works-1)*2，另记 file_chars 供核对。
+        # **流式写**：19 亿字级 '\n\n'.join 会 MemoryError（2026-09-15 实踩）。
         raw_chars = sum(len(t) for t in buckets[sp])
-        joined = '\n\n'.join(buckets[sp])
+        file_chars = 0
         with open(os.path.join(out_dir, f'{sp}.txt'), 'w', encoding='utf-8') as f:
-            f.write(joined)
+            for i, t in enumerate(buckets[sp]):
+                if i:
+                    f.write('\n\n')
+                    file_chars += 2
+                f.write(t)
+                file_chars += len(t)
         report_splits[sp] = {'works': len(buckets[sp]), 'chars': raw_chars,
-                             'file_chars': len(joined)}
+                             'file_chars': file_chars}
 
     report = {
         'generated_by': 'py/data/build_splits.py',
@@ -102,7 +122,9 @@ def build(manifest_path: str, processed_dir: str, out_dir: str, report_path: str
                 'file_chars 含作品间 \\n\\n 分隔符。供 L3 之后的质量实验使用；'
                 'minilm_torch.train 的连续 90/10 切分是 JS 对齐路径，与此无关。',
         'splits': report_splits,
-        'split_fingerprint': split_fingerprint(rows),
+        'split_fingerprint': full_fingerprint,
+        'full_manifest_works': len(all_rows),
+        'excluded_buckets': excluded_buckets,
         'total_works': len(rows),
         'total_chars': sum(v['chars'] for v in report_splits.values()),
         'work_chars_sum': sum(w['chars'] for w in per_work),
@@ -121,9 +143,13 @@ def main():
     ap.add_argument('--processed', default=DEFAULT_PROCESSED)
     ap.add_argument('--out-dir', default=DEFAULT_OUT)
     ap.add_argument('--report', default=DEFAULT_REPORT)
+    ap.add_argument('--exclude', default='localugc',
+                    help='逗号分隔的桶名单，不进全局 splits（这些桶走 manifest+processed '
+                         '按需直读；传空串可包含全部桶）')
     args = ap.parse_args()
 
-    rep = build(args.manifest, args.processed, args.out_dir, args.report)
+    rep = build(args.manifest, args.processed, args.out_dir, args.report,
+                exclude=args.exclude)
     print(f'[*] 按作品切分语料 -> {args.out_dir}/{{train,val,test}}.txt')
     for sp in SPLITS:
         v = rep['splits'][sp]

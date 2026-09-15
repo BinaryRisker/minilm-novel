@@ -65,6 +65,9 @@
   **未了项**：默认清单的**近重复/同源泄漏尚未清零**（`py/audit_splits.py` 门禁仍在失败，
   gudian/test 残余 2.00%；`py/leak_probe.py` 可量化它对指标的虚高）。**下一步**：等近重复审计
   出门禁通过的清单，再推进 V3 P0 的锁定测试族与历史 test 标 exploratory。
+  **评测口径（2026-09-15 起，见 [`docs/EVAL_PROTOCOL_V1.md`](docs/EVAL_PROTOCOL_V1.md)）**：
+  调参只看 val；锁定测试族（`data/locked_test.json`，58 部，`py/locked_test.py` 冻结/校验）
+  只在最终验收时评一次；**反复读过 test 的历史 sweep 数字一律标 exploratory**，不作验收依据。
 
 ---
 
@@ -153,7 +156,7 @@ node build.js && node smoke.js && node uidom.js && node test_rng.js
 | 产物 | 规模 | 用途 |
 |---|---|---|
 | `data/sources.json` + `data/processed/<桶>/*.txt` | 证据桶 **1126 部 / 2793 万字** + 本地学习桶 12,977 部 / 2,438 万字（逐作品全文，**未截断**） | 审计真源；`build_splits.py` 从这里取正文 |
-| `data/splits/{train,val,test}.txt` | train 11,280 部 / 3,828 万字 · val 1,407 部 / 705 万字 · test 1,416 部 / 698 万字 | **无泄漏实验（推荐口径）**：train/val/test 不跨作品 |
+| `data/splits/{train,val,test}.txt` | train 914 部 / 2,311 万字 · val 112 部 / 356 万字 · test 118 部 / 405 万字（**默认排除 `localugc`**，19 亿字 UGC 走 manifest+processed 直读） | **无泄漏实验（推荐口径）**：train/val/test 不跨作品 |
 | `py/data/corpus.json` | **1719 万字**（按桶均分截断，每桶上限 200 万字；`localugc` 单独 800 万） | 早期扫描与 JS 对齐口径（桶内连续 90/10，**有同作品泄漏**） |
 
 来源与许可（逐作品清单见 `data/sources.json`；判定标准见 `docs/DATA_CANDIDATES.md`）：
@@ -167,7 +170,11 @@ node build.js && node smoke.js && node uidom.js && node test_rng.js
   但并非权利人，标签不覆盖原著版权**。按项目标准**不应视为许可干净**；
   它同时占了 `scifi` 训练区的 **96.4%**，使该桶失去作证据的资格。**保留数据、仅作本地学习与跨域对照**（详见下）。
 - 🧪 **`localugc` 本地学习桶**（仅在**明确本地学习**前提下启用）—— 4 份 HF 知乎问答集
-  + `wdndev/webnovel-chinese` 流式首片前 30 MB 切片（70 部 / 1,051 万字）
+  + `wdndev/webnovel-chinese` **整片全量分片**（分片 0 = 4.18 GB，**1,093 部超长连载 /
+  13.91 亿字**，均部 127 万字；之前 30 MB Range 截断出的 70 部残本已废弃）
+  + `wuliangfo/Chinese-Pixiv-Novel`（Pixiv 中文原创/同人小说，zip 1.76 GB）
+  + `v3ucn/chinese-novel-dataset`（续写对 729 条，正经文学文本）
+  + MNBVC 天涯重启主片（18,465 帖 / 1.16 亿字）+ 北大树洞（12.3 万帖）+ 清华树洞（3.9 万帖）
   + 天涯莲蓬鬼话论坛对话（GitHub 抓取，2,907 帖 / 105 万字）
   + `data/raw/_cache/localugc/*.txt` 本地导入位（猫扑等无现成源，自己放 dump 即入库）；
   现代文学期刊另设 `data/raw/_cache/zazhi/*.txt`（今古传奇 / 科幻世界 / 人民文学 / 收获 等）。
@@ -181,7 +188,7 @@ node build.js && node smoke.js && node uidom.js && node test_rng.js
 | `gudian` 古典 · 神魔笔记 | 37 | 1125 万 | 红楼梦、西游记、三国演义、封神演义、聊斋志异、三言二拍 | ✅ |
 | `story` 短故事 · 简单现代汉语 | 1000 | 27 万 | 合成短篇（单篇约 253 字，**机翻模板文本**） | ⚠️ **只作工程样本** |
 | `xiandai` 现代 · 民国新文学公版 | 35 | 110 万 | 鲁迅、老舍、郁达夫、萧红 | ✅ **现代白话主力桶** |
-| `localugc` 本地学习 · 知乎 / 网文 / 天涯 | 12977 | 2438 万（堆） | 知乎问答 4 份、网文切片 70 部、天涯对话 2907 帖 | ❌ **仅本地实验**（不入评测桶） |
+| `localugc` 本地学习 · 网文全量/Pixiv/知乎/树洞/天涯 | 225,581 | 18.90 亿（堆） | 网文分片 0 全量 1,093 部、Pixiv 3 万篇、树洞 16 万帖、知乎 1 万条 | ❌ **仅本地实验**（不入评测桶） |
 
 > ⚠️ **两个桶不可按字面读（2026-09-14 实测，详见 `docs/experiments/2026-09-14-worksplit-nll-converge.md` §9.1–9.3）**
 > - **`scifi` 是跨域对照，不是科幻域泛化**：池里 92.6% 的字数来自**一部现代网文**

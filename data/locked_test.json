@@ -1,0 +1,417 @@
+{
+ "protocol_version": 1,
+ "generated_by": "py/locked_test.py --freeze",
+ "note": "锁定测试族：调参只看 val；本族只在最终验收时评一次。身份按内容哈希（story_id 会随去重/重跑重新编号，不可靠）。",
+ "manifest_fingerprint_at_freeze": "81187b7b546f0745",
+ "manifest": "manifest.jsonl",
+ "per_bucket": 20,
+ "lock_fingerprint": "6f60d9363678bf5b",
+ "works": [
+  {
+   "hash": "e5f7b636036a1cab",
+   "bucket": "gudian",
+   "title": "斩鬼传",
+   "split": "test",
+   "chars": 67545
+  },
+  {
+   "hash": "e7f80f294ef8ae51",
+   "bucket": "gudian",
+   "title": "新齐谐",
+   "split": "test",
+   "chars": 267298
+  },
+  {
+   "hash": "ed98982eee8af34a",
+   "bucket": "gudian",
+   "title": "二刻拍案惊奇",
+   "split": "test",
+   "chars": 425805
+  },
+  {
+   "hash": "f115d53fa735b508",
+   "bucket": "gudian",
+   "title": "无声戏",
+   "split": "test",
+   "chars": 130558
+  },
+  {
+   "hash": "f7d33e402ae25a79",
+   "bucket": "gudian",
+   "title": "警世通言",
+   "split": "test",
+   "chars": 378335
+  },
+  {
+   "hash": "f86bb4b2a43ec0ed",
+   "bucket": "gudian",
+   "title": "蛮书",
+   "split": "test",
+   "chars": 27744
+  },
+  {
+   "hash": "e67448fdc015d6b0",
+   "bucket": "localugc",
+   "title": "tianya_01357",
+   "split": "test",
+   "chars": 743
+  },
+  {
+   "hash": "e67468464e319895",
+   "bucket": "localugc",
+   "title": "mnbvc_ty_09712",
+   "split": "test",
+   "chars": 1174
+  },
+  {
+   "hash": "e674a75e2b343bd9",
+   "bucket": "localugc",
+   "title": "mnbvc_pk_11032",
+   "split": "test",
+   "chars": 219
+  },
+  {
+   "hash": "e674d24eab0ee4ad",
+   "bucket": "localugc",
+   "title": "mnbvc_ty_14642",
+   "split": "test",
+   "chars": 5793
+  },
+  {
+   "hash": "e674d4471d52fd10",
+   "bucket": "localugc",
+   "title": "pixiv_07719",
+   "split": "test",
+   "chars": 3710
+  },
+  {
+   "hash": "e675a2c8d7cd2731",
+   "bucket": "localugc",
+   "title": "mnbvc_pk_76337",
+   "split": "test",
+   "chars": 614
+  },
+  {
+   "hash": "e675be69b4bc9ae3",
+   "bucket": "localugc",
+   "title": "mnbvc_pk_07608",
+   "split": "test",
+   "chars": 506
+  },
+  {
+   "hash": "e675d2ab5720c289",
+   "bucket": "localugc",
+   "title": "mnbvc_th_38291",
+   "split": "test",
+   "chars": 569
+  },
+  {
+   "hash": "e675dfe3999724d0",
+   "bucket": "localugc",
+   "title": "mnbvc_pk_31144",
+   "split": "test",
+   "chars": 325
+  },
+  {
+   "hash": "e676062f7e8b7aa2",
+   "bucket": "localugc",
+   "title": "mnbvc_th_17206",
+   "split": "test",
+   "chars": 1073
+  },
+  {
+   "hash": "e6764418de67e24d",
+   "bucket": "localugc",
+   "title": "mnbvc_pk_90671",
+   "split": "test",
+   "chars": 289
+  },
+  {
+   "hash": "e6766b04ec988cd6",
+   "bucket": "localugc",
+   "title": "mnbvc_ty_06189",
+   "split": "test",
+   "chars": 1911
+  },
+  {
+   "hash": "e676a1b297501c66",
+   "bucket": "localugc",
+   "title": "mnbvc_pk_00303",
+   "split": "test",
+   "chars": 309
+  },
+  {
+   "hash": "e676fd5ec90a8324",
+   "bucket": "localugc",
+   "title": "mnbvc_th_17419",
+   "split": "test",
+   "chars": 224
+  },
+  {
+   "hash": "e67704b7dc08b154",
+   "bucket": "localugc",
+   "title": "mnbvc_pk_94880",
+   "split": "test",
+   "chars": 295
+  },
+  {
+   "hash": "e6777ade92eef54e",
+   "bucket": "localugc",
+   "title": "mnbvc_th_00403",
+   "split": "test",
+   "chars": 476
+  },
+  {
+   "hash": "e677c391e559ff76",
+   "bucket": "localugc",
+   "title": "mnbvc_th_06149",
+   "split": "test",
+   "chars": 325
+  },
+  {
+   "hash": "e6783cb8ce7658b5",
+   "bucket": "localugc",
+   "title": "mnbvc_pk_24501",
+   "split": "test",
+   "chars": 583
+  },
+  {
+   "hash": "e6783dcb8646b7d3",
+   "bucket": "localugc",
+   "title": "mnbvc_ty_11733",
+   "split": "test",
+   "chars": 5206
+  },
+  {
+   "hash": "e678b9b51e83c2cb",
+   "bucket": "localugc",
+   "title": "mnbvc_pk_109588",
+   "split": "test",
+   "chars": 1157
+  },
+  {
+   "hash": "b85767ba77fd63ab",
+   "bucket": "scifi",
+   "title": "月界旅行",
+   "split": "test",
+   "chars": 47715
+  },
+  {
+   "hash": "e689511f42e6c69c",
+   "bucket": "story",
+   "title": "ts_zh_0138",
+   "split": "test",
+   "chars": 653
+  },
+  {
+   "hash": "e6d3602a797df385",
+   "bucket": "story",
+   "title": "ts_zh_0999",
+   "split": "test",
+   "chars": 262
+  },
+  {
+   "hash": "e7812baa06ad49af",
+   "bucket": "story",
+   "title": "ts_zh_0771",
+   "split": "test",
+   "chars": 254
+  },
+  {
+   "hash": "e7c9d493ef2ddac3",
+   "bucket": "story",
+   "title": "ts_zh_0351",
+   "split": "test",
+   "chars": 233
+  },
+  {
+   "hash": "e82bc8f7fec4afc2",
+   "bucket": "story",
+   "title": "ts_zh_0844",
+   "split": "test",
+   "chars": 221
+  },
+  {
+   "hash": "e8483372f1c417b3",
+   "bucket": "story",
+   "title": "ts_zh_0244",
+   "split": "test",
+   "chars": 213
+  },
+  {
+   "hash": "e8563714486b35b6",
+   "bucket": "story",
+   "title": "ts_zh_0925",
+   "split": "test",
+   "chars": 859
+  },
+  {
+   "hash": "e85953e0e5ed8d2f",
+   "bucket": "story",
+   "title": "ts_zh_0513",
+   "split": "test",
+   "chars": 254
+  },
+  {
+   "hash": "e89ee70526ab3068",
+   "bucket": "story",
+   "title": "ts_zh_0034",
+   "split": "test",
+   "chars": 312
+  },
+  {
+   "hash": "e8d004056e2ace9e",
+   "bucket": "story",
+   "title": "ts_zh_0270",
+   "split": "test",
+   "chars": 245
+  },
+  {
+   "hash": "e8ea34dfa6c369ec",
+   "bucket": "story",
+   "title": "ts_zh_0692",
+   "split": "test",
+   "chars": 225
+  },
+  {
+   "hash": "e996208339334b02",
+   "bucket": "story",
+   "title": "ts_zh_0476",
+   "split": "test",
+   "chars": 289
+  },
+  {
+   "hash": "e9e3df657232107c",
+   "bucket": "story",
+   "title": "ts_zh_0307",
+   "split": "test",
+   "chars": 221
+  },
+  {
+   "hash": "eb5756ce0e446dbb",
+   "bucket": "story",
+   "title": "ts_zh_0074",
+   "split": "test",
+   "chars": 283
+  },
+  {
+   "hash": "ec0232cb4b6c02d7",
+   "bucket": "story",
+   "title": "ts_zh_0823",
+   "split": "test",
+   "chars": 201
+  },
+  {
+   "hash": "ec12f3a5edf5e3ed",
+   "bucket": "story",
+   "title": "ts_zh_0842",
+   "split": "test",
+   "chars": 257
+  },
+  {
+   "hash": "ec17d89b36c011d7",
+   "bucket": "story",
+   "title": "ts_zh_0011",
+   "split": "test",
+   "chars": 237
+  },
+  {
+   "hash": "ec82621db05887c8",
+   "bucket": "story",
+   "title": "ts_zh_0626",
+   "split": "test",
+   "chars": 228
+  },
+  {
+   "hash": "ed3575a088b4b4e7",
+   "bucket": "story",
+   "title": "ts_zh_0733",
+   "split": "test",
+   "chars": 222
+  },
+  {
+   "hash": "ed3e088ef1ff6ff0",
+   "bucket": "story",
+   "title": "ts_zh_0283",
+   "split": "test",
+   "chars": 205
+  },
+  {
+   "hash": "e91629c3493904c1",
+   "bucket": "urban",
+   "title": "孽海花",
+   "split": "test",
+   "chars": 254381
+  },
+  {
+   "hash": "ed4a221b8640b1ef",
+   "bucket": "urban",
+   "title": "老残游记续集",
+   "split": "test",
+   "chars": 53045
+  },
+  {
+   "hash": "f5600dd04fa4fc1c",
+   "bucket": "urban",
+   "title": "文明小史",
+   "split": "test",
+   "chars": 291650
+  },
+  {
+   "hash": "f59e7015e2e86cdf",
+   "bucket": "urban",
+   "title": "海上花列传",
+   "split": "test",
+   "chars": 314974
+  },
+  {
+   "hash": "c7ca31dbca1a0fc0",
+   "bucket": "wuxia",
+   "title": "好逑传",
+   "split": "test",
+   "chars": 127755
+  },
+  {
+   "hash": "d69985b6cf77a305",
+   "bucket": "wuxia",
+   "title": "残唐五代史演义传",
+   "split": "test",
+   "chars": 114333
+  },
+  {
+   "hash": "dea041cec38fbf0f",
+   "bucket": "wuxia",
+   "title": "水浒传",
+   "split": "test",
+   "chars": 899624
+  },
+  {
+   "hash": "b5ce31242aec40ea",
+   "bucket": "xiandai",
+   "title": "兔和貓",
+   "split": "test",
+   "chars": 2973
+  },
+  {
+   "hash": "bfa39b04416ad520",
+   "bucket": "xiandai",
+   "title": "四世同堂",
+   "split": "test",
+   "chars": 614229
+  },
+  {
+   "hash": "e8becadf7b225fa4",
+   "bucket": "xiandai",
+   "title": "一件小事",
+   "split": "test",
+   "chars": 1042
+  },
+  {
+   "hash": "ebe0ce26f525a11d",
+   "bucket": "xiandai",
+   "title": "故鄉",
+   "split": "test",
+   "chars": 5500
+  }
+ ]
+}

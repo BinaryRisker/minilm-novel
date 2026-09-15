@@ -1410,4 +1410,80 @@ forum/qiushi_articles_parquet (求是理论文, 非叙事)、wiki/* (百科, 已
 2. 大文件下载中途停滞（30 秒仅 49 KB）：curl 挂上 `--speed-time 30 --speed-limit 10000
    --retry 20 --retry-all-errors -C -`（30 秒低于 10 KB/s 自动重连续传）。
 
-**预期规模**（跑完后回填）：分片 0 ≈ 9,700 部完整网文 / ~15 亿字；Pixiv ~2-3 万篇。
+**实际规模（回填）**
+
+| 源 | 部数 | 字数 |
+|---|---:|---:|
+| `wdndev/webnovel-chinese` 分片 0 **全量** | **1,093** | **13.91 亿** |
+| `wuliangfo/Chinese-Pixiv-Novel`（max 30,000 封顶） | 30,000 | 2.93 亿 |
+| `v3ucn/chinese-novel-dataset` | 729 | 63 万 |
+| （已有）MNBVC 天涯主片/北大树洞/清华树洞/知乎/莲蓬鬼话 | 190,372 | 2.19 亿 |
+| **`localugc` 桶合计** | **225,581** | **18.90 亿** |
+
+**意外**：分片 0 不是估计的"9,700 部中短篇"，而是 **1,093 部超长连载（均部 127 万字）**——
+30 MB 切片时代看到"70 部"是因为只读了片头极小一段、恰好横跨 70 部的开头。
+这也改变了语料结构：`localugc` 的字数大头从"树洞碎片"变成"超长网文"（13.9 亿 / 18.9 亿 ≈ 74%）。
+
+**连带修正**：全库 **226,725 部 / 19.21 亿字**。`data/splits` **默认排除 `localugc`**——
+19 亿字级 UGC 进全局 splits 会产生数 GB 巨型 txt 且 `'
+
+'.join` 直接 MemoryError
+（实踩，build_splits 已改流式写 + `--exclude` 参数）；它的训练数据走 manifest+processed 直读。
+排除后 splits 回到证据语料口径：**1,144 部 / 3,073 万字**（train 914 / val 112 / test 118，ok=True）。
+
+**回归**：Python **46/46**（并发内容流程新增了测试）、`node smoke.js` 23 项通过；
+`wuxia/urban/story` 桶 md5 逐字未变。
+
+---
+
+## 2026-09-15 · Day 3（续四）· 锁定测试族落地 + 一次真实的"门禁拦截事故"
+
+**做了**（V3 P0 第 4 条：所有调参改用 val；历史 test 标 exploratory，新锁定测试族）：
+
+1. **`py/locked_test.py`**：从当前清单 test split 按**内容哈希**每桶取前 N 部冻结到
+   `data/locked_test.json`。身份用哈希不用 story_id——story_id 会随去重/重跑重新编号，
+   哈希不会。`--verify` 对三种情况**非零退出**：锁定作品在当前清单中消失、split 归属变化、
+   锁定文件被手改；**清单换代本身只作 stderr 注记不失败**（锁定族按哈希逐部追踪，
+   无关作品的增删不影响它的有效性）。
+2. **`docs/EVAL_PROTOCOL_V1.md`**：把口径立成文——调参只看 val；锁定族只在最终验收时评一次；
+   **反复读过 test 的历史 sweep 数字（wsplit/datascale/budget/ctx 各轮）一律 exploratory**，
+   保留不删，但引用必须带标注，要升级成结论须在 val 重新选型 + 锁定族一次性复测。
+3. **修复一次门禁误报的根因**（见下）。
+
+**实时拦截的真实事故**：这轮 `locked_test --freeze` 第一次运行就**被自己的门禁拒了**——
+`split_report.json` 指纹对不上 `manifest.jsonl`。排查结果**不是过期**：并发线给 `build_splits.py`
+加了 `--exclude localugc`（22.5 万部会拼出数 GB 巨型 txt，他们还实踩了 join 的 MemoryError 改成
+流式写），排除后报告指纹记的是 **1,144 部子集**的指纹，而我的 `verify()` 拿它对**全量清单**——
+契约错位，从此**每次加载都误报**。修法：`build_splits.py` 在排除**之前**算全量清单指纹写进报告，
+排除桶作为 `excluded_buckets` 字段记录（另加 `full_manifest_works`）。
+**教训：同一份指纹只能有一个定义域。** 排除子集的指纹不是"同一版的指纹"，是另一个东西。
+
+**数字**
+
+| 项 | 结果 |
+|---|---|
+| 当前清单 | 225,756 部（localugc 224,612），指纹 `81187b7b546f0745`；splits 排除 localugc 后 1,144 部 |
+| 锁定测试族 | **58 部**（story=20, localugc=20, gudian=6, urban=4, xiandai=4, wuxia=3, scifi=1），`lock_fingerprint=6f60d9363678bf5b` |
+| 契约测试 | `test_locked_test.py` 8 项（冻结确定性/清单重排不变/漂移三种/换代只注记）；全量 Python **54/54 OK** |
+| 门禁链 | `manifest_v3.jsonl` 已被并发线落盘但与当前清单不同源 → `resolve_current()` 正确拒绝、告警、回退 v1 |
+
+**意外发现**
+
+1. **门禁第一次真的拦下了事故，拦的方式和预想不同。** 我以为它拦的是"过期缓存"，
+   实际拦的是"**语义漂移**"——指纹的定义域被人改了而契约没跟上。加载层校验的价值恰恰在这里：
+   它不管你为什么对不上，只管"对不上就别往下跑"。
+2. **锁定身份必须用内容哈希。** 冻结如果按 story_id，下次去重/重跑后 58 部全部"找不到"，
+   锁定族形同自毁；按哈希后，清单换代（指纹变）与锁定失效（作品没了/被挪走）是两个独立事件，
+   分别处理才对。
+3. **锁定族里 localugc 占 20 部**——许可上是"权利不清"，做个人评测没问题，
+   但这 20 部上的任何数字**不能进可发布产物**（`license_policy` 的口径）。
+
+**边界**
+
+- `py/sweep_worksplit.py` 每个 eval 步号读 test 的用法**没改**（并发线在途文件，不代改）；
+  `docs/experiments/` 各报告与 LOG 既有条目的逐篇 exploratory 补标**未做**，先落协议再逐篇补。
+- 当前锁定族冻在 v1（近重复未清零）上；等门禁通过的清单落地，若归属变化 `--verify` 会失败，
+  **重新冻结即可**，这正是设计行为——但届时旧锁定族上的验收数字要作废重测。
+
+**产出**：`py/locked_test.py`、`py/tests/test_locked_test.py`、`data/locked_test.json`、
+`docs/EVAL_PROTOCOL_V1.md`、`py/data/build_splits.py`（指纹定义域修复，含并发线的 exclude/流式写改动）。

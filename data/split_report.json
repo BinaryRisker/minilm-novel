@@ -3,24 +3,28 @@
   "note": "按作品整篇切分（train/val/test 不跨作品）。正文取 data/processed/ 每部全文，非 corpus.json 的截断拼接。chars 为逐作品原文字数之和，file_chars 含作品间 \\n\\n 分隔符。供 L3 之后的质量实验使用；minilm_torch.train 的连续 90/10 切分是 JS 对齐路径，与此无关。",
   "splits": {
     "train": {
-      "works": 25627,
-      "chars": 136311500,
-      "file_chars": 136362752
+      "works": 914,
+      "chars": 23112736,
+      "file_chars": 23114562
     },
     "val": {
-      "works": 3201,
-      "chars": 16851748,
-      "file_chars": 16858148
+      "works": 112,
+      "chars": 3559979,
+      "file_chars": 3560201
     },
     "test": {
-      "works": 3208,
-      "chars": 16490242,
-      "file_chars": 16496656
+      "works": 118,
+      "chars": 4054218,
+      "file_chars": 4054452
     }
   },
-  "split_fingerprint": "4bafc1993955d29c",
-  "total_works": 32036,
-  "total_chars": 169653490,
-  "work_chars_sum": 169653490,
+  "split_fingerprint": "81187b7b546f0745",
+  "full_manifest_works": 225756,
+  "excluded_buckets": [
+    "localugc"
+  ],
+  "total_works": 1144,
+  "total_chars": 30726933,
+  "work_chars_sum": 30726933,
   "ok": true
 }

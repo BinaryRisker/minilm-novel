@@ -28,6 +28,14 @@
     **默认清单的近重复/同源泄漏未清零**（门禁仍失败，gudian/test 残余 2.00%），
     清零前 `near_dup_merged=False` 会如实随每个 run 落盘。
 - [ ] 所有调参改用 val；历史 test 标 exploratory，新锁定测试族。
+  - ✅ 2026-09-15 已立：协议见 [`docs/EVAL_PROTOCOL_V1.md`](EVAL_PROTOCOL_V1.md)。
+    `py/train.py` 本就只看 val（test 最后评一次）；锁定测试族由 `py/locked_test.py` 冻结
+    （`data/locked_test.json`：58 部，`lock_fingerprint=6f60d9363678bf5b`，按**内容哈希**取身份，
+    story_id 会随去重重新编号不可靠）；`--verify` 对「作品消失 / split 归属变化 / 文件被手改」
+    非零退出，清单换代只注记。契约测试 `py/tests/test_locked_test.py` 8 项。
+  - ⏳ 仍缺：历史数字的 exploratory 标注只落在协议文档里，`docs/experiments/` 各报告与
+    `LOG.md` 既有条目尚未逐篇补标；`py/sweep_worksplit.py` 每个 eval 步号读 test 的用法未改
+    （属并发工作线在途文件）；实践篇 24/31 的修订（下一条）也依赖同一批勘误。
 - [ ] 修订实践篇 24/31 的泄漏归因、预算推断与错误命令；保留原始数字及勘误原因。
 
 出口：空生成不获故事分；同 seed 可重复；真正 resume；不合规数据和不匹配缓存非零退出。
