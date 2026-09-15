@@ -111,7 +111,8 @@ node test_novel.js       # 中文小说生成能力测试，产出 report_eviden
 | `py/splits.py` | 按作品切分的统一读取入口（train/val/test，词表只在 train 上建）；调 `verify()` 做切分身份校验 |
 | `py/repro.py` | 可复现性原语：`set_global_seed`（random/numpy/torch）+ `rng_state/set_rng_state`（续训用） |
 | `py/audit_splits.py` | **数据隔离审计（门禁）**：清单级 / 片段级精确查找 / 词表 OOV / 训练集内重复 / 旧口径对照，违规非零退出 |
-| `py/dedup_works.py` | **近重复合并**：winnowing 锚点找「异名同书 / 选本重复」，并查集合并成簇整簇同 split → `data/manifest_v2.jsonl` |
+| `py/dedup_works.py` | **近重复合并**：winnowing 锚点找「异名同书 / 选本重复」，并查集合并成簇整簇同 split → `data/manifest_v2.jsonl`（`resplit()` 供 audit_neardup 复用） |
+| `py/audit_neardup.py` | **可扩展近重复检测**（19 万部量级）：`auto` 分层——小桶走锚点法（对齐无关，能抓同书异本）、大桶走行级倒排；**五道守卫**（行级：df 绝对+占比 / 最少共享行 / 最少共享字数；锚点：锚点 df 过滤 / 精确复核门槛）；`--out-manifest` 产出重切分清单、`--out-moves` 只产出增量（完整清单 105 MB 超 GitHub 上限，不入库）、`--dump-pairs` 导出逐条边用于诊断链式放大 |
 | `py/leak_probe.py` | 同源泄漏的值：同一模型在「污染测试集」与「干净测试集」上逐作品对比，量化虚高多少分 |
 | `py/verify_seed.py` / `py/verify_resume.py` / `py/verify_story_eval.py` | 三份可复核判定：种子逐位可复现 / 续训与直训逐位等价 / 出题来自留出集+生成可复现+旧口径不送分 |
 | `py/closed_loop.py` | **随机初始化最小闭环**：训练→中途存盘→续训→留出评测→生成故事，产出报告含失败样本 |

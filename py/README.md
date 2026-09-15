@@ -176,6 +176,14 @@ python -m unittest discover -s py/tests -t . -v
 | `tokenizer.py` | 极简 BPE tokenizer（学习用，无外部依赖） |
 | `train.py` | 训练 CLI：**种子前置**、checkpoint v2（含优化器/步数/RNG）、真·断点续训（`--resume` + `--stop_at`）、`--bucket` 按桶读按作品切分、val 选点/test 只评一次 |
 | `eval_story.py` | 场景写作评测（重写）：提示词取自**留出作品**（记录 provenance）、`--seed` 可复现、指标只算生成段（旧口径另存作对照）、`--baseline trigram` 同参数对照 |
+| `splits.py` | 按作品切分的统一读取入口（`bucket_texts`/`bucket_joined`，词表只在 train 上建）；`verify()` 切分身份校验（指纹不符 / 未去重一律非零退出） |
+| `repro.py` | 可复现性原语：`set_global_seed`（random/numpy/torch）+ `rng_state`/`set_rng_state`（把全局 RNG 与 torch RNG 一起打包，断点续训用） |
+| `audit_splits.py` | 数据隔离审计（门禁）：清单级 / 片段级精确查找 / 词表 OOV / 训练集内重复 / 旧口径对照 |
+| `audit_neardup.py` | **可扩展近重复检测**（19 万部量级）：`auto` 分层——小桶走锚点法（对齐无关，能抓「同书异本」）、大桶走行级倒排；**五道守卫**（行级：df 绝对+占比 / 最少共享行 / 最少共享字数；锚点：锚点 df 过滤 / 精确复核门槛 `--min-exact`）；`--out-manifest` 产出重切分清单、`--out-moves` 只产出增量（完整清单 105 MB 超 GitHub 100 MB 上限，不入库）、`--dump-pairs` 导出逐条边用于诊断并查集链式放大 |
+| `dedup_works.py` | 近重复合并（锚点法）：异名同书 / 选本重复合并成簇整簇同 split → `data/manifest_v2.jsonl`；`resplit()` 抽成函数被 `audit_neardup.py` 复用 |
+| `leak_probe.py` | 同源泄漏值多少分：同一模型在「污染测试集」与「干净测试集」上逐作品对比 |
+| `verify_seed.py` / `verify_resume.py` / `verify_story_eval.py` | 三份可复核判定：种子逐位可复现 / 续训与直训逐位等价 / 出题来自留出集 + 生成可复现 + 旧口径不送分 |
+| `closed_loop.py` | 随机初始化最小闭环：训练 → 中途存盘 → 续训 → 留出评测 → 生成故事（报告含失败样本） |
 | `benchmark.py` | 训练吞吐与资源实测（tokens/s、单步耗时、峰值内存） |
 | `tests/` | 单测：`test_baselines.py`（稀疏 NGram 对稠密参考逐点差分 + 滑窗步长协议）、`test_tokenizer.py` |
 | `runs/` | 每个 语料×种子 的结果缓存（JSON）；扫描结果 `sweep_*.json` 亦在此 |

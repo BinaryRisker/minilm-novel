@@ -117,6 +117,46 @@ class UF:
         return g
 
 
+def resplit(rows: list, groups: dict) -> tuple:
+    """把「同源簇」整体压到同一个 split，返回 (新清单, 移动作品数)。
+
+    groups: {root: [member, ...]}（只含 ≥2 部的簇；单部作品保持原 split）。
+
+    规则（两条都是刻意的）：
+      · 簇内有 train → **整簇进 train**：保守优先，绝不把可能被训练见过的东西留在留出集；
+      · 否则按簇内**最小 story_id** 的原 split：纯确定性，避免两次运行结果漂移。
+    字段：orig_split（**首次**原始 split；链式重跑 v2→v3 时不覆盖）、dedup_cluster、dedup_cluster_size。
+
+    抽成独立函数的原因：py/audit_neardup.py（行级倒排，可扩展到 19 万部）也要产出清单。
+    规则若两处各写一遍，就会「自己校验自己」——同 py/splits.py 指纹那条教训。
+    """
+    root_of, size_of = {}, {}
+    for root, members in groups.items():
+        for m in members:
+            root_of[m] = root
+            size_of[m] = len(members)
+    split_of = {r['story_id']: r['split'] for r in rows}
+    changed, out_rows = 0, []
+    for r in rows:
+        sid = r['story_id']
+        if sid in root_of:
+            root = root_of[sid]
+            members = groups[root]
+            sps = [split_of[m] for m in members if m in split_of]
+            new_split = 'train' if 'train' in sps else split_of.get(sorted(members)[0], 'train')
+        else:
+            root, new_split = sid, r['split']
+        if new_split != r['split']:
+            changed += 1
+        nr = dict(r)
+        nr['orig_split'] = r.get('orig_split') or r['split']
+        nr['split'] = new_split
+        nr['dedup_cluster'] = root
+        nr['dedup_cluster_size'] = size_of.get(sid, 1)
+        out_rows.append(nr)
+    return out_rows, changed
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--buckets', default='gudian,wuxia,urban')
@@ -205,31 +245,7 @@ def main():
 
     # ---------------- 重新分配 split（簇必须整体一致） ----------------
     groups = {r: sorted(v) for r, v in uf.groups().items()}
-    split_of = {r['story_id']: r['split'] for r in rows}
-    cluster_of, cluster_size = {}, {}
-    changed = 0
-    out_rows = []
-    for r in rows:
-        sid = r['story_id']
-        root = uf.find(sid)
-        members = groups.get(root, [sid])
-        if len(members) > 1:
-            sps = [split_of[m] for m in members if m in split_of]
-            # 规则：簇内有 train → 整簇进 train（保守：绝不把可能见过的东西留在留出集）；
-            # 否则按最小 story_id 的原 split（确定性）
-            new_split = 'train' if 'train' in sps else split_of.get(members[0], 'train')
-        else:
-            new_split = r['split']
-        cluster_of[sid] = root
-        cluster_size[sid] = len(members)
-        if new_split != r['split']:
-            changed += 1
-        nr = dict(r)
-        nr['orig_split'] = r['split']
-        nr['split'] = new_split
-        nr['dedup_cluster'] = root
-        nr['dedup_cluster_size'] = len(members)
-        out_rows.append(nr)
+    out_rows, changed = resplit(rows, groups)
 
     os.makedirs(os.path.dirname(args.out_manifest), exist_ok=True)
     with open(args.out_manifest, 'w', encoding='utf-8') as f:

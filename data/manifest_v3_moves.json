@@ -1,0 +1,3000 @@
+{
+  "generated_by": "py/audit_neardup.py",
+  "note": "重切分**增量**（哪些作品换了 split）。配合 base_manifest 可确定性重建完整新清单：把每个 story_id 的 split 改成 to。",
+  "base_manifest": "D:\\work\\_snap_manifest.jsonl",
+  "base_fingerprint": "ba915011fd4ce482",
+  "target_fingerprint": "901a6a299d899fb6",
+  "cluster_count": 665,
+  "moved": 427,
+  "moves": [
+    {
+      "story_id": "gudian_006",
+      "bucket": "gudian",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "gudian_015",
+      "bucket": "gudian",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 6
+    },
+    {
+      "story_id": "gudian_021",
+      "bucket": "gudian",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_012",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_097",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_100137",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_10023",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_10046",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_100574",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_102321",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_102596",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_10322",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_10371",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 7
+    },
+    {
+      "story_id": "localugc_104498",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_105432",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 5
+    },
+    {
+      "story_id": "localugc_10550",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_10637",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 6
+    },
+    {
+      "story_id": "localugc_106670",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 4
+    },
+    {
+      "story_id": "localugc_107",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_107158",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_1077",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 21
+    },
+    {
+      "story_id": "localugc_108160",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_10842",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_108684",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 9
+    },
+    {
+      "story_id": "localugc_110172",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 8
+    },
+    {
+      "story_id": "localugc_11080",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_11163",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_112158",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_11221",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_1124",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 4
+    },
+    {
+      "story_id": "localugc_112603",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 10
+    },
+    {
+      "story_id": "localugc_1129",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_113336",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_113674",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_114073",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 10
+    },
+    {
+      "story_id": "localugc_114720",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 8
+    },
+    {
+      "story_id": "localugc_11517",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 8
+    },
+    {
+      "story_id": "localugc_11623",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 9
+    },
+    {
+      "story_id": "localugc_1171",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_11737",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_117375",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 4
+    },
+    {
+      "story_id": "localugc_117383",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_117440",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "test",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_117861",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_117921",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 10
+    },
+    {
+      "story_id": "localugc_11846",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 8
+    },
+    {
+      "story_id": "localugc_118792",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_1188",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_118947",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_119145",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 8
+    },
+    {
+      "story_id": "localugc_1198",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_11981",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_12112",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 10
+    },
+    {
+      "story_id": "localugc_121445",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_123042",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_124491",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_124803",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 7
+    },
+    {
+      "story_id": "localugc_12481",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_125435",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_126758",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_12760",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 4
+    },
+    {
+      "story_id": "localugc_128771",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_130051",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_13009",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 15
+    },
+    {
+      "story_id": "localugc_132034",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_132582",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 6
+    },
+    {
+      "story_id": "localugc_13275",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 7
+    },
+    {
+      "story_id": "localugc_134081",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_1368",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 9
+    },
+    {
+      "story_id": "localugc_1371",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 7
+    },
+    {
+      "story_id": "localugc_138212",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_138818",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_13949",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_140139",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_14253",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 9
+    },
+    {
+      "story_id": "localugc_142684",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_1435",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 10
+    },
+    {
+      "story_id": "localugc_144284",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_145061",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_1468",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_14680",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 7
+    },
+    {
+      "story_id": "localugc_14776",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_1482",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_149103",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_15018",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_15033",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 15
+    },
+    {
+      "story_id": "localugc_15062",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_1525",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_152835",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_15338",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 7
+    },
+    {
+      "story_id": "localugc_153455",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_1551",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_15598",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_1587",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_159",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_159458",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_1600",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_1602",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_1606",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 10
+    },
+    {
+      "story_id": "localugc_1613",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_16178",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_1662",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_166597",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_17504",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 5
+    },
+    {
+      "story_id": "localugc_1751",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 66
+    },
+    {
+      "story_id": "localugc_1792",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_1827",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_18299",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_19005",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_19201",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "val",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_1942",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 66
+    },
+    {
+      "story_id": "localugc_19475",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_19484",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 7
+    },
+    {
+      "story_id": "localugc_1993",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_2012",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 10
+    },
+    {
+      "story_id": "localugc_20123",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_2022",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_20264",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 4
+    },
+    {
+      "story_id": "localugc_2031",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_20353",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_2047",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_2050",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 66
+    },
+    {
+      "story_id": "localugc_2051",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_207",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_20700",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_20860",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_2095",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_21044",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 10
+    },
+    {
+      "story_id": "localugc_215",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 6
+    },
+    {
+      "story_id": "localugc_21776",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_22268",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_22363",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 8
+    },
+    {
+      "story_id": "localugc_2267",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 4
+    },
+    {
+      "story_id": "localugc_23021",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_23096",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_23134",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_2316",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_23161",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_2333",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 5
+    },
+    {
+      "story_id": "localugc_23427",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 4
+    },
+    {
+      "story_id": "localugc_2349",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 15
+    },
+    {
+      "story_id": "localugc_23718",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 9
+    },
+    {
+      "story_id": "localugc_23767",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_24002",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 66
+    },
+    {
+      "story_id": "localugc_24003",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_2433",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_2457",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 13
+    },
+    {
+      "story_id": "localugc_2464",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_25001",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_253",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_2548",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_2561",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_25786",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 5
+    },
+    {
+      "story_id": "localugc_2586",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 9
+    },
+    {
+      "story_id": "localugc_25875",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 8
+    },
+    {
+      "story_id": "localugc_25901",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_2605",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 66
+    },
+    {
+      "story_id": "localugc_2623",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_26424",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_2678",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 66
+    },
+    {
+      "story_id": "localugc_26781",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_26830",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_2691",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 5
+    },
+    {
+      "story_id": "localugc_26977",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_272",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 9
+    },
+    {
+      "story_id": "localugc_28028",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 5
+    },
+    {
+      "story_id": "localugc_28200",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 7
+    },
+    {
+      "story_id": "localugc_2823",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_2848",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 66
+    },
+    {
+      "story_id": "localugc_2884",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_2890",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 5
+    },
+    {
+      "story_id": "localugc_28920",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_28936",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 6
+    },
+    {
+      "story_id": "localugc_2929",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 66
+    },
+    {
+      "story_id": "localugc_29463",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_2997",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_3024",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 66
+    },
+    {
+      "story_id": "localugc_3043",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 15
+    },
+    {
+      "story_id": "localugc_3049",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_30680",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_3094",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_3123",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_31386",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_3171",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 4
+    },
+    {
+      "story_id": "localugc_318",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_3229",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 5
+    },
+    {
+      "story_id": "localugc_32393",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_3256",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_32564",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_3313",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_3334",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_33422",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_33808",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 4
+    },
+    {
+      "story_id": "localugc_34164",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 13
+    },
+    {
+      "story_id": "localugc_34531",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 21
+    },
+    {
+      "story_id": "localugc_3479",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_3493",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 5
+    },
+    {
+      "story_id": "localugc_3497",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 6
+    },
+    {
+      "story_id": "localugc_351",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_3522",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 9
+    },
+    {
+      "story_id": "localugc_3528",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_35305",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 4
+    },
+    {
+      "story_id": "localugc_3532",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_35511",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 4
+    },
+    {
+      "story_id": "localugc_35586",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_3606",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 66
+    },
+    {
+      "story_id": "localugc_36581",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 7
+    },
+    {
+      "story_id": "localugc_3679",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 66
+    },
+    {
+      "story_id": "localugc_3687",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_3708",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_37239",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_3787",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_37930",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_38279",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "test",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_38375",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_3857",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_3910",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 7
+    },
+    {
+      "story_id": "localugc_4038",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_40500",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 7
+    },
+    {
+      "story_id": "localugc_4054",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_4068",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_4069",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_4122",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_41351",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_4136",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_4173",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_418",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_422",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 15
+    },
+    {
+      "story_id": "localugc_42337",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_4270",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 5
+    },
+    {
+      "story_id": "localugc_429",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_43497",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_4371",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_44028",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_4433",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_4442",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 66
+    },
+    {
+      "story_id": "localugc_4443",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_45086",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 4
+    },
+    {
+      "story_id": "localugc_45223",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 6
+    },
+    {
+      "story_id": "localugc_4557",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_456",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 4
+    },
+    {
+      "story_id": "localugc_4576",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_4581",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 66
+    },
+    {
+      "story_id": "localugc_46464",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_46610",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 7
+    },
+    {
+      "story_id": "localugc_46631",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_47701",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 4
+    },
+    {
+      "story_id": "localugc_47728",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_4774",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_4817",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_48186",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_4820",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 66
+    },
+    {
+      "story_id": "localugc_48840",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 5
+    },
+    {
+      "story_id": "localugc_48959",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_4898",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_49429",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_50026",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 7
+    },
+    {
+      "story_id": "localugc_50158",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_5024",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_5068",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_509",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 7
+    },
+    {
+      "story_id": "localugc_5120",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_5155",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_51843",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_5200",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_52110",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_52114",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 5
+    },
+    {
+      "story_id": "localugc_523",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 66
+    },
+    {
+      "story_id": "localugc_52741",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_5317",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 7
+    },
+    {
+      "story_id": "localugc_5333",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 66
+    },
+    {
+      "story_id": "localugc_534",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_537",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_53741",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_548",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_54922",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_54945",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 7
+    },
+    {
+      "story_id": "localugc_55124",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_5523",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_55242",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 7
+    },
+    {
+      "story_id": "localugc_5621",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_5784",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_57952",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_58617",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 7
+    },
+    {
+      "story_id": "localugc_58758",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_589",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_59034",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 9
+    },
+    {
+      "story_id": "localugc_5932",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 7
+    },
+    {
+      "story_id": "localugc_59767",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 5
+    },
+    {
+      "story_id": "localugc_59992",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_60072",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_60311",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 4
+    },
+    {
+      "story_id": "localugc_61031",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 19
+    },
+    {
+      "story_id": "localugc_611",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "val",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_6160",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_6214",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_6225",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 7
+    },
+    {
+      "story_id": "localugc_625",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_6250",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_63006",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 7
+    },
+    {
+      "story_id": "localugc_631",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 5
+    },
+    {
+      "story_id": "localugc_6353",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_63547",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_6366",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_64330",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 6
+    },
+    {
+      "story_id": "localugc_64454",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 13
+    },
+    {
+      "story_id": "localugc_64455",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 13
+    },
+    {
+      "story_id": "localugc_64514",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_64557",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 6
+    },
+    {
+      "story_id": "localugc_64820",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 15
+    },
+    {
+      "story_id": "localugc_64821",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_6506",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 13
+    },
+    {
+      "story_id": "localugc_6516",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_66030",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_6604",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_661",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_66178",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_663",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 66
+    },
+    {
+      "story_id": "localugc_66322",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 6
+    },
+    {
+      "story_id": "localugc_66755",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "val",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_672",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_673",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_67342",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_67573",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_6777",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_6834",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_68423",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_6891",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_69265",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 21
+    },
+    {
+      "story_id": "localugc_6932",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_69425",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_69763",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_69999",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_7011",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_70187",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 21
+    },
+    {
+      "story_id": "localugc_70498",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 4
+    },
+    {
+      "story_id": "localugc_706",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_71286",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_71428",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_71546",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 13
+    },
+    {
+      "story_id": "localugc_7160",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_72575",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 7
+    },
+    {
+      "story_id": "localugc_7259",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_73353",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_73534",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_73536",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_73769",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 10
+    },
+    {
+      "story_id": "localugc_73794",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_7390",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_7393",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_741",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 6
+    },
+    {
+      "story_id": "localugc_74100",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 19
+    },
+    {
+      "story_id": "localugc_7417",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_74548",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 21
+    },
+    {
+      "story_id": "localugc_7481",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_74887",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_7522",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_7540",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_7543",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 5
+    },
+    {
+      "story_id": "localugc_7584",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_759",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_760",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_76215",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "val",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_7652",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_76735",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 5
+    },
+    {
+      "story_id": "localugc_7706",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_77080",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_77133",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_7719",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_77245",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 4
+    },
+    {
+      "story_id": "localugc_77805",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 4
+    },
+    {
+      "story_id": "localugc_77995",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_79355",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_795",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 5
+    },
+    {
+      "story_id": "localugc_79563",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_79971",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 20
+    },
+    {
+      "story_id": "localugc_80240",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 20
+    },
+    {
+      "story_id": "localugc_804",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_8062",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_8084",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_816",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 7
+    },
+    {
+      "story_id": "localugc_8174",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_82375",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 4
+    },
+    {
+      "story_id": "localugc_831",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 6
+    },
+    {
+      "story_id": "localugc_83143",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 13
+    },
+    {
+      "story_id": "localugc_8320",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_8345",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_83482",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 20
+    },
+    {
+      "story_id": "localugc_8402",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 15
+    },
+    {
+      "story_id": "localugc_84127",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 20
+    },
+    {
+      "story_id": "localugc_844",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 232
+    },
+    {
+      "story_id": "localugc_8477",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_86206",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 5
+    },
+    {
+      "story_id": "localugc_86243",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 9
+    },
+    {
+      "story_id": "localugc_8755",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 9
+    },
+    {
+      "story_id": "localugc_8773",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_88544",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_886",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_890",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 4
+    },
+    {
+      "story_id": "localugc_894",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_90448",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_911",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_9126",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_91374",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_91392",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_91404",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_92208",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 9
+    },
+    {
+      "story_id": "localugc_92851",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_9335",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 7
+    },
+    {
+      "story_id": "localugc_938",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 66
+    },
+    {
+      "story_id": "localugc_9397",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_94399",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_94840",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_95183",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_9540",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 4
+    },
+    {
+      "story_id": "localugc_9548",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 4
+    },
+    {
+      "story_id": "localugc_958",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 21
+    },
+    {
+      "story_id": "localugc_9585",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 9
+    },
+    {
+      "story_id": "localugc_9632",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 9
+    },
+    {
+      "story_id": "localugc_9644",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_9654",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 5
+    },
+    {
+      "story_id": "localugc_96805",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_97583",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_9795",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_9797",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 2
+    },
+    {
+      "story_id": "localugc_9839",
+      "bucket": "localugc",
+      "from": "test",
+      "to": "train",
+      "cluster_size": 3
+    },
+    {
+      "story_id": "localugc_9862",
+      "bucket": "localugc",
+      "from": "val",
+      "to": "train",
+      "cluster_size": 12
+    }
+  ]
+}

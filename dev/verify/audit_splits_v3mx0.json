@@ -1,0 +1,100 @@
+{
+  "manifest_path": "D:\\work\\_v3mx0_manifest.jsonl",
+  "manifest": {
+    "violations": [],
+    "hash_cross": [],
+    "title_cross": [],
+    "parent_cross": [],
+    "works": 192823
+  },
+  "buckets": {
+    "gudian": {
+      "stats": {
+        "train": {
+          "works": 48,
+          "chars": 12701501
+        },
+        "val": {
+          "works": 4,
+          "chars": 1117026
+        },
+        "test": {
+          "works": 3,
+          "chars": 225847
+        }
+      },
+      "leak_val": {
+        "probes": 150,
+        "hits": 0,
+        "ratio": 0.0,
+        "span": 40,
+        "seed": 7,
+        "examples": []
+      },
+      "leak_test": {
+        "probes": 150,
+        "hits": 0,
+        "ratio": 0.0,
+        "span": 40,
+        "seed": 7,
+        "examples": []
+      },
+      "oov": {
+        "vocab": 8580,
+        "val": {
+          "chars": 1117032,
+          "oov": 231,
+          "ratio": 0.0002067980147390585
+        },
+        "test": {
+          "chars": 225851,
+          "oov": 132,
+          "ratio": 0.0005844561237275904
+        }
+      },
+      "train_dup": {
+        "works": 48,
+        "unique": 48,
+        "dup_groups": 0,
+        "dup_works": 0,
+        "examples": []
+      }
+    }
+  },
+  "legacy": {
+    "gudian": {
+      "corpus_chars": 2000079,
+      "train_seg": 1800071,
+      "test_seg": 200008,
+      "works_total": 44,
+      "works_in_both_segments": [
+        {
+          "story_id": "gudian_049",
+          "title": "剪灯新话"
+        }
+      ],
+      "works_only_test": [
+        {
+          "story_id": "gudian_050",
+          "title": "山海经"
+        },
+        {
+          "story_id": "gudian_053",
+          "title": "幽明录"
+        },
+        {
+          "story_id": "gudian_054",
+          "title": "搜神后记"
+        },
+        {
+          "story_id": "gudian_055",
+          "title": "西京杂记"
+        }
+      ],
+      "works_only_train": 39,
+      "works_absent": 0,
+      "truncation_loss": 0.8187330703374912,
+      "full_works_chars": 11033888
+    }
+  }
+}
