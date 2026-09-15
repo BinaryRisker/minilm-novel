@@ -25,8 +25,10 @@
     无条件优先会静默丢 16 万部。测试 `py/tests/test_identity_policy.py` 11 项。
   - ⏳ 仍缺：`sweep_*` 侧独立入口校验（目前靠 `py/splits.py` 统一拦截）；
     `assert_distributable()` 的调用方（`export.py`，属 P4）；
-    **默认清单的近重复/同源泄漏未清零**（门禁仍失败，gudian/test 残余 2.00%），
-    清零前 `near_dup_merged=False` 会如实随每个 run 落盘。
+    ~~默认清单的近重复/同源泄漏未清零~~ → ✅ 2026-09-15（续五）：`dedup_works` 对 6 个证据桶
+    重生成净化清单（移动 10 部），`audit_splits` 文本级 6 桶全部 0/200、门禁**通过**，
+    默认清单已自动切到 `manifest_v2.jsonl`（`near_dup_merged=True`）。
+    剩 `localugc`（224,612 部）未审计——不进 splits/探针，其上数字单独标注。
 - [ ] 所有调参改用 val；历史 test 标 exploratory，新锁定测试族。
   - ✅ 2026-09-15 已立：协议见 [`docs/EVAL_PROTOCOL_V1.md`](EVAL_PROTOCOL_V1.md)。
     `py/train.py` 本就只看 val（test 最后评一次）；锁定测试族由 `py/locked_test.py` 冻结

@@ -63,8 +63,15 @@
   **fail-closed 分级**——当前清单**仅 1,126 部（0.58% 部数 / 11.5% 字数）许可明确可分发**，
   其余 99.4% 是"权利不清/仅本地学习用"，只能进个人本地训练，**不得进入导出权重或公开数字**。
   **未了项**：默认清单的**近重复/同源泄漏尚未清零**（`py/audit_splits.py` 门禁仍在失败，
-  gudian/test 残余 2.00%；`py/leak_probe.py` 可量化它对指标的虚高）。**下一步**：等近重复审计
-  出门禁通过的清单，再推进 V3 P0 的锁定测试族与历史 test 标 exploratory。
+  gudian/test 残余 2.00%；`py/leak_probe.py` 可量化它对指标的虚高）。
+  **✅ 2026-09-15（续五）门禁已过**：并发线停机后，用 `py/dedup_works.py` 对 6 个证据桶
+  （gudian/wuxia/urban/xiandai/scifi/story，共 1,144 部）重生成净化清单（移动 10 部），
+  `py/audit_splits.py` 文本级探针 **6 桶全部 0/200**，门禁**通过**；默认清单经
+  `resolve_current()` 新鲜度校验自动切到 `manifest_v2.jsonl`（225,756 部，`near_dup_merged=True`）。
+  锁定测试族按设计**检测到漂移**（5 部被挪，含《新齐谐》test→train）并重新冻结（53 部）。
+  **仍待办**：`localugc`（224,612 部）**未做近重复审计**——体量原因不进 splits/门禁探针，
+  只走 manifest 直读训练，其上的数字单独标注；`sweep_worksplit.py` 曲线仍读 test（exploratory），
+  val 化是下一个独立改造。
   **评测口径（2026-09-15 起，见 [`docs/EVAL_PROTOCOL_V1.md`](docs/EVAL_PROTOCOL_V1.md)）**：
   调参只看 val；锁定测试族（`data/locked_test.json`，58 部，`py/locked_test.py` 冻结/校验）
   只在最终验收时评一次；**反复读过 test 的历史 sweep 数字一律标 exploratory**，不作验收依据。

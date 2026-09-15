@@ -1,8 +1,30 @@
 {
-  "generated_by": "py/dedup_works.py",
-  "note": "近重复（异名/异本/选本）合并后的切分：同一簇作品整体落在同一 split。指纹算法与 py/splits.py 共用一份实现。",
-  "split_fingerprint": "9e43eb9a4eb4a577",
-  "total_works": 32036,
-  "manifest": "D:\\work\\outputs\\minilm-lab\\data\\manifest_v2.jsonl",
-  "cluster_moves": 4
+  "generated_by": "py/data/build_splits.py",
+  "note": "按作品整篇切分（train/val/test 不跨作品）。正文取 data/processed/ 每部全文，非 corpus.json 的截断拼接。chars 为逐作品原文字数之和，file_chars 含作品间 \\n\\n 分隔符。供 L3 之后的质量实验使用；minilm_torch.train 的连续 90/10 切分是 JS 对齐路径，与此无关。",
+  "splits": {
+    "train": {
+      "works": 924,
+      "chars": 24789871,
+      "file_chars": 24791717
+    },
+    "val": {
+      "works": 110,
+      "chars": 2963442,
+      "file_chars": 2963660
+    },
+    "test": {
+      "works": 110,
+      "chars": 2973620,
+      "file_chars": 2973838
+    }
+  },
+  "split_fingerprint": "5433cae4babe084d",
+  "full_manifest_works": 225756,
+  "excluded_buckets": [
+    "localugc"
+  ],
+  "total_works": 1144,
+  "total_chars": 30726933,
+  "work_chars_sum": 30726933,
+  "ok": true
 }

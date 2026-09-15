@@ -2,10 +2,10 @@
  "protocol_version": 1,
  "generated_by": "py/locked_test.py --freeze",
  "note": "锁定测试族：调参只看 val；本族只在最终验收时评一次。身份按内容哈希（story_id 会随去重/重跑重新编号，不可靠）。",
- "manifest_fingerprint_at_freeze": "81187b7b546f0745",
- "manifest": "manifest.jsonl",
+ "manifest_fingerprint_at_freeze": "5433cae4babe084d",
+ "manifest": "manifest_v2.jsonl",
  "per_bucket": 20,
- "lock_fingerprint": "6f60d9363678bf5b",
+ "lock_fingerprint": "c3e310bff37c5bca",
  "works": [
   {
    "hash": "e5f7b636036a1cab",
@@ -15,32 +15,11 @@
    "chars": 67545
   },
   {
-   "hash": "e7f80f294ef8ae51",
-   "bucket": "gudian",
-   "title": "新齐谐",
-   "split": "test",
-   "chars": 267298
-  },
-  {
-   "hash": "ed98982eee8af34a",
-   "bucket": "gudian",
-   "title": "二刻拍案惊奇",
-   "split": "test",
-   "chars": 425805
-  },
-  {
    "hash": "f115d53fa735b508",
    "bucket": "gudian",
    "title": "无声戏",
    "split": "test",
    "chars": 130558
-  },
-  {
-   "hash": "f7d33e402ae25a79",
-   "bucket": "gudian",
-   "title": "警世通言",
-   "split": "test",
-   "chars": 378335
   },
   {
    "hash": "f86bb4b2a43ec0ed",
@@ -386,13 +365,6 @@
    "chars": 899624
   },
   {
-   "hash": "b5ce31242aec40ea",
-   "bucket": "xiandai",
-   "title": "兔和貓",
-   "split": "test",
-   "chars": 2973
-  },
-  {
    "hash": "bfa39b04416ad520",
    "bucket": "xiandai",
    "title": "四世同堂",
@@ -405,13 +377,6 @@
    "title": "一件小事",
    "split": "test",
    "chars": 1042
-  },
-  {
-   "hash": "ebe0ce26f525a11d",
-   "bucket": "xiandai",
-   "title": "故鄉",
-   "split": "test",
-   "chars": 5500
   }
  ]
 }

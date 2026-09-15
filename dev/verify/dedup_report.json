@@ -9,7 +9,10 @@
     "buckets": [
       "gudian",
       "wuxia",
-      "urban"
+      "urban",
+      "xiandai",
+      "scifi",
+      "story"
     ],
     "method": "winnowing 锚点包含度 + 候选对全文逐字复核"
   },
@@ -184,25 +187,565 @@
           "exact_max": 0.0159
         }
       ],
-      "seconds": 41.4
+      "seconds": 18.0
     },
     "wuxia": {
       "works": 23,
       "candidate_pairs": 0,
       "clusters": [],
       "top_pairs": [],
-      "seconds": 8.3
+      "seconds": 6.2
     },
     "urban": {
       "works": 26,
       "candidate_pairs": 0,
       "clusters": [],
       "top_pairs": [],
-      "seconds": 5.2
+      "seconds": 4.5
+    },
+    "xiandai": {
+      "works": 35,
+      "candidate_pairs": 55,
+      "clusters": [
+        {
+          "members": [
+            "xiandai_005",
+            "xiandai_018",
+            "xiandai_019",
+            "xiandai_025",
+            "xiandai_027",
+            "xiandai_028",
+            "xiandai_029",
+            "xiandai_030",
+            "xiandai_031",
+            "xiandai_032",
+            "xiandai_033"
+          ],
+          "titles": [
+            "阿Q正傳",
+            "故鄉",
+            "狂人日記",
+            "藥",
+            "端午節",
+            "風波",
+            "明天",
+            "白光",
+            "孔乙己",
+            "兔和貓",
+            "頭髮的故事"
+          ],
+          "splits": [
+            "test",
+            "train"
+          ],
+          "max_overlap": 0.125,
+          "top_pair": [
+            "xiandai_019",
+            "xiandai_031"
+          ]
+        }
+      ],
+      "top_pairs": [
+        {
+          "overlap": 0.125,
+          "a": "xiandai_019",
+          "b": "xiandai_031",
+          "a_to_b": 0.0699,
+          "b_to_a": 0.125,
+          "a_title": "狂人日記",
+          "b_title": "孔乙己",
+          "exact_a_to_b": 0.0801,
+          "exact_b_to_a": 0.1426,
+          "exact_max": 0.1426
+        },
+        {
+          "overlap": 0.1111,
+          "a": "xiandai_028",
+          "b": "xiandai_033",
+          "a_to_b": 0.0618,
+          "b_to_a": 0.1111,
+          "a_title": "風波",
+          "b_title": "頭髮的故事",
+          "exact_a_to_b": 0.0734,
+          "exact_b_to_a": 0.125,
+          "exact_max": 0.125
+        },
+        {
+          "overlap": 0.1073,
+          "a": "xiandai_031",
+          "b": "xiandai_033",
+          "a_to_b": 0.0972,
+          "b_to_a": 0.1073,
+          "a_title": "孔乙己",
+          "b_title": "頭髮的故事",
+          "exact_a_to_b": 0.1117,
+          "exact_b_to_a": 0.1211,
+          "exact_max": 0.1211
+        },
+        {
+          "overlap": 0.1073,
+          "a": "xiandai_033",
+          "b": "xiandai_032",
+          "a_to_b": 0.1073,
+          "b_to_a": 0.1057,
+          "a_title": "頭髮的故事",
+          "b_title": "兔和貓",
+          "exact_a_to_b": 0.1232,
+          "exact_b_to_a": 0.119,
+          "exact_max": 0.1232
+        },
+        {
+          "overlap": 0.1057,
+          "a": "xiandai_028",
+          "b": "xiandai_032",
+          "a_to_b": 0.0597,
+          "b_to_a": 0.1057,
+          "a_title": "風波",
+          "b_title": "兔和貓",
+          "exact_a_to_b": 0.0726,
+          "exact_b_to_a": 0.119,
+          "exact_max": 0.119
+        },
+        {
+          "overlap": 0.1057,
+          "a": "xiandai_031",
+          "b": "xiandai_032",
+          "a_to_b": 0.0972,
+          "b_to_a": 0.1057,
+          "a_title": "孔乙己",
+          "b_title": "兔和貓",
+          "exact_a_to_b": 0.1117,
+          "exact_b_to_a": 0.1169,
+          "exact_max": 0.1169
+        },
+        {
+          "overlap": 0.1034,
+          "a": "xiandai_005",
+          "b": "xiandai_033",
+          "a_to_b": 0.0125,
+          "b_to_a": 0.1034,
+          "a_title": "阿Q正傳",
+          "b_title": "頭髮的故事",
+          "exact_a_to_b": 0.0151,
+          "exact_b_to_a": 0.1222,
+          "exact_max": 0.1222
+        },
+        {
+          "overlap": 0.1034,
+          "a": "xiandai_019",
+          "b": "xiandai_033",
+          "a_to_b": 0.0524,
+          "b_to_a": 0.1034,
+          "a_title": "狂人日記",
+          "b_title": "頭髮的故事",
+          "exact_a_to_b": 0.0628,
+          "exact_b_to_a": 0.1211,
+          "exact_max": 0.1211
+        },
+        {
+          "overlap": 0.1034,
+          "a": "xiandai_025",
+          "b": "xiandai_033",
+          "a_to_b": 0.0579,
+          "b_to_a": 0.1034,
+          "a_title": "藥",
+          "b_title": "頭髮的故事",
+          "exact_a_to_b": 0.0702,
+          "exact_b_to_a": 0.1222,
+          "exact_max": 0.1222
+        },
+        {
+          "overlap": 0.1034,
+          "a": "xiandai_027",
+          "b": "xiandai_033",
+          "a_to_b": 0.0591,
+          "b_to_a": 0.1034,
+          "a_title": "端午節",
+          "b_title": "頭髮的故事",
+          "exact_a_to_b": 0.0713,
+          "exact_b_to_a": 0.1222,
+          "exact_max": 0.1222
+        },
+        {
+          "overlap": 0.1034,
+          "a": "xiandai_029",
+          "b": "xiandai_033",
+          "a_to_b": 0.0712,
+          "b_to_a": 0.1034,
+          "a_title": "明天",
+          "b_title": "頭髮的故事",
+          "exact_a_to_b": 0.0874,
+          "exact_b_to_a": 0.1222,
+          "exact_max": 0.1222
+        },
+        {
+          "overlap": 0.1034,
+          "a": "xiandai_030",
+          "b": "xiandai_033",
+          "a_to_b": 0.0844,
+          "b_to_a": 0.1034,
+          "a_title": "白光",
+          "b_title": "頭髮的故事",
+          "exact_a_to_b": 0.1026,
+          "exact_b_to_a": 0.1222,
+          "exact_max": 0.1222
+        }
+      ],
+      "seconds": 1.8
+    },
+    "scifi": {
+      "works": 5,
+      "candidate_pairs": 0,
+      "clusters": [],
+      "top_pairs": [],
+      "seconds": 1.3
+    },
+    "story": {
+      "works": 1000,
+      "candidate_pairs": 16,
+      "clusters": [
+        {
+          "members": [
+            "story_216",
+            "story_446"
+          ],
+          "titles": [
+            "ts_zh_0289",
+            "ts_zh_0504"
+          ],
+          "splits": [
+            "train"
+          ],
+          "max_overlap": 0.0909,
+          "top_pair": [
+            "story_216",
+            "story_446"
+          ]
+        },
+        {
+          "members": [
+            "story_571",
+            "story_988"
+          ],
+          "titles": [
+            "ts_zh_0408",
+            "ts_zh_0680"
+          ],
+          "splits": [
+            "test",
+            "train"
+          ],
+          "max_overlap": 0.0769,
+          "top_pair": [
+            "story_571",
+            "story_988"
+          ]
+        },
+        {
+          "members": [
+            "story_126",
+            "story_969"
+          ],
+          "titles": [
+            "ts_zh_0397",
+            "ts_zh_0178"
+          ],
+          "splits": [
+            "train"
+          ],
+          "max_overlap": 0.0667,
+          "top_pair": [
+            "story_126",
+            "story_969"
+          ]
+        },
+        {
+          "members": [
+            "story_258",
+            "story_532",
+            "story_946"
+          ],
+          "titles": [
+            "ts_zh_0873",
+            "ts_zh_0975",
+            "ts_zh_0107"
+          ],
+          "splits": [
+            "train"
+          ],
+          "max_overlap": 0.0625,
+          "top_pair": [
+            "story_258",
+            "story_946"
+          ]
+        },
+        {
+          "members": [
+            "story_069",
+            "story_760",
+            "story_839",
+            "story_939"
+          ],
+          "titles": [
+            "ts_zh_0627",
+            "ts_zh_0452",
+            "ts_zh_0427",
+            "ts_zh_0411"
+          ],
+          "splits": [
+            "train",
+            "val"
+          ],
+          "max_overlap": 0.0625,
+          "top_pair": [
+            "story_760",
+            "story_939"
+          ]
+        },
+        {
+          "members": [
+            "story_278",
+            "story_922"
+          ],
+          "titles": [
+            "ts_zh_0905",
+            "ts_zh_0329"
+          ],
+          "splits": [
+            "train"
+          ],
+          "max_overlap": 0.0588,
+          "top_pair": [
+            "story_278",
+            "story_922"
+          ]
+        },
+        {
+          "members": [
+            "story_077",
+            "story_842"
+          ],
+          "titles": [
+            "ts_zh_0874",
+            "ts_zh_0888"
+          ],
+          "splits": [
+            "train"
+          ],
+          "max_overlap": 0.0556,
+          "top_pair": [
+            "story_077",
+            "story_842"
+          ]
+        },
+        {
+          "members": [
+            "story_305",
+            "story_443"
+          ],
+          "titles": [
+            "ts_zh_0751",
+            "ts_zh_0075"
+          ],
+          "splits": [
+            "test",
+            "train"
+          ],
+          "max_overlap": 0.0556,
+          "top_pair": [
+            "story_305",
+            "story_443"
+          ]
+        },
+        {
+          "members": [
+            "story_531",
+            "story_723"
+          ],
+          "titles": [
+            "ts_zh_0964",
+            "ts_zh_0264"
+          ],
+          "splits": [
+            "test",
+            "train"
+          ],
+          "max_overlap": 0.0556,
+          "top_pair": [
+            "story_531",
+            "story_723"
+          ]
+        },
+        {
+          "members": [
+            "story_190",
+            "story_243"
+          ],
+          "titles": [
+            "ts_zh_0711",
+            "ts_zh_0734"
+          ],
+          "splits": [
+            "train"
+          ],
+          "max_overlap": 0.05,
+          "top_pair": [
+            "story_190",
+            "story_243"
+          ]
+        }
+      ],
+      "top_pairs": [
+        {
+          "overlap": 0.0909,
+          "a": "story_216",
+          "b": "story_446",
+          "a_to_b": 0.087,
+          "b_to_a": 0.0909,
+          "a_title": "ts_zh_0289",
+          "b_title": "ts_zh_0504",
+          "exact_a_to_b": 0.0,
+          "exact_b_to_a": 0.0,
+          "exact_max": 0.0
+        },
+        {
+          "overlap": 0.0769,
+          "a": "story_571",
+          "b": "story_988",
+          "a_to_b": 0.0588,
+          "b_to_a": 0.0769,
+          "a_title": "ts_zh_0408",
+          "b_title": "ts_zh_0680",
+          "exact_a_to_b": 0.0,
+          "exact_b_to_a": 0.0,
+          "exact_max": 0.0
+        },
+        {
+          "overlap": 0.0667,
+          "a": "story_126",
+          "b": "story_969",
+          "a_to_b": 0.037,
+          "b_to_a": 0.0667,
+          "a_title": "ts_zh_0397",
+          "b_title": "ts_zh_0178",
+          "exact_a_to_b": 0.0,
+          "exact_b_to_a": 0.0,
+          "exact_max": 0.0
+        },
+        {
+          "overlap": 0.0625,
+          "a": "story_258",
+          "b": "story_946",
+          "a_to_b": 0.0385,
+          "b_to_a": 0.0625,
+          "a_title": "ts_zh_0873",
+          "b_title": "ts_zh_0107",
+          "exact_a_to_b": 0.0,
+          "exact_b_to_a": 0.0,
+          "exact_max": 0.0
+        },
+        {
+          "overlap": 0.0625,
+          "a": "story_532",
+          "b": "story_946",
+          "a_to_b": 0.0556,
+          "b_to_a": 0.0625,
+          "a_title": "ts_zh_0975",
+          "b_title": "ts_zh_0107",
+          "exact_a_to_b": 0.0,
+          "exact_b_to_a": 0.0,
+          "exact_max": 0.0
+        },
+        {
+          "overlap": 0.0625,
+          "a": "story_760",
+          "b": "story_939",
+          "a_to_b": 0.0476,
+          "b_to_a": 0.0625,
+          "a_title": "ts_zh_0452",
+          "b_title": "ts_zh_0411",
+          "exact_a_to_b": 0.0,
+          "exact_b_to_a": 0.0,
+          "exact_max": 0.0
+        },
+        {
+          "overlap": 0.0625,
+          "a": "story_839",
+          "b": "story_939",
+          "a_to_b": 0.0556,
+          "b_to_a": 0.0625,
+          "a_title": "ts_zh_0427",
+          "b_title": "ts_zh_0411",
+          "exact_a_to_b": 0.0,
+          "exact_b_to_a": 0.0,
+          "exact_max": 0.0
+        },
+        {
+          "overlap": 0.0625,
+          "a": "story_939",
+          "b": "story_069",
+          "a_to_b": 0.0625,
+          "b_to_a": 0.0323,
+          "a_title": "ts_zh_0411",
+          "b_title": "ts_zh_0627",
+          "exact_a_to_b": 0.0,
+          "exact_b_to_a": 0.0,
+          "exact_max": 0.0
+        },
+        {
+          "overlap": 0.0588,
+          "a": "story_278",
+          "b": "story_922",
+          "a_to_b": 0.05,
+          "b_to_a": 0.0588,
+          "a_title": "ts_zh_0905",
+          "b_title": "ts_zh_0329",
+          "exact_a_to_b": 0.0,
+          "exact_b_to_a": 0.0,
+          "exact_max": 0.0
+        },
+        {
+          "overlap": 0.0556,
+          "a": "story_077",
+          "b": "story_842",
+          "a_to_b": 0.0323,
+          "b_to_a": 0.0556,
+          "a_title": "ts_zh_0874",
+          "b_title": "ts_zh_0888",
+          "exact_a_to_b": 0.0,
+          "exact_b_to_a": 0.0,
+          "exact_max": 0.0
+        },
+        {
+          "overlap": 0.0556,
+          "a": "story_258",
+          "b": "story_532",
+          "a_to_b": 0.0385,
+          "b_to_a": 0.0556,
+          "a_title": "ts_zh_0873",
+          "b_title": "ts_zh_0975",
+          "exact_a_to_b": 0.0,
+          "exact_b_to_a": 0.0,
+          "exact_max": 0.0
+        },
+        {
+          "overlap": 0.0556,
+          "a": "story_305",
+          "b": "story_443",
+          "a_to_b": 0.0435,
+          "b_to_a": 0.0556,
+          "a_title": "ts_zh_0751",
+          "b_title": "ts_zh_0075",
+          "exact_a_to_b": 0.0,
+          "exact_b_to_a": 0.0,
+          "exact_max": 0.0
+        }
+      ],
+      "seconds": 1.6
     }
   },
   "result": {
-    "changed_works": 4,
+    "changed_works": 10,
     "out_manifest": "D:\\work\\outputs\\minilm-lab\\data\\manifest_v2.jsonl",
     "stats": {
       "gudian": {
@@ -211,18 +754,18 @@
         "test": 3
       },
       "localugc": {
-        "train": 24713,
-        "val": 3089,
-        "test": 3090
+        "train": 179689,
+        "val": 22461,
+        "test": 22462
       },
       "scifi": {
         "train": 4,
         "test": 1
       },
       "story": {
-        "test": 100,
-        "train": 800,
-        "val": 100
+        "test": 97,
+        "train": 804,
+        "val": 99
       },
       "urban": {
         "train": 20,
@@ -235,8 +778,8 @@
         "val": 2
       },
       "xiandai": {
-        "test": 4,
-        "train": 28,
+        "test": 2,
+        "train": 30,
         "val": 3
       }
     }

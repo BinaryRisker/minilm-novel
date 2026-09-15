@@ -1487,3 +1487,65 @@ forum/qiushi_articles_parquet (求是理论文, 非叙事)、wiki/* (百科, 已
 
 **产出**：`py/locked_test.py`、`py/tests/test_locked_test.py`、`data/locked_test.json`、
 `docs/EVAL_PROTOCOL_V1.md`、`py/data/build_splits.py`（指纹定义域修复，含并发线的 exclude/流式写改动）。
+
+---
+
+## 2026-09-15 · Day 3（续五）· 并发线停机接手：近重复门禁首次全绿，默认清单自动切到净化版
+
+**背景**：用户告知并发工作线已停，让我接手继续。接手时它的遗留状态：`manifest_v3_moves` 是
+19 万部时期的增量（对当前 225,756 部清单已过期，`resolve_current` 一直拒绝它）；门禁在
+gudian 上仍失败（文本级 val 20 / test 27 次命中）；`sweep_worksplit` 曲线仍读 test。
+
+**做了**：用它自己的工具把最后一步走完——
+
+1. `python py/dedup_works.py --buckets gudian,wuxia,urban,xiandai,scifi,story`
+   （winnowing 锚点，1,144 部两两比对，53 秒）：**移动 10 部**，产出净化清单
+   `data/manifest_v2.jsonl`（覆盖旧的 32,036 部过期快照）。
+2. `build_splits --manifest manifest_v2.jsonl --report split_report_v2.json` 配套重建。
+3. 门禁复测：`py/audit_splits.py` 对 v2 —— **6 桶文本级探针全部 0/200，判定通过**。
+4. `resolve_current()` 的新鲜度判据生效：v2 与默认清单**内容哈希集合一致** → 默认自动切到
+   `manifest_v2.jsonl`；v3（仍在盘上但不同源）继续被拒并告警。
+5. 锁定测试族按设计**抓到漂移**：5 部锁定作品被挪出 test——包括《新齐谐》，
+   正是当初 audit_splits 发现"异名同书"的那部。重新冻结：53 部，
+   `lock_fingerprint=c3e310bff37c5bca`，校验通过。
+6. 端到端：`train.py --bucket story` 在 v2 上跑通，
+   `run_identity=e9b9219cb422907e near_dup_merged=True 可分发占比=部0.5%/字1.46%`。
+
+**数字**
+
+| 项 | 值 |
+|---|---|
+| 默认清单 | `manifest_v2.jsonl`：225,756 部 / **19.2 亿字**，split 指纹 `5433cae4babe084d` |
+| 门禁 | gudian/wuxia/urban/xiandai/scifi/story 文本级 **0/200 ×6**，**通过** |
+| 去重移动 | 10 部（同源簇整体并入 train；含《新齐谐》test→train） |
+| 锁定族 | 旧 58 部漂移 → 重冻 **53 部** / 297.6 万字，`c3e310bff37c5bca` |
+| 可分发占比 | 按部数 **0.5%** / 按字数 **1.46%**（1,126 部 / 2,793 万字；localugc 把分母撑到 19 亿字） |
+| 回归 | Python **54/54**、`node smoke.js` 23 项 |
+
+**意外发现**
+
+1. **近重复门禁拦下的不只是"作弊"**。《新齐谐》从 test 挪进 train 看似让模型"见得更多"，
+   实际是承认：《新齐谐》=《子不语》，二者只能算**一部作品的两个版本**，拆在两个集合里
+   等于让 test 里的字在 train 里逐字出现过。合并后 val/test 少了几部作品，但剩下的才是
+   真泛化数字——Top-1 掉一点是**挤水分**，不是退步。
+2. **可分发占比是被分母拖垮的**：部数 0.58% → 0.5%、字数 11.5% → 1.46%，全因 localugc
+   从 19 万部/18.8 亿字继续膨胀。公版语料的绝对量没变（2,793 万字），"占比"这个指标
+   会随抓取规模单调恶化，模型卡里应该引用**绝对量 + 分类明细**，不要引用占比。
+
+**边界**
+
+- `localugc`（224,612 部 / 18.8 亿字）**没有做近重复审计**：O(n²) 不可行、B 组片段级探针
+  也不可行，且它本来就被 `build_splits --exclude` 挡在 splits 之外（走 manifest 直读训练）。
+  其上的任何数字要单独标注"未做同源审计"。
+- `manifest_v2.jsonl` / `manifest.jsonl` 当前都超过 GitHub 100 MB 单文件上限，**不入库**
+  （与并发线对 v3 的处理一致：只入库报告与增量）。新克隆会回退到 v1 + 告警，
+  重跑 `dedup_works` 53 秒可重建。
+- `sweep_worksplit.py` 的曲线仍读 test（exploratory 口径）：val 化要打通
+  load_bucket→train_curve→结果 schema 和 trigram 缓存键，是下一个独立改造，
+  本轮不塞进来。
+
+**下一步**
+
+- `sweep_worksplit` val 化 + 在 val 选型、锁定族一次性复测，重出关键 sweep 的合规数字。
+- 历史 `docs/experiments/` 报告逐篇补 exploratory 标注。
+- localugc 的近重复审计走 `audit_neardup.py` 的倒排索引路线（需先定阈值协议）。
