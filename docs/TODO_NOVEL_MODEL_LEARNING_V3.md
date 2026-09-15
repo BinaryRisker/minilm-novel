@@ -10,7 +10,13 @@
     `py/verify_resume.py`：完整状态续训与直训逐位一致 Δ=0，丢 RNG/丢优化器/旧格式分别 Δ=3.1e-2/2.5e-2/3.7e-2）；
     `py/eval_story.py` 已重写为「只用 continuation 评分 + 并排展示旧口径送分幅度」，
     并有 `py/verify_story_eval.py` T1/T2/T3 三项实证（出题来自留出作品、生成可复现、旧口径送分幅度）。
-- [ ] `py/checkpoint.py` 与 `py/run_identity.py` 保存恢复完整状态；验证连续训练与中断恢复下一批数据、学习率和最终权重等价。
+- [x] `py/checkpoint.py` 与 `py/run_identity.py` 保存恢复完整状态；验证连续训练与中断恢复下一批数据、学习率和最终权重等价。 ✅ 2026-09-16
+  - `py/run_identity.py` 已建（数据身份 + 配置指纹，见下条）；`checkpoint.py` **未单独抽模块**——
+    完整状态保存内联在 `py/train.py`（checkpoint v2：model/opt/itos/meta/step/rng）。
+    等价性已验证：`py/verify_resume.py` 完整状态续训 vs 直训**逐位一致（Δ=0）**，
+    丢 RNG/丢优化器/旧格式三种失败样本分别偏 3.1e-2/2.5e-2/3.7e-2；
+    `dev/review_current.py` 探针亦复证同 seed 两次训练 Δ=0、resume step 1→2 正常。
+  - ⏳ 形式项：把 checkpoint 逻辑从 train.py 抽成 `py/checkpoint.py`（纯重构，无行为变化，待办）。
 - [ ] 数据准备及 sweep 入口强制验证家族去重、split 版本、用途 allowlist、配置指纹；不复用旧污染缓存。
   - ✅ 2026-09-15 已做：**家族/内容去重**与 **split 版本指纹**由 `py/splits.py:verify()` 强制执行
     （`bucket_texts()` 每次加载先校验，不成立抛 `SplitIdentityError` → 实测非零退出码 1）；
@@ -45,9 +51,27 @@
 
 出口：空生成不获故事分；同 seed 可重复；真正 resume；不合规数据和不匹配缓存非零退出。
 
+**✅ 2026-09-16 P0 出口条件全部达成**（实证 `python -X utf8 dev/review_current.py`，落盘
+`runs/review_20260914/probes.json`）：
+
+| 出口条件 | 实证 |
+|---|---|
+| 空生成不获故事分 | 30 题空生成事实/事件命中 **0/153**（旧协议把提示词拼进去可白拿 **67/153**——送分实证）；`zero_generation` 返回空串 |
+| 同 seed 可重复 | 两次独立训练全参数**逐位相等（Δ=0.0）** |
+| 真正 resume | `--resume` 退出码 0，step 1→2，checkpoint v2 七字段齐全；另有 verify_resume Δ=0 |
+| 不合规数据/不匹配缓存非零退出 | `py/splits.py:verify()`（实测退出码 1）+ `py/audit_splits.py` 门禁（当前 6 桶 0/200 **通过**）；数据审计 0 缺文件 / 0 哈希不符 / 0 跨 split 哈希组 |
+
+P0 余留（不阻断 P1）：实践篇 24/31 的泄漏归因修订（下条）；`docs/experiments/` 逐篇 exploratory 补标；
+`localugc` 未做同源审计；checkpoint 抽模块（纯形式）。
+
 ## P1：本地训练资源与随机初始化证明
 
-- [ ] 新增 `py/novellm/doctor.py`：CUDA/MPS/CPU、设备实际名称/总量/可用内存、torch版本、精度支持；不读取或输出凭证。
+- [x] 新增 `py/novellm/doctor.py`：CUDA/MPS/CPU、设备实际名称/总量/可用内存、torch版本、精度支持；不读取或输出凭证。 ✅ 2026-09-16
+  - `python -X utf8 -m py.novellm.doctor`（可 `--out` 存 JSON）。fail-closed：没有的设备如实
+    `available: false`（不缺字段、不猜数字）；psutil 缺席时内存留空并注明，绝不估。
+    本机（N100 级 CPU 盒）实测：torch 2.14.0+cpu、无 CUDA/MPS、4 逻辑核、CPU bf16/fp16 可用
+    （`dev/verify/doctor.json`）。**⏳ 待在 4090/8GB 目标机上跑一次**，才能写真正的预算表。
+    契约测试 `py/tests/test_doctor.py` 4 项。
 - [ ] 新增 `model.py`、`tokenizer.py` 和配置 schema：先实现微型与 30M 配置，词表由训练集拟合；断言参数量、特殊 token 与根初始化来源。
 - [ ] 新增 `dataset.py/trainer.py/checkpoint.py`：预编码分片、文档边界、累计梯度、验证、取消、安全存盘；复用已验证状态契约。
 - [ ] 新增 `benchmark.py`：预热后 200 步有效 token/s、显存/RSS、OOM 和恢复；对 1024/2048 ctx 的可行组合输出估算，不自动租卡。

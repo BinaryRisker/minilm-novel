@@ -1,0 +1,23 @@
+{
+  "torch": "2.14.0+cpu",
+  "torch_cuda_compiled": null,
+  "cuda": {
+    "available": false
+  },
+  "mps": {
+    "available": false
+  },
+  "cpu": {
+    "logical_cores": 4,
+    "physical_cores": 2,
+    "total_mem_gb": null,
+    "note": "psutil 未安装，内存数字缺省（pip install psutil 可补）"
+  },
+  "precision": {
+    "cpu": {
+      "bf16": true,
+      "fp16": true,
+      "tf32": true
+    }
+  }
+}

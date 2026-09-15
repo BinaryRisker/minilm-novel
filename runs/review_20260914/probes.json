@@ -1,0 +1,48 @@
+{
+  "torch": "2.14.0+cpu",
+  "cuda": false,
+  "data": {
+    "works": 225756,
+    "chars": 1917845602,
+    "duplicate_hash_groups": 0,
+    "duplicate_extra_rows": 0,
+    "cross_split_hash_groups": 0,
+    "missing_files": [],
+    "hash_mismatches": []
+  },
+  "same_seed_cli": {
+    "equal": true,
+    "max_weight_diff": 0.0
+  },
+  "resume": {
+    "exit_code": 0,
+    "step_before": 1,
+    "step_after": 2,
+    "checkpoint_keys": [
+      "version",
+      "model",
+      "opt",
+      "itos",
+      "meta",
+      "step",
+      "rng"
+    ],
+    "log": "Checkpoint v2 saved to C:\\Users\\jianglh\\AppData\\Local\\Temp\\minilm_review_0h0loh4n\\0\\checkpoint.pt"
+  },
+  "zero_generation": {
+    "prompt": "小明推开了门。",
+    "returned": "",
+    "empty": true
+  },
+  "prompts": {
+    "invalid": [],
+    "valid_count": 30,
+    "empty_generation_hits": 0,
+    "facts_and_events": 153,
+    "empty_generation_scores_zero": true,
+    "old_protocol_prompt_only_hits": 67
+  },
+  "contradiction_passes": {
+    "苏念": true
+  }
+}

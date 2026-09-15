@@ -1602,3 +1602,67 @@ val 与 test 差 0.08~0.22 NLL，方向与量级都合理（val 略乐观是选�
 - `docs/experiments/` 各报告逐篇补 exploratory 标注（含本轮 Protocol 的引用）。
 - scifi 桶补作品（数据侧）或定豁免标注。
 - localugc 倒排索引审计的阈值协议。
+
+---
+
+## 2026-09-16 · Day 4 · 夜间自检：修好官方审计探针，P0 出口条件全部实证，P1 开工
+
+**做了**：
+
+1. **全量回归**：Python **54/54**、`smoke` 23、`eval` 68、`rng` 11、`uidom` 41 全绿；
+   `splits.verify()` 通过（v2，225,756 部，指纹 `5433cae4babe084d`）；锁定族校验通过
+   （53 部，`c3e310bff37c5bca`）；`sources 226,725 − dedupe 969 = manifest 225,756` 一致。
+2. **发现并修复一个坏接口**：V3 TODO 点名的官方审计探针 `python -X utf8 dev/review_current.py`
+   **已经跑不起来**——它 import 的 `generate / fact_check / event_completion` 在 eval_story
+   重写时被删掉了（旧 API：返回含提示词的整段 + 在"提示词+生成"上评分）。修到新 API：
+   `generate_model`（只返回续写段）+ `keyword_checks`（在生成段上算命中），
+   并保留它原有的两个语义：**空生成必须 0 分**（P0 出口条件）、量化旧协议的送分幅度。
+3. **P0 出口条件全部拿到实证**（写进 V3 TODO 的出口表，落盘 `runs/review_20260914/probes.json`）：
+   - 空生成不获故事分：30 题命中 **0/153**；旧协议同批题可白拿 **67/153**（送分实锤）；
+   - 同 seed 可重复：两次独立训练**全参数逐位相等 Δ=0.0**；
+   - 真正 resume：退出码 0、step 1→2、checkpoint v2 七字段齐全（另有 verify_resume Δ=0）；
+   - 数据/缓存门禁：`splits.verify` + `audit_splits`（当前 6 桶 0/200 通过）；探针数据审计
+     0 缺文件 / 0 哈希不符 / 0 跨 split 哈希组。
+   **P0 就此收口**（余留不阻断项见 TODO）。
+4. **P1 开工（最小一步）**：新增 `py/novellm/doctor.py`（`python -X utf8 -m py.novellm.doctor`）——
+   CUDA/MPS/CPU、显存总量/空闲、算力、bf16/fp16/tf32 真实试算。**fail-closed**：没有的设备
+   如实 `available:false`，psutil 缺席就内存留空注明，绝不猜数字。本机实测：torch 2.14.0+cpu、
+   无 CUDA/MPS、CPU bf16/fp16 可用（`dev/verify/doctor.json`）。
+
+**数字**
+
+| 项 | 值 |
+|---|---|
+| 空生成命中（新协议） | **0 / 153** |
+| 旧协议同批题送分 | **67 / 153**（把提示词拼进评分段即可白拿 43.8%） |
+| 同 seed 两次训练 | Δ=0.0（逐位相等） |
+| 回归 | Python **58/58**（新增 doctor 4 项）、JS 侧同昨全绿 |
+| doctor 本机 | CPU-only、4 逻辑核、bf16/fp16 OK |
+
+**意外发现**
+
+1. **"探针挂了"恰恰说明 P0 该收口了。** `review_current.py` 断在旧 API 上，是因为它检查的
+   那个 bug（送分）确实被修掉了——探针比被测代码旧。修法不是回滚，而是把探针升到新接口，
+   并让它继续证明"新协议下空生成 0 分 + 旧协议会送 67 分"。
+2. **doctor 的 fail-closed 比看起来重要。** V3 §3 说"设备由 doctor 实测确认"——如果内存数字
+   靠 `os.cpu_count()/2` 这类猜测填上，预算表就会带着一个看似精确实则虚构的数字去租卡。
+   宁可空一格。
+
+**边界**
+
+- `dev/review_current.py` 是并发线的未跟踪文件，但其承载的 P0 出口检查必须能跑，
+  已按新 API 修复并随本轮提交（披露：文件主体是该线的，我只改了 import 与三处调用）。
+- doctor 只在这台 CPU 盒上跑过；**4090/8GB 目标机上的实测数字还没有**——没有它就没有预算表，
+  这是 P1 里第一个要在目标机上做的事。
+- P0 余留（不阻断）：实践篇 24/31 修订、`docs/experiments/` 逐篇 exploratory 补标、
+  localugc 同源审计、checkpoint 抽模块（纯形式）。
+
+**下一步（P1 顺序）**
+
+1. 在 4090 目标机跑 `python -X utf8 -m py.novellm.doctor`，写训练预算表；
+2. `py/novellm/model.py` + 配置 schema（微型 + 30M 候选，词表训练集拟合，断言参数量与初始化来源）；
+3. `dataset.py / trainer.py / checkpoint.py`（复用已验证的状态契约）。
+
+**产出**：`dev/review_current.py`（修复）、`py/novellm/`（`__init__.py` + `doctor.py`）、
+`py/tests/test_doctor.py`、`dev/verify/doctor.json`、`runs/review_20260914/probes.json`、
+V3 TODO（P0 出口表 + P1 首项勾选）。
