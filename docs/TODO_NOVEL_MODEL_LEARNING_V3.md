@@ -29,6 +29,9 @@
     重生成净化清单（移动 10 部），`audit_splits` 文本级 6 桶全部 0/200、门禁**通过**，
     默认清单已自动切到 `manifest_v2.jsonl`（`near_dup_merged=True`）。
     剩 `localugc`（224,612 部）未审计——不进 splits/探针，其上数字单独标注。
+  - ✅ 2026-09-15（续六）：`py/sweep_worksplit.py` 已 val 化（曲线=val、test 一次性验收，
+    `protocol='val_select_test_once_v1'` 标记，旧文件复用时提示 exploratory）；
+    附带发现 **scifi 桶没有 val 作品**（5 部：4/1/0），合规 sweep 在该桶被拒绝——需补数据或定豁免。
 - [ ] 所有调参改用 val；历史 test 标 exploratory，新锁定测试族。
   - ✅ 2026-09-15 已立：协议见 [`docs/EVAL_PROTOCOL_V1.md`](EVAL_PROTOCOL_V1.md)。
     `py/train.py` 本就只看 val（test 最后评一次）；锁定测试族由 `py/locked_test.py` 冻结

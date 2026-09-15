@@ -1549,3 +1549,56 @@ gudian 上仍失败（文本级 val 20 / test 27 次命中）；`sweep_worksplit
 - `sweep_worksplit` val 化 + 在 val 选型、锁定族一次性复测，重出关键 sweep 的合规数字。
 - 历史 `docs/experiments/` 报告逐篇补 exploratory 标注。
 - localugc 的近重复审计走 `audit_neardup.py` 的倒排索引路线（需先定阈值协议）。
+
+---
+
+## 2026-09-15 · Day 3（续六）· sweep val 化：曲线归 val，test 一次性验收
+
+**做了**：把 `py/sweep_worksplit.py` 从「每个 eval 步号读 test」改成评测协议 V1 的合规形态——
+
+1. `load_bucket` 增加返回 `val_texts / n_val_works`（'ALL' 分支读 `data/splits/val.txt`），
+   **val 缺失直接拒绝**（"val 曲线没有载体，无法做合规评测"），不再默默退化到 test。
+2. `train_curve(train_ids, val_ids, test_ids, …)`：曲线点全部评在 **val** 上；
+   **test 在训练结束、权重不再变化时评一次**，返回 `test_final`。
+3. 结果 JSON 加协议标记：`protocol='val_select_test_once_v1'`、`curve_split='val'`、
+   `test_eval_points=1`、`val_final`、`val_chars`。**`final` 的含义保持不变**
+   （=留出集上的那个数，现在是 test 一次性验收），所以 `compare_budget/cfg/ctx/datascale`
+   和 summary/report 的读法不用改、新旧数字不会混：旧文件没有 `curve_split` 字段，
+   复用时打印「★旧协议：曲线来自 test，exploratory，勿作验收依据」。
+4. 图表标注同步：收敛图标题/y 轴改为「val 集 NLL（选型口径）」，报告的收敛检查注明「曲线=val」；
+   新增 `--val_chars`（默认 50000，与 test 同一轮取前缀规则）。
+
+**数字**（微型端到端：story 桶 / sizes 2000,10000 / 2 epoch / 1 种子 / 切片各 2 万字）
+
+| size | val NLL（曲线末点） | **test NLL（一次性）** | trigram NLL |
+|---|---|---|---|
+| 2,000 字 | 6.839 | 7.060 | 6.445 |
+| 10,000 字 | 4.883 | 4.973 | 5.936 |
+
+val 与 test 差 0.08~0.22 NLL，方向与量级都合理（val 略乐观是选择效应，以后看趋势用 val，
+下结论用 test 那一列）。回归：Python **54/54**、`node smoke.js` 23 项。
+
+**意外发现**
+
+1. **scifi 桶根本没有 val 作品**（5 部：4 train / 1 test / 0 val）——新校验第一次运行就把它拒了。
+   这暴露一个数据缺口：**合规 sweep 无法在 scifi 上跑**。选项：给 scifi 补公版作品到 ≥8 部
+   （`assign_splits` 的规则是 n≥8 才给 val 名额），或显式豁免并在结果里标注。
+   在补数据之前，任何"scifi 上的收敛/数据量结论"只能来自 test 曲线 = exploratory。
+2. **`final` 语义保持不变是这次改造能安全落地的关键。** 如果我把 `final` 改成 val 末点，
+   所有 compare_* 脚本和旧汇总会在不知情间把 val 数字当留出数字比——协议字段
+   （`curve_split`）加上语义不变量（`final`=test），新旧才可能共存。
+
+**边界**
+
+- 既有 75+ 条 wsplit 结果**没有重跑**：它们仍是 test 曲线口径（exploratory），文件里没有
+  `curve_split` 字段即可识别；逐篇报告补标仍未做。
+- trigram 基线照旧评在 test 上（与 `final` 同口径），α 探针也仍在 test（报告中已注明
+  属上界参考）。
+- `--leak_probe` 的"泄漏留出"对照段读的是训练区文本，语义是**故意泄漏的对照实验**，
+  不受本协议约束。
+
+**下一步**
+
+- `docs/experiments/` 各报告逐篇补 exploratory 标注（含本轮 Protocol 的引用）。
+- scifi 桶补作品（数据侧）或定豁免标注。
+- localugc 倒排索引审计的阈值协议。

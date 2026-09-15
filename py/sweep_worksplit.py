@@ -21,9 +21,15 @@ py/sweep_worksplit.py — 在「按作品切分」的语料上做数据量扫描
   32 字滑窗，**每 ctx 步一个窗口**，窗口内逐位置计 top-1/top-5/NLL。
   模型与 trigram 必须用同一批位置，否则不可比。
 
+选型/验收分离（2026-09-15 起，docs/EVAL_PROTOCOL_V1.md）：
+  收敛**曲线在 val 上取**（调参/看走平，可反复读）；
+  **test 只在训练结束评一次**（结果 JSON 的 `final`），曲线点全部来自 val（`curve_split: "val"`）。
+  旧结果文件没有 `curve_split` 字段 = 曲线来自 test = **exploratory**，不得作验收依据。
+  trigram 基线仍在 test 上一次性评（与 `final` 同口径可比）。
+
 留出切片（--test_chars，默认 50000）：
   从该桶的留出作品里**轮流取**前若干字，凑够预算。这样留出集覆盖所有留出作品，
-  而不是被某一部长篇独占。取的是原始前缀，稳定可复现。
+  而不是被某一部长篇独占。取的是原始前缀，稳定可复现。val 切片同规则（--val_chars）。
   50,000 个评测位在 Top-1≈15% 处标准误约 0.16pt，够分辨 1pt 级差异；
   要更细可调大，但评测成本与之成正比（每条配置 eval_points 次）。
 
@@ -74,7 +80,7 @@ from baselines import NGram, Acc, for_each_position  # noqa
 
 DEFAULT_CFG = dict(ctx=32, d=40, layers=2, heads=4, ffMul=4)
 DEFAULT_SIZES = (2000, 10000, 50000, 200000, 1000000)
-BUCKETS = ('scifi', 'wuxia', 'urban', 'gudian', 'story')
+BUCKETS = ('scifi', 'wuxia', 'urban', 'gudian', 'story', 'xiandai')
 TRI_ALPHAS = (0.01, 0.05, 0.1, 0.5, 1.0)
 
 
@@ -147,24 +153,28 @@ def build_slice(texts: List[str], budget: int) -> str:
 
 def load_bucket(bucket: str, manifest: List[dict], processed: str,
                 split_dir: str) -> Dict:
-    """返回 {train_text, test_texts, n_train_works, n_test_works}。
+    """返回 {train_text, val_texts, test_texts, n_train_works, n_val_works, n_test_works}。
     **不做截断** —— 词表要在该桶全部训练作品上建；截断只在编码阶段做（见 main）。
     bucket == 'ALL' 时直接读 data/splits/*.txt（与审计产物逐字一致）。"""
     if bucket == 'ALL':
         tr = read_split_file(split_dir, 'train')
+        va = read_split_file(split_dir, 'val')
         te = read_split_file(split_dir, 'test')
-        n_tr = sum(1 for r in manifest if r['split'] == 'train')
-        n_te = sum(1 for r in manifest if r['split'] == 'test')
-        return {'train_text': tr, 'test_texts': [te],
-                'n_train_works': n_tr, 'n_test_works': n_te}
+        n = {sp: sum(1 for r in manifest if r['split'] == sp) for sp in ('train', 'val', 'test')}
+        return {'train_text': tr, 'val_texts': [va], 'test_texts': [te],
+                'n_train_works': n['train'], 'n_val_works': n['val'], 'n_test_works': n['test']}
     tr_texts = work_texts(manifest, processed, bucket, 'train')
+    va_texts = work_texts(manifest, processed, bucket, 'val')
     te_texts = work_texts(manifest, processed, bucket, 'test')
     if not tr_texts:
         raise SystemExit(f'桶 {bucket} 没有训练作品')
+    if not va_texts:
+        raise SystemExit(f'桶 {bucket} 没有验证作品（val 曲线没有载体，无法做合规评测）')
     if not te_texts:
         raise SystemExit(f'桶 {bucket} 没有留出作品（该桶留出作品为空，无法做无泄漏评测）')
-    return {'train_text': '\n\n'.join(tr_texts), 'test_texts': te_texts,
-            'n_train_works': len(tr_texts), 'n_test_works': len(te_texts)}
+    return {'train_text': '\n\n'.join(tr_texts), 'val_texts': va_texts, 'test_texts': te_texts,
+            'n_train_works': len(tr_texts), 'n_val_works': len(va_texts),
+            'n_test_works': len(te_texts)}
 
 
 # ---------------------------- 训练与评测 ----------------------------
@@ -202,10 +212,11 @@ def eval_model(model, ids: List[int], ctx: int) -> Dict:
             'n': total}
 
 
-def train_curve(train_ids: List[int], test_ids: List[int], V: int, cfg: dict,
-                steps: int, batch: int, lr: float, seed: int,
+def train_curve(train_ids: List[int], val_ids: List[int], test_ids: List[int], V: int,
+                cfg: dict, steps: int, batch: int, lr: float, seed: int,
                 eval_marks: set) -> Dict:
-    """训练 steps 步，在 eval_marks（步号集合）处评测留出集，返回收敛曲线。"""
+    """训练 steps 步。**曲线全部评在 val 上**（选型口径，可反复读）；
+    test 只在训练结束评一次（验收口径）。返回 curve(val) / val_final / test_final。"""
     rng = random.Random(seed)
     torch.manual_seed(seed)
     model = MiniLM(V, cfg)
@@ -228,11 +239,15 @@ def train_curve(train_ids: List[int], test_ids: List[int], V: int, cfg: dict,
         seg_loss += loss.item()
         seg_n += 1
         if (step + 1) in eval_marks:
-            ev = eval_model(model, test_ids, cfg['ctx'])
+            ev = eval_model(model, val_ids, cfg['ctx'])
             curve.append({'step': step + 1, 'train_loss': seg_loss / seg_n, **ev})
             seg_loss, seg_n = 0.0, 0
             model.train()
-    return {'curve': curve, 'wallclock': time.time() - t0, 'model': model}
+    # test 一次性验收：训练全部结束后、权重不再变化时评一次
+    test_final = eval_model(model, test_ids, cfg['ctx'])
+    return {'curve': curve, 'val_final': {k: curve[-1][k] for k in ('top1', 'top5', 'nll', 'ppl')} if curve else None,
+            'test_final': {k: test_final[k] for k in ('top1', 'top5', 'nll', 'ppl')},
+            'wallclock': time.time() - t0, 'model': model}
 
 
 def trigram_eval_uncached(train_ids: List[int], test_ids: List[int], V: int,
@@ -297,6 +312,8 @@ def main():
     ap.add_argument('--min_freq', type=int, default=3)
     ap.add_argument('--test_chars', type=int, default=50000,
                     help='留出切片字数上限（从留出作品轮流取前缀）。留出越短越省，但指标越抖')
+    ap.add_argument('--val_chars', type=int, default=50000,
+                    help='val 切片字数上限（曲线评在 val 上，可反复读；test 只在结束评一次）')
     ap.add_argument('--eval_points', type=int, default=4,
                     help='每条配置的评测点数（等距分布，末点=训练结束）。评测成本∝点数×留出切片')
     ap.add_argument('--cfg_d', type=int, default=DEFAULT_CFG['d'])
@@ -401,12 +418,16 @@ def main():
         test_text = build_slice(data['test_texts'], args.test_chars)
         oov = sum(1 for ch in test_text if ch not in stoi)
         test_ids = encode(test_text, stoi)
+        # val 曲线切片：同一轮流取前缀规则，独立预算
+        val_text = build_slice(data['val_texts'], args.val_chars)
+        val_ids = encode(val_text, stoi)
         # 只编码需要的那段前缀（大池子全编码纯浪费内存与时间）
         cap = len(data['train_text']) if -1 in sizes else min(max_size, len(data['train_text']))
         ids_all = encode(data['train_text'][:cap], stoi)
         ctx = cfg['ctx']
         print(f'  训练作品 {data["n_train_works"]} 部 / 池 {len(data["train_text"]):,} 字'
-              f'（本次编码至 {cap:,}）→ V={V} · 留出作品 {data["n_test_works"]} 部 / '
+              f'（本次编码至 {cap:,}）→ V={V} · val 作品 {data["n_val_works"]} 部 / 切片 '
+              f'{len(val_text):,} 字 · 留出作品 {data["n_test_works"]} 部 / '
               f'切片 {len(test_text):,} 字（UNK {oov}，{100.0 * oov / max(1, len(test_text)):.3f}%）',
               flush=True)
 
@@ -466,10 +487,17 @@ def main():
                         r = json.load(f)
                     all_runs.append(r)
                     last = r['curve'][-1]
-                    print(f'    seed={seed} 已存在，复用：'
-                          f'NLL={last["nll"]:.3f} Top-1={last["top1"]:.1f}%', flush=True)
+                    if not r.get('curve_split'):
+                        print(f'    seed={seed} 已存在，复用（★旧协议：曲线来自 test，'
+                              f'exploratory，勿作验收依据）：'
+                              f'NLL={last["nll"]:.3f} Top-1={last["top1"]:.1f}%', flush=True)
+                    else:
+                        print(f'    seed={seed} 已存在，复用（曲线=val）：'
+                              f'val NLL={last["nll"]:.3f} Top-1={last["top1"]:.1f}% · '
+                              f'test NLL={r["final"]["nll"]:.3f} Top-1={r["final"]["top1"]:.1f}%',
+                              flush=True)
                     continue
-                tr = train_curve(train_ids, test_ids, V, cfg, steps, args.batch,
+                tr = train_curve(train_ids, val_ids, test_ids, V, cfg, steps, args.batch,
                                  args.lr, seed, marks)
                 last = tr['curve'][-1]
                 leak_final = (eval_model(tr['model'], leak_ids, ctx)
@@ -480,13 +508,21 @@ def main():
                     'eff_epochs': eff_epochs, 'eval_points': len(marks),
                     'batch': args.batch, 'lr': args.lr, 'cfg': cfg, 'V': V,
                     'min_freq': args.min_freq, 'tag': args.tag,
+                    'protocol': 'val_select_test_once_v1',
+                    'curve_split': 'val',
                     'n_train_works': data['n_train_works'],
+                    'n_val_works': data['n_val_works'],
                     'n_test_works': data['n_test_works'],
                     'pool_chars': len(data['train_text']),
-                    'train_chars': len(train_ids), 'test_chars': len(test_text),
+                    'train_chars': len(train_ids), 'val_chars': len(val_text),
+                    'test_chars': len(test_text),
                     'oov_chars': oov, 'n_positions': last['n'],
                     'curve': tr['curve'],
-                    'final': {k: last[k] for k in ('top1', 'top5', 'nll', 'ppl')},
+                    # 「final」= test 一次性验收（训练结束后权重不变时评的那一次）；
+                    # 曲线末点是 val，别把它当 test 读
+                    'final': tr['test_final'],
+                    'val_final': tr['val_final'],
+                    'test_eval_points': 1,
                     'trigram': tri_f,
                     'trigram_alpha_probe': tri.get('alpha_probe'),
                     'trigram_alpha_best_on_test': tri.get('alpha_best_on_test'),
@@ -498,8 +534,10 @@ def main():
                 with open(path, 'w', encoding='utf-8') as f:
                     json.dump(r, f, ensure_ascii=False, indent=2)
                 all_runs.append(r)
-                msg = (f'    seed={seed} → NLL={last["nll"]:.3f} '
-                       f'Top-1={last["top1"]:.1f}% Top-5={last["top5"]:.1f}% '
+                msg = (f'    seed={seed} → val NLL={last["nll"]:.3f} '
+                       f'Top-1={last["top1"]:.1f}% · '
+                       f'test(一次性) NLL={r["final"]["nll"]:.3f} '
+                       f'Top-1={r["final"]["top1"]:.1f}% Top-5={r["final"]["top5"]:.1f}% '
                        f'({tr["wallclock"]:.0f}s)')
                 if leak_final is not None:
                     msg += (f'\n        泄漏留出：模型 NLL={leak_final["nll"]:.3f} '
@@ -595,7 +633,7 @@ def write_report(runs: List[Dict], cfg: dict, args, tag: str):
         rs = rows_by_size[big]
         c = rs[0]['curve']
         if len(c) >= 2:
-            L.append(f'收敛检查（{rs[0]["size_label"]}，{len(c)} 个评测点）：'
+            L.append(f'收敛检查（{rs[0]["size_label"]}，{len(c)} 个评测点，曲线=val）：'
                      f'第 1 点 NLL={c[0]["nll"]:.3f} → 末点 NLL={c[-1]["nll"]:.3f}；'
                      f'倒数第 2 点 → 末点 {c[-2]["nll"]:.3f} → {c[-1]["nll"]:.3f}。')
             L.append('')
@@ -706,10 +744,11 @@ def plot_converge(runs: List[Dict], cfg: dict, args, tag: str):
                    linewidth=1.5, label='Trigram(α=0.1)')
         ax.set_title(f'{bk} · {rs[0]["size_label"]} 字', fontsize=12)
         ax.set_xlabel('训练步数')
-        ax.set_ylabel('留出集 NLL（越低越好）')
+        ax.set_ylabel('val 集 NLL（选型口径，越低越好）')
         ax.grid(True, alpha=0.3)
         ax.legend(fontsize=8, loc='best')
-    fig.suptitle(f'收敛曲线（最大数据量配置，逐种子）· cfg={cfg} epochs={args.epochs}',
+    fig.suptitle(f'收敛曲线·val（最大数据量配置，逐种子；test 只在末点一次性验收）'
+                 f'· cfg={cfg} epochs={args.epochs}',
                  fontsize=13)
     fig.tight_layout()
     out = os.path.join(HERE, '..', 'docs', 'img', f'worksplit_converge{tag}.png')
