@@ -1279,6 +1279,16 @@ forum/qiushi_articles_parquet (求是理论文, 非叙事)、wiki/* (百科, 已
 6. **上一轮的修复悄悄回退了**：v1 gudian 又是 44/5/6、泄漏 12.00%/14.67%，与第 34 篇修复前**逐字相同**——修复只落在旁支 `data/manifest_v2.jsonl`，主清单被数据管线重新生成后 v2 未回流。**修复不回流 = 没修。**
 7. 完整 v3 清单 **105 MB，超过 GitHub 100 MB 单文件上限**，不入库；改为落 `data/manifest_v3_moves.json`（427 部增量，64 KB）。已验证「v1 快照 + 增量」重建后指纹逐位等于 `901a6a299d899fb6`。
 
+> **★【勘误 · 2026-09-14 追记】第 7 条有两处事实错误**（按「追加而非覆盖」协议保留原文）
+>
+> 起因：用户追问「v3 清单为什么这么大？」查证后发现**上限**和**体积**各说错一次。
+>
+> - **错 1（上限）**：GitHub 单文件上限是 **100 MiB = 104,857,600 字节**，不是 100 MB（10⁸）。旧 v3 = **104,786,999 字节**——**并没超限，只差 69 KB**。
+> - **错 2（体积）**：99.93 MiB 在终端显示成「104.79 MB」，我又把它读成 100 MB 量级的「105 MB」。两次单位混淆叠在一起，**凭空造出一个不存在的事实**。
+> - **连带代价（比数字本身严重）**：`resolve_current()` 按「完整文件是否落盘」择优，**正是照着我的错误结论**回退到 v1 + 告警——「修复不回流」是我自己的一块错招牌挡住的。
+>
+> **已修根因**：v3 的 16.02 MB 增量里 **96.4%** 来自 `resplit()` **无条件**补的三个溯源字段（`dedup_cluster` 34.4 + `dedup_cluster_size` 24.0 + `orig_split` 21.7 字节/行），而 **99% 的行里它们零信息量**（`dedup_cluster` 恒等于自身 story_id、`dedup_cluster_size` 恒为 1；真正换 split 的只有 427 部、真在 ≥2 部簇里的只有 2,193 部）。改成**只在有信息量时写**后：v3 = **88,904,420 字节 = 84.79 MiB**（省 15,882,579 字节），指纹 `901a6a299d899fb6` **不变**，全部既有证据（298 簇 / 427 部 / gudian 数字）继续有效。完整 v3 现已入库 `data/manifest_v3.jsonl`，`resolve_current()` **已自动选中它**。
+
 **未做**：gudian/test 的 2.00% 残余**没修掉**（门禁仍是**失败**，不是通过）；localugc **没跑 B 组片段级探针**（train 1.9 亿字，`片段 in 全文` 线性扫描不可行），它的证据只有**作品级**口径，与 gudian 的片段级口径不能直接比；阈值 0.05 / 最少共享 200 字 / df 200 / `--min-exact 0.02` 全部是拍的，本轮**只对 gudian 做了小规模阈值扫描**。
 
 **产物**：`py/audit_neardup.py`、内容稿 `docs/content/实践篇36_数据涨了六倍我的去重脚本就再也跑不完了.md`（含 7 个失败样本）、内部索引 `docs/experiments/2026-09-15-neardup-all-buckets.md`、`data/manifest_v3_moves.json`、`data/split_report_v3.json`、`dev/verify/audit_neardup.json`（含全部 298 个跨 split 簇的成员表）、`dev/verify/audit_splits_v{1,3,v3mx0}.json`。内容 lint 47/47 通过。
@@ -1360,3 +1370,44 @@ forum/qiushi_articles_parquet (求是理论文, 非叙事)、wiki/* (百科, 已
   `resolve_current()` 会自动切换，默认清单才谈得上"干净"。
 - V3 P0 余项：历史 test 标 exploratory + 新锁定测试族；实践篇 24/31 的泄漏归因修订。
 - `export.py` 落地时调 `assert_distributable()`，并把 `distributable_share` 写进模型卡。
+
+
+---
+
+## 2026-09-15 · Day 3 · 网文全量分片 + Pixiv/v3ucn：不再按字节截断
+
+**起因**：用户问"长篇网文为什么会切片？需要获取全量"。
+
+**为什么之前是切片**：`wdndev/webnovel-chinese` 单片 4.2 GB / 全库 10 片 39 GB。
+当时的 `http_get_range_cached` 用 HTTP Range 只取**前 30 MB 字节**——避免整库下载，
+代价是**按字节硬截断**：每部小说只剩开头一小段（70 部全是残本）。
+
+**改法**
+
+1. **`http_download_to_file`**：流式下载整文件到盘（4 MB/块追加写），不进内存——
+   4.2 GB 不能像小文件那样 `http_get_cached` 整读成 bytes。
+2. **`_iter_webnovel_works`**：逐行流式解析 jsonl，按 `title` **连续段**聚章
+   （jsonl 按书连续排布，title 一变就 yield 上一部），内存只持一部书。
+3. 现拉 **分片 0 全量（4.18 GB）**；要扩量往 `LOCALUGC_WEBNOVEL['shards']` 加编号即可
+   （磁盘余量 44 GB，全 10 片 + 解压处理放不下，按需加片）。
+4. **续搜到的两个新源**：
+   - `wuliangfo/Chinese-Pixiv-Novel`（PixivNovel.zip 1.68 GB，Pixiv 中文原创/同人小说）→ 接；
+   - `v3ucn/chinese-novel-dataset`（1.9 MB，729 条**续写对**：input 前文+output 续文，
+     看内容是刘震云等正经文学）→ 接，input+output 拼为一篇。
+   - 不接：`jetaudio/chinese_web_novels`（gated 401）；`zxbsmk/webnovel_cn`
+     （575 MB，tokenized 指令对非原文）；`vivym/fictions-chinese`（873 MB/parquet ×316，
+     留作后续）。
+5. **`allocate()` 贪心模式**：`localugc` 20 万部按均分、每部只剩 ~40 字，
+   低于 200 字下限 → **corpus.json 该桶"实际入库 0 字"**（踩过）。改为：均分后配额 <200 字时
+   自动切换**按字数从大到小整部装入**，保进桶的都是完整作品。
+
+**踩坑**
+
+1. 上一轮我加的 dump_works「合并 bulk jsonl」**方向错了**：核实发现 refetch9 的
+   192,603 个逐作品 txt **其实全部写成功了**（写 16 万小文件耗时长，之前只是没等到它跑完，
+   误判为卡死）。bulk jsonl 会破坏 build_splits/sweep 的逐作品读取路径 → 已撤回，
+   dump_works 回到简单逐文件版（本机实测 16 万文件可写完）。
+2. 大文件下载中途停滞（30 秒仅 49 KB）：curl 挂上 `--speed-time 30 --speed-limit 10000
+   --retry 20 --retry-all-errors -C -`（30 秒低于 10 KB/s 自动重连续传）。
+
+**预期规模**（跑完后回填）：分片 0 ≈ 9,700 部完整网文 / ~15 亿字；Pixiv ~2-3 万篇。
