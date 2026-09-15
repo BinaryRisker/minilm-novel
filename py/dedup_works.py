@@ -125,7 +125,9 @@ def resplit(rows: list, groups: dict) -> tuple:
     规则（两条都是刻意的）：
       · 簇内有 train → **整簇进 train**：保守优先，绝不把可能被训练见过的东西留在留出集；
       · 否则按簇内**最小 story_id** 的原 split：纯确定性，避免两次运行结果漂移。
-    字段：orig_split（**首次**原始 split；链式重跑 v2→v3 时不覆盖）、dedup_cluster、dedup_cluster_size。
+    字段（**只在有信息量时写**，见下方注释）：
+      orig_split（**首次**原始 split，只在它 ≠ 最终 split 时写；链式重跑 v2→v3 时不覆盖）、
+      dedup_cluster / dedup_cluster_size（只在作品真在 ≥2 部的簇里时写）。
 
     抽成独立函数的原因：py/audit_neardup.py（行级倒排，可扩展到 19 万部）也要产出清单。
     规则若两处各写一遍，就会「自己校验自己」——同 py/splits.py 指纹那条教训。
@@ -149,10 +151,17 @@ def resplit(rows: list, groups: dict) -> tuple:
         if new_split != r['split']:
             changed += 1
         nr = dict(r)
-        nr['orig_split'] = r.get('orig_split') or r['split']
         nr['split'] = new_split
-        nr['dedup_cluster'] = root
-        nr['dedup_cluster_size'] = size_of.get(sid, 1)
+        size = size_of.get(sid, 1)
+        # 只写**有信息量**的字段。192,823 部里只有约 2,500 部真的在簇里、427 部真的换了 split；
+        # 无条件补三个字段会让清单凭空胖 15.3 MiB（实测 v3 104.79 MB，其中 96.4% 是这三个字段，
+        # 且 99% 冗余——非簇成员的 dedup_cluster 恒等于自身 story_id、dedup_cluster_size 恒为 1）。
+        first_split = r.get('orig_split') or r['split']
+        if first_split != new_split:
+            nr['orig_split'] = first_split          # 只有换过 split 的作品才需要记首次归属
+        if size > 1:
+            nr['dedup_cluster'] = root
+            nr['dedup_cluster_size'] = size
         out_rows.append(nr)
     return out_rows, changed
 

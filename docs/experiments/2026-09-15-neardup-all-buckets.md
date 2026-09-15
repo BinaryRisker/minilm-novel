@@ -114,7 +114,8 @@ v1 gudian 又是 **44/5/6**、泄漏 12.00%/14.67%——与第 34 篇修复前�
 |---|---|
 | `py/audit_neardup.py` | 可扩展近重复检测（分层 + 五道守卫 + 簇级重切分 + `--dump-pairs`） |
 | `docs/content/实践篇36_*.md` | 内容稿（含 7 个失败样本） |
-| `data/manifest_v3_moves.json` | 重切分**增量**（427 部移动）。完整 v3 清单 105 MB **超过 GitHub 100 MB 单文件上限，不入库**；「v1 快照 + 本文件」可确定性重建 |
+| `data/manifest_v3.jsonl` | 簇级重切分后的**完整清单**（88,904,420 字节 = **84.79 MiB**，比 v1 只大 141 KB / +0.16%）。入库后 `splits.resolve_current()` 自动选中它 |
+| `data/manifest_v3_moves.json` | 重切分**增量**（427 部移动，64 KB），保留作可审计差异；「v1 + 本文件」可确定性重建 |
 | `data/split_report_v3.json` | 与 v3 配套的切分报告（指纹 `901a6a299d899fb6`） |
 | `dev/verify/audit_neardup.json` | 检测报告（含全部 298 个跨 split 簇的成员表） |
 | `dev/verify/audit_splits_v1.json` / `_v3.json` / `_v3mx0.json` | 修复前 / 默认 / `min-exact 0` 三份门禁对照 |

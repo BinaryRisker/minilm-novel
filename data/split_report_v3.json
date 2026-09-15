@@ -23,7 +23,7 @@
       "exact_span": 40,
       "min_exact": 0.02
     },
-    "manifest": "D:\\work\\_snap_manifest.jsonl",
+    "manifest": "data\\manifest.jsonl",
     "buckets": [
       "gudian",
       "wuxia",

@@ -1,7 +1,7 @@
 {
   "generated_by": "py/audit_neardup.py",
   "note": "重切分**增量**（哪些作品换了 split）。配合 base_manifest 可确定性重建完整新清单：把每个 story_id 的 split 改成 to。",
-  "base_manifest": "D:\\work\\_snap_manifest.jsonl",
+  "base_manifest": "data\\manifest.jsonl",
   "base_fingerprint": "ba915011fd4ce482",
   "target_fingerprint": "901a6a299d899fb6",
   "cluster_count": 665,

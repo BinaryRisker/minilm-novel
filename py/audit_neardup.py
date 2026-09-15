@@ -394,8 +394,8 @@ def main():
                          '并配套写 data/split_report_v3.json；规则复用 dedup_works.resplit')
     ap.add_argument('--out-moves', default=None,
                     help='可选：只写重切分的**增量**（移动了哪些作品，如 data/manifest_v3_moves.json）。'
-                         '完整清单约 105 MB、超过 GitHub 100 MB 单文件上限不入库，'
-                         '用「源清单 + 增量」可确定性重建。')
+                         '「源清单 + 增量」可确定性重建完整清单，体积小约 1,300 倍（64 KB vs 89 MB），'
+                         '是推荐入库的形态；完整清单只在本地留档即可。')
     ap.add_argument('--no-verify', action='store_true', help='跳过切分身份校验（清单正在被重写时用）')
     ap.add_argument('--dump-pairs', default=None,
                     help='可选：把全部过阈值对写成 JSONL（路径会自动追加 .<桶> 后缀）。'
@@ -462,9 +462,9 @@ def main():
         for nr in out_rows:
             stats[nr['bucket']][nr['split']] += 1
 
-        # 增量清单：**只记移动的 427 部**。完整 v3 清单约 105 MB，超过 GitHub 的
-        # 100 MB 单文件上限，不能入库；而 (源清单 + 本文件) 可确定性重建完整清单，
-        # 信息量等价。这也是「修复不要只落在旁支文件里」那条教训的落地方式。
+        # 增量清单：**只记移动的那些作品**。(源清单 + 本文件) 可确定性重建完整清单，
+        # 信息量等价，而体积小约 1,300 倍（64 KB vs 89 MB）——不必往仓库里再塞一份
+        # 与 v1 近似重复的 89 MB 副本。这也是「修复不要只落在旁支文件里」那条教训的落地。
         if args.out_moves:
             before = {r['story_id']: (r.get('orig_split') or r['split']) for r in rows}
             mv = [{'story_id': nr['story_id'], 'bucket': nr['bucket'],
