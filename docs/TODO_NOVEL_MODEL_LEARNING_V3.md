@@ -72,6 +72,13 @@ P0 余留（不阻断 P1）：实践篇 24/31 的泄漏归因修订（下条）�
     本机（N100 级 CPU 盒）实测：torch 2.14.0+cpu、无 CUDA/MPS、4 逻辑核、CPU bf16/fp16 可用
     （`dev/verify/doctor.json`）。**⏳ 待在 4090/8GB 目标机上跑一次**，才能写真正的预算表。
     契约测试 `py/tests/test_doctor.py` 4 项。
+- [ ] AutoDL 租卡集成（方案：[`docs/AUTODL_INTEGRATION_V1.md`](AUTODL_INTEGRATION_V1.md)，2026-09-16 起草，**待 §9 三个决策点拍板后实施**）。
+  - 要点：AutoDL = 可插拔远程 Linux GPU 运行时，训练代码零改动；`dev/autodl/` 六个薄脚本
+    （setup/pack/upload/benchmark/train/fetch）；付费任务永不自动启动、跑完自动关机、
+    `AUTODL_MAX_HOURS` 硬上限；数据最小化上传——默认只上 6 个证据桶（≈3,073 万字，公版/开放许可），
+    **localugc 默认不出本地**（待用户拍板）；锁定测试族不上云；回传校验 split 指纹防"远端悄悄换数据"。
+  - ⏳ 实施 = ①扩展 `py/benchmark.py`（GPU 峰值显存 / (ctx,batch) 组合扫描 + OOM 捕获 / 预算估算，
+    本地 CPU 先跑通）②写 6 个脚本 ③阶段 B 探测（无卡开机 → doctor → 有卡 benchmark）。
 - [ ] 新增 `model.py`、`tokenizer.py` 和配置 schema：先实现微型与 30M 配置，词表由训练集拟合；断言参数量、特殊 token 与根初始化来源。
 - [ ] 新增 `dataset.py/trainer.py/checkpoint.py`：预编码分片、文档边界、累计梯度、验证、取消、安全存盘；复用已验证状态契约。
 - [ ] 新增 `benchmark.py`：预热后 200 步有效 token/s、显存/RSS、OOM 和恢复；对 1024/2048 ctx 的可行组合输出估算，不自动租卡。

@@ -1666,3 +1666,36 @@ val 与 test 差 0.08~0.22 NLL，方向与量级都合理（val 略乐观是选�
 **产出**：`dev/review_current.py`（修复）、`py/novellm/`（`__init__.py` + `doctor.py`）、
 `py/tests/test_doctor.py`、`dev/verify/doctor.json`、`runs/review_20260914/probes.json`、
 V3 TODO（P0 出口表 + P1 首项勾选）。
+
+---
+
+## 2026-09-16 · Day 4（续）· AutoDL 集成方案 V1 起草（待三个决策点拍板）
+
+**起因**：用户买了 AutoDL 会员，要求规划训练集成。这是 V3 §3"租用预算尚未指定"里
+"租用"那条腿落地——按硬规矩**先出方案、不启动任何付费动作**。
+
+**做了**：起草 [`docs/AUTODL_INTEGRATION_V1.md`](AUTODL_INTEGRATION_V1.md)。核心设计：
+
+1. **定位**：AutoDL = 可插拔远程 Linux GPU 机，训练代码零改动。集成只是
+   「打包 → 上传 → 跑 → 回传 → 关机」六个薄脚本（`dev/autodl/`，实施时写）。
+2. **五条硬规矩**：付费任务永不自动启动；先 doctor → benchmark → 才训练；数据最小化上传；
+   结果必须带 `run_identity` 回传；跨硬件只做数值容差、不宣称 bitwise。
+3. **许可红线（重要）**：默认**只上 6 个证据桶（1,126 部 / 3,073 万字，公版+开放许可）**；
+   localugc 224,612 部（"权利不清/仅本地学习用"）**默认不出本地**——上云=数据落第三方
+   磁盘，与许可判断冲突。这条同时决定模型谱系：净化清单上训出的检查点才谈得上可分发。
+4. **成本安全阀**：跑完自动关机是第一杠杆；数据准备/调试走无卡模式；`AUTODL_MAX_HOURS`
+   硬上限；锁定测试族不上云（test 只在本地一次性验收）。
+5. **回传校验**：checkpoint 里的 `split_fingerprint` 必须等于出发时指纹，不一致拒收——
+   防止"远端悄悄换了数据"，和本地 `splits.verify()` 同一套契约。
+6. **实施前置**：扩展 `py/benchmark.py`（GPU 峰值显存 / (ctx,batch) 组合扫描 + OOM 捕获 /
+   费用估算），本地 CPU 先跑通再上云。
+
+**意外发现**：现有 `py/benchmark.py`（P2 时期）已支持 `--device` 与 tokens/s，缺的正是
+GPU 显存、OOM 捕获、组合扫描三样——扩展而非重写，P1 的 benchmark 项和 AutoDL 需求
+是同一件事。
+
+**待用户拍板（文档 §9，拍板后即实施）**：① localugc 是否允许上云（默认否）；
+② 单次/累计预算上限；③ 实例规格（建议 4090-24G 按量起步）。
+
+**边界**：本轮只出方案未写脚本；所有价格以 AutoDL 控制台实时价为准，D 阶段费用由
+B 阶段实测决定，方案里不预填数字。
