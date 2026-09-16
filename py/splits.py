@@ -81,7 +81,13 @@ def resolve_current(manifest_path: str = None, report_path: str = None,
     """
     global _warned, _resolved
     if manifest_path:
-        return manifest_path, (report_path or DEFAULT_REPORT)
+        if report_path is None:
+            # 报告默认**跟随清单同目录**（包/清单/报告是一组，一起走）；
+            # 同目录没有才退回全局默认。清单与报告拆开放本来就该一起显式给。
+            sibling = os.path.join(os.path.dirname(os.path.abspath(manifest_path)),
+                                   'split_report.json')
+            report_path = sibling if os.path.exists(sibling) else DEFAULT_REPORT
+        return manifest_path, report_path
     if _resolved is not None:
         return _resolved          # 进程内只判定一次（清单 19 万行，重复判定很贵）
     for dedup_man, dedup_rep in DEDUP_CANDIDATES:
@@ -174,15 +180,17 @@ def slug(s: str) -> str:
     return s[:80] or 'untitled'
 
 
-_manifest_cache: Dict[Tuple[str, float], List[dict]] = {}
+_manifest_cache: Dict[Tuple[str, int], List[dict]] = {}
 
 
 def read_manifest(path: str = DEFAULT_MANIFEST) -> List[dict]:
-    """解析清单。按 (路径, mtime) 缓存，避免同一次实验里反复解析 19 万行；
-    返回浅拷贝，调用方可以安全地对自己的 list 排序/增删（不共享 list 对象）。"""
+    """解析清单。按 (路径, mtime_ns, size) 缓存，避免同一次实验里反复解析 19 万行；
+    返回浅拷贝，调用方可以安全地对自己的 list 排序/增删（不共享 list 对象）。
+    键用 mtime_ns+size 而不是 getmtime 的秒级浮点——同路径快速重写会撞键、返回旧行（实测踩过）。"""
     import json
     try:
-        key: Optional[Tuple[str, float]] = (os.path.abspath(path), os.path.getmtime(path))
+        st = os.stat(path)
+        key: Optional[Tuple[str, int]] = (os.path.abspath(path), st.st_mtime_ns ^ (st.st_size << 8))
     except OSError:
         key = None
     if key is not None:

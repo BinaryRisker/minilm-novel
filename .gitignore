@@ -33,3 +33,7 @@ py/data/corpus.orig.json
 # dev/loop/：验证脚本（verify_resume / verify_seed / 循环训练）的中途 checkpoint 与工作目录。
 # 体积大（实测 13 MB+）且可由脚本重建，不入库；dev/verify/*.json 是报告，保留入库。
 dev/loop/
+
+# AutoDL 集成：实例连接信息只留本地；数据包/回传产物不入库
+dev/autodl/instance.local.sh
+dist/remote/

@@ -1699,3 +1699,53 @@ GPU 显存、OOM 捕获、组合扫描三样——扩展而非重写，P1 的 be
 
 **边界**：本轮只出方案未写脚本；所有价格以 AutoDL 控制台实时价为准，D 阶段费用由
 B 阶段实测决定，方案里不预填数字。
+
+---
+
+## 2026-09-16 · Day 4（续二）· AutoDL 集成阶段 A 落地：脚本就绪（本地可全验）
+
+**做了**（用户未对 §9 三问表态，按**推荐默认**实施——三个默认都是收紧方向，随时可放宽）：
+localugc 不上云；预算默认单次 ≤¥20 / 累计 ≤¥100（`AUTODL_MAX_HOURS`/时价可环境变量覆盖）；
+规格建议 4090-24G 按量。方案 §7 阶段 A（本地部分，¥0）全部完成：
+
+1. **`py/benchmark.py` 扩展**（P1 既有项）：GPU 峰值显存（`max_memory_allocated`，从预热后起算）、
+   `--sweep_ctx/--sweep_batch` 组合扫描（**OOM 记 `oom:true` 不崩溃**，清缓存继续）、
+   `--estimate_tokens/--price_per_hour` 费用估算。本机 CPU 实测 4 组合全通：
+   ctx=64/batch=16 最快 21,642 tokens/s，估算 92M tokens ≈1.16h/¥2.31（CPU 盒的数，
+   上 GPU 换 `--device cuda` 重测才是预算表）。
+2. **`py/data/pack_remote.py`**（数据包，上传侧唯一有逻辑的部件）：
+   - 许可闸门 fail-closed：含 local_only/unknown 的桶**直接拒绝打包**（实测 story,localugc
+     被拒并给出拒绝理由）；确要带需 `--allow_non_distributable` 且在 PACK_INFO 留痕；
+   - 包内布局**镜像远端目录树**（`data/manifest.jsonl`、`data/split_report.json`、
+     `data/processed/<bucket>/*.txt`），解到工作目录根一次落位；
+   - 包自带**两个指纹**：子集指纹（远端 `splits.verify` 直接用）+ 来源指纹（谱系用）。
+3. **修一个真 bug**：`splits.read_manifest` 的缓存键用 `getmtime` 秒级浮点，同路径快速
+   重写会撞键返回旧行（契约测试里抓到的 flaky）。改 `st_mtime_ns ^ (size<<8)`。
+4. **`dev/autodl/`**：10_setup_env / 30_upload / 40_benchmark / 50_train / 60_fetch_results
+   + instance.example.sh + README。50_train 内置 `timeout --signal=TERM` 对接
+   `AUTODL_MAX_HOURS`，结束/超限后 `shutdown`；60_fetch 回传时校验 meta 的
+   `split_fingerprint` 与数据包一致，不一致拒收。
+
+**数字**：story 桶单桶数据包 **3.0 MB**（1000 部 / 81 万字）——6 桶全量估 15–20 MB，
+上传是分钟级；契约测试新增 `test_pack_remote.py` 4 项，全量 **62/62 OK**。
+
+**意外发现**
+
+1. **"包内指纹"第一版设计就是错的。** 我最初把全量清单指纹塞进包内报告——包内清单是子集，
+   指纹必然对不上，远端 `verify()` 会永远失败。修正为"子集报告按子集清单重算指纹 +
+   来源指纹另记"：**同一份指纹只能有一个定义域**（Day 3 的教训在数据打包上又用了一次）。
+2. **缓存撞键是自测抓出来的**：契约测试在同一 tmp 路径上快速重写清单，`getmtime` 秒级
+   粒度撞键 → 返回旧行 → 断言失败。测试环境最容易暴露这种"生产几小时才现形"的 bug。
+
+**边界**
+
+- 六个脚本**尚未在真实 AutoDL 实例上跑过**（本机只验证了打包器与 benchmark 的 CPU 路径）；
+  首次上云按 README 的 B→E 顺序小步走。
+- `50_train.sh` 目前调 `py/train.py`（已带 run_identity + checkpoint v2）；`py/novellm/`
+  的训练器（P1 后续项）就绪后把入口换过去，脚本层不变。
+- 三个决策点的默认值只是**收紧方向**，用户随时可改：放宽 localugc 上云需要显式批准 +
+  模型卡记录。
+
+**产出**：`py/benchmark.py`（GPU 显存/组合扫描/费用估算）、`py/data/pack_remote.py`、
+`py/tests/test_pack_remote.py`、`dev/autodl/`（README + 5 脚本 + example）、`.gitignore`
+（instance.local.sh 与 dist/remote）、`docs/AUTODL_INTEGRATION_V1.md`（§7 状态更新待首轮实测）。
