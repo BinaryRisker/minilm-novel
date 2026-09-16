@@ -81,6 +81,13 @@ P0 余留（不阻断 P1）：实践篇 24/31 的泄漏归因修订（下条）�
     本地 CPU 先跑通）②写 6 个脚本 ③阶段 B 探测（无卡开机 → doctor → 有卡 benchmark）。
 - [ ] 新增 `model.py`、`tokenizer.py` 和配置 schema：先实现微型与 30M 配置，词表由训练集拟合；断言参数量、特殊 token 与根初始化来源。
 - [ ] 新增 `dataset.py/trainer.py/checkpoint.py`：预编码分片、文档边界、累计梯度、验证、取消、安全存盘；复用已验证状态契约。
+  - ✅ 2026-09-17 dataset.py 已落地：`py/novellm/dataset.py`——流式建词表（只来自 train）+
+    向量化编码（utf-32 码点 → LUT，无 Python 逐字循环）+ uint16 分片（memmap 读取，
+    24.5 亿字 ≈4.6GiB 落盘）+ 文档边界 int64 偏移 + meta 双指纹（清单/词表）。
+    `sample_batch` 与 `minilm_torch.make_batch` **同 seed 逐位一致**（真实 story 桶实测）；
+    verify 断言为 **token 级往返等值**（min_freq>1 时低频字按设计映射 UNK，字符串逐字相等反而不成立）。
+    CLI：`python -X utf8 -m py.novellm.dataset build/info/verify`。契约测试 `py/tests/test_dataset.py` 9 项。
+  - ⏳ trainer.py（预编码分片喂入 + 累计梯度 + 取消 + 安全存盘）、checkpoint.py 抽模块待做。
   - ⚠️ **优先级上调（2026-09-16）**：用户已批准 localugc 上云全量训练（AutoDL 3080 Ti），
     而 18.8 亿字经现行 `train.py` 全量编码会变 Python list ≈49GB 内存——**dataset.py 的
     预编码分片从「可后置」升格为「全量训练（D1）的准入条件」**。

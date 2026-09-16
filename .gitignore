@@ -34,6 +34,9 @@ py/data/corpus.orig.json
 # 体积大（实测 13 MB+）且可由脚本重建，不入库；dev/verify/*.json 是报告，保留入库。
 dev/loop/
 
+# 预编码分片（py/novellm/dataset.py 产出）：全量 24.5 亿字 ≈4.6GiB，可由 build 命令重建
+py/runs/shards/
+
 # AutoDL 集成：实例连接信息只留本地；数据包/回传产物不入库
 dev/autodl/instance.local.sh
 dist/remote/

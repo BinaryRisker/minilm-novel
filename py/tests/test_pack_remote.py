@@ -14,6 +14,7 @@ py/tests/test_pack_remote.py — 远程数据打包的契约测试（AutoDL 集�
 ============================================================================ """
 from __future__ import annotations
 import json
+import hashlib
 import os
 import shutil
 import sys
@@ -32,6 +33,8 @@ from license_policy import classify  # noqa: E402
 
 
 def _row(sid, h, sp, bucket, lic, text):
+    # Production manifests use the first 16 hex chars of SHA-256; keep fixtures honest.
+    h = hashlib.sha256(text.encode('utf-8')).hexdigest()[:16]
     return {'story_id': sid, 'hash': h, 'split': sp, 'bucket': bucket,
             'title': sid, 'license': lic, 'chars': len(text)}
 

@@ -31,6 +31,7 @@ from __future__ import annotations
 import hashlib
 import os
 import re
+import hashlib as _hashlib
 from typing import Dict, List, Optional, Tuple
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -156,6 +157,18 @@ def verify(manifest_path: str = None,
         problems.append(f'manifest 有 {len(dups)} 个逐字重复作品（如 {dups[0][0]} vs {dups[0][1]}）'
                         f'—— 先跑 python py/data/prepare.py --split 完成内容去重')
 
+    # A different rendition of the same work must not cross a split.
+    for field in ('parent_story_id', 'dedup_cluster'):
+        groups: Dict[str, set] = {}
+        for r in rows:
+            key = r.get(field)
+            size = int(r.get('dedup_cluster_size') or 1)
+            if key and (field == 'parent_story_id' or size > 1):
+                groups.setdefault(str(key), set()).add(r.get('split'))
+        moved = [k for k, v in groups.items() if len(v) > 1]
+        if moved:
+            problems.append(f'{field} 有 {len(moved)} 个家族跨 train/val/test（如 {moved[0]}）')
+
     fp = split_fingerprint(rows)
     if not os.path.exists(report_path):
         problems.append(f'缺 {report_path} —— 先跑 python py/data/build_splits.py')
@@ -235,7 +248,13 @@ def bucket_texts(bucket: str, manifest_path: str = None,
         if not os.path.exists(p):
             raise FileNotFoundError(f'作品正文缺失：{p}（{r["story_id"]} {r["title"]}）')
         with open(p, 'r', encoding='utf-8') as f:
-            out[sp].append((r['story_id'], r['title'], f.read()))
+            text = f.read()
+        expected = r.get('hash')
+        if expected:
+            got = _hashlib.sha256(text.encode('utf-8')).hexdigest()[:16]
+            if got != expected:
+                raise SplitIdentityError(f'正文哈希不符：{r["story_id"]} manifest={expected} actual={got}')
+        out[sp].append((r['story_id'], r['title'], text))
     return out
 
 

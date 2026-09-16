@@ -1782,3 +1782,57 @@ ctx1024/batch32 可跑），速度约为 4090 的 6~7 成但更便宜；50GB 数
 1. 你在控制台按 §3 配置开实例（可先无卡模式）→ `10_setup_env` → `40_benchmark` 出预算表；
 2. 我这边开工 `py/novellm/dataset.py`（预编码分片 + 文档边界），这是 D1 的钥匙；
 3. D0（6 证据桶）不依赖分片，预算表出来即可先跑。
+
+---
+
+## 2026-09-17 · Day 5 · dataset.py 落地：D1 的钥匙 + 一个教科书级 Python 坑
+
+**做了**：V3 P1 的 **`py/novellm/dataset.py` 预编码分片数据集**落地（全量 localugc 训练的准入条件）：
+
+1. **流式建词表**：Counter 分块扫训练集字符频次，语义对齐 `minilm_torch.build_vocab`
+   （min_freq 过滤、UNK=0、同频按字符排序）；词表只来自 train。
+2. **向量化编码**：utf-32-le 解码出码点数组 → 查 LUT（常驻 ≈2.2MB）映射 uint16 token。
+   **没有 Python 逐字循环**——18.8 亿字的编码从"数小时"降到分钟级。
+3. **uint16 分片 + memmap**：2.68 亿 token/片，24.5 亿字 ≈4.6GiB 落盘；
+   `ShardedCorpus.sample_batch` 与 `minilm_torch.make_batch` **同 seed 逐位一致**
+   （真实 story 桶实测，这是"既有结论可迁移"的硬证据）；文档边界单独存 int64 偏移数组。
+4. **verify 子命令**：token 级往返等值抽查；meta 记清单指纹 + 词表指纹（远端同一套契约）。
+5. 契约测试 `py/tests/test_dataset.py` 9 项：逐字往返（含跨分片文档）、文档边界单调且
+   分片边界不产生假边界、sample_batch 与 make_batch 同分布、memmap 非 Python list。
+   全量 **71/71 OK**。
+
+**数字**：story 桶（804 部训练作品 / 21.8 万 token）build 15 秒（含流式建词表）；
+`sample_batch` 与 make_batch 同 seed 对照 **True**；全量 24.5 亿字预估落盘 4.6GiB、
+分片 10 片。
+
+**意外发现（教科书级）**
+
+1. **生成器迟绑定 bug，被"doc 43 通过、doc 162 失败"的假象掩护。** verify 里
+   `texts = (… if i in want)` 是惰性生成器，捕获的是**变量** `want`；循环体里
+   `want = encode(text)` 把它重绑定成了 token 数组——于是第二个文档起，
+   `i in want` 变成"枚举序号是否出现在 token 值里"，对账集合静默变成了垃圾。
+   修法：两个概念两个名字（`picked` / `want_tokens`）。教训：**惰性求值的闭包
+   引用的变量名，绝不能在消费前被复用**。
+2. **"逐字一致"不是分片校验的正确断言。** doc 43 解码比原文少一个「血」字——
+   min_freq=3 把低频字按设计映射为 UNK(0)，解码为空。正确断言是 **token 级等值**
+   （用保存的词表重编码原文，与存储分片逐位比）。断言语义错一步，就会把"按设计
+   的 UNK"误判成"分片丢了字"。
+3. **同模板文本会掩护顺序错位。** story 桶大量「莉莉和汤姆…」同开头，错位文档的
+   前 60 字看起来完全正确——定位靠"长度差 1 + 首分歧位 272"才看清是 UNK。
+   校验报告必须带 sid 与分歧位，不能只说"不一致"。
+
+**边界**
+
+- trainer.py（把分片喂进训练循环 + 累计梯度 + 取消 + 安全存盘）还没做——dataset 只解决了
+  "数据怎么放"，"怎么喂"是下一步；在此之前 `train.py` 仍走旧路径（D0 不受影响）。
+- BPE tokenizer（P1 另一项）就绪后只替换编码函数，分片结构不变。
+- 全量 24.5 亿字的 build 还没跑（预计 10 片/4.6GiB/分钟级），等 D1 开训时按需执行。
+
+**披露（并发线的两处增强，随本轮一并入库）**：`py/splits.py` 工作树里有该线新增的
+①**家族跨集合校验**（parent_story_id / dedup_cluster 跨 train/val/test → verify 报错）与
+②**正文哈希校验**（bucket_texts 逐作品 sha256 对账，不符即 SplitIdentityError）；
+`py/tests/test_pack_remote.py` 的夹具 hash 也被它改成真 sha256（"keep fixtures honest"）。
+两处与我的 dataset 工作耦合在同一文件、62→71 项测试全部通过，随本提交入库；
+若该线仍在活动，后续以它的版本为准。
+
+**产出**：`py/novellm/dataset.py`、`py/tests/test_dataset.py`、V3 TODO 勾选。
