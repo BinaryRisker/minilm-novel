@@ -1749,3 +1749,36 @@ localugc 不上云；预算默认单次 ≤¥20 / 累计 ≤¥100（`AUTODL_MAX_
 **产出**：`py/benchmark.py`（GPU 显存/组合扫描/费用估算）、`py/data/pack_remote.py`、
 `py/tests/test_pack_remote.py`、`dev/autodl/`（README + 5 脚本 + example）、`.gitignore`
 （instance.local.sh 与 dist/remote）、`docs/AUTODL_INTEGRATION_V1.md`（§7 状态更新待首轮实测）。
+
+---
+
+## 2026-09-16 · Day 4（续三）· 用户拍板：3080 Ti + localugc 上云全量训练（方案修订）
+
+**用户决定**：① 实例选 **RTX 3080 Ti 12GB**（PyTorch 2.12.1 / Py3.12 / CUDA 13.0 镜像）；
+② **所有数据都训练，包括 localugc**。方案 V1 已按此修订（§2/§3/§7/§9/§10）。
+
+**配置核对结论：满足要求**。3080 Ti 12GB 跑 30M 候选余量充足（Adam fp32 状态 ≈0.5GB + 激活，
+ctx1024/batch32 可跑），速度约为 4090 的 6~7 成但更便宜；50GB 数据盘放 gzip 包（≈2GB）+
+解包 7.5GB + checkpoint 绰绰有余；12 核/90GB 充足；镜像可用（torch 2.12 vs 本地 2.14，
+跨版本 resume 放进冒烟阶段 C 验证）。
+
+**但发现一个硬前置，必须如实说**：**当前训练路径吃不下 localugc 全量**。
+`train.py` 全量编码 18.8 亿字 → Python list（指针 14GB + int 对象 ≈49GB）→ 内存爆。
+这不是买更大机器能解决的（90GB 物理内存也不够，且 Python 对象开销让 batch 也慢）——
+正解就是 V3 P1 既定的 **dataset.py 预编码分片**（array/numpy ≈7GB，顺便解决喂入速度）。
+已把该项从「可后置」**升格为「全量训练（D1）的准入条件」**：D0（6 证据桶 3,073 万字）
+不受影响，现行 train.py 可直接跑；D1 前必须先落 dataset.py。
+
+**许可后果（按你的批准执行，永久生效不可撤销）**：localugc 数据上云训练出的检查点
+**不可对外分发或商用**，模型卡写明「含权利不清数据训练，仅限个人学习」；打包走
+`--allow_non_distributable` 留痕（PACK_INFO.json 记录）；与净化清单训出的检查点分开命名存放。
+打包器已加 `--gzip`（story 单桶实测 3.0MB→374KB，全量 7.3GB 预计压到 ~2GB）。
+
+**边界**：本轮只做方案修订与打包器压缩选项；dataset.py 分片是下一个开发项（P1），
+做它之前全量训练不要开。
+
+**下一步**
+
+1. 你在控制台按 §3 配置开实例（可先无卡模式）→ `10_setup_env` → `40_benchmark` 出预算表；
+2. 我这边开工 `py/novellm/dataset.py`（预编码分片 + 文档边界），这是 D1 的钥匙；
+3. D0（6 证据桶）不依赖分片，预算表出来即可先跑。

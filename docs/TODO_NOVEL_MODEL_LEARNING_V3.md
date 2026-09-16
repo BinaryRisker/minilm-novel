@@ -81,6 +81,11 @@ P0 余留（不阻断 P1）：实践篇 24/31 的泄漏归因修订（下条）�
     本地 CPU 先跑通）②写 6 个脚本 ③阶段 B 探测（无卡开机 → doctor → 有卡 benchmark）。
 - [ ] 新增 `model.py`、`tokenizer.py` 和配置 schema：先实现微型与 30M 配置，词表由训练集拟合；断言参数量、特殊 token 与根初始化来源。
 - [ ] 新增 `dataset.py/trainer.py/checkpoint.py`：预编码分片、文档边界、累计梯度、验证、取消、安全存盘；复用已验证状态契约。
+  - ⚠️ **优先级上调（2026-09-16）**：用户已批准 localugc 上云全量训练（AutoDL 3080 Ti），
+    而 18.8 亿字经现行 `train.py` 全量编码会变 Python list ≈49GB 内存——**dataset.py 的
+    预编码分片从「可后置」升格为「全量训练（D1）的准入条件」**。
+    array/numpy 分片 ≈7GB 可行；方案见 `docs/AUTODL_INTEGRATION_V1.md` §7。
+    D0（6 证据桶 3,073 万字）不受影响，现行路径可跑。
 - [ ] 新增 `benchmark.py`：预热后 200 步有效 token/s、显存/RSS、OOM 和恢复；对 1024/2048 ctx 的可行组合输出估算，不自动租卡。
 - [ ] 新增 `tests/test_scratch_lineage.py`、`test_model.py`、`test_resume.py`：根权重可由 seed 重建，禁止外部权重入口混入；因果遮罩、padding/loss mask、KV cache 与非 cache logits 对齐。
 - [ ] CUDA/MPS 各执行微型前向、反向、保存加载、生成；跨设备比较设数值容差，不宣称跨平台 bitwise 等价。

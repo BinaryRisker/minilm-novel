@@ -76,7 +76,8 @@ def build(buckets: list, out_path: str, manifest_path: str = None,
 
     os.makedirs(os.path.dirname(os.path.abspath(out_path)) or '.', exist_ok=True)
     n_files, n_bytes = 0, 0
-    with tarfile.open(out_path, 'w') as tar:      # 明文 tar：上游可再压 zstd/gz
+    mode = 'w:gz' if out_path.endswith(('.gz', '.tgz')) else 'w'
+    with tarfile.open(out_path, mode) as tar:
         # 1) 过滤后的清单（字段原样，只裁行）
         man_bytes = ''.join(json.dumps(r, ensure_ascii=False) + '\n'
                             for r in info_rows).encode('utf-8')
@@ -146,12 +147,15 @@ def main():
     ap.add_argument('--report', default=None)
     ap.add_argument('--allow_non_distributable', action='store_true',
                     help='显式允许「权利不清/仅本地学习」桶出本地（会记录在包内 PACK_INFO.json）')
+    ap.add_argument('--gzip', action='store_true',
+                    help='tar.gz（中文文本压缩比 ~3-4×；全量 localugc 包建议开，解包命令不变）')
     args = ap.parse_args()
 
     buckets = [b.strip() for b in args.buckets.split(',') if b.strip()]
     man, rep = splits.resolve_current(args.manifest, args.report)
     fp = splits.verify(man, rep)['fingerprint']
-    out = args.out or os.path.join(ROOT, 'dist', 'remote', f'data_{fp[:8]}.tar')
+    suffix = '.tar.gz' if args.gzip else '.tar'
+    out = args.out or os.path.join(ROOT, 'dist', 'remote', f'data_{fp[:8]}{suffix}')
     r = build(buckets, out, args.manifest, args.report, args.allow_non_distributable)
     print(f'[*] 数据包 -> {r["out"]}')
     print(f'    桶 {sorted(buckets)}：{r["works"]} 部 / 正文 {r["text_files"]} 文件 '
