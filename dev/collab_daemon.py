@@ -187,33 +187,48 @@ def cmd_watch(args: argparse.Namespace) -> int:
     LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
     seen: Dict[str, int] = {}
     interval = float(args.interval)
-    print(f"[{_now_iso()}] watching {INBOX} (interval={interval}s)")
+    line = f"[{_now_iso()}] watching {INBOX} (interval={interval}s)"
+    print(line, flush=True)
+    _log(line)
+    tick = 0
     while True:
-        msgs = list_inbox()
-        for p in msgs:
-            mt = p.stat().st_mtime_ns
-            if seen.get(p.name) == mt:
-                continue
-            try:
-                msg = _read_json(p)
-            except Exception as e:
-                # 原子写完成前可能短暂看到空/半成品；不标记为已处理，
-                # 下一轮用同一文件的新内容重试。
-                _log(f"[parse-error] {p.name}: {e}")
-                continue
-            seen[p.name] = mt
-            msgs = []
-            for other in list_inbox():
+        tick += 1
+        try:
+            msgs = list_inbox()
+            new_or_changed = 0
+            for p in msgs:
                 try:
-                    msgs.append(_read_json(other))
-                except Exception:
-                    pass
-            eff = cross_check(msgs)
-            kind, action, summary = summarize(msg)
-            if kind == "task":
-                tid = msg.get("task_id") or msg.get("id")
-                action = eff.get(tid, action)
-            _log(f"[{kind}/{action}] {p.name}  {summary}")
+                    mt = p.stat().st_mtime_ns
+                except Exception as e:
+                    _log(f"[stat-error] {p.name}: {e}")
+                    continue
+                if seen.get(p.name, -1) == mt:
+                    continue
+                new_or_changed += 1
+                try:
+                    msg = _read_json(p)
+                except Exception as e:
+                    _log(f"[parse-error] {p.name}: {e}")
+                    continue
+                seen[p.name] = mt
+                cross_msgs = []
+                for other in list_inbox():
+                    try:
+                        cross_msgs.append(_read_json(other))
+                    except Exception:
+                        pass
+                eff = cross_check(cross_msgs)
+                kind, action, summary = summarize(msg)
+                if kind == "task":
+                    tid = msg.get("task_id") or msg.get("id")
+                    action = eff.get(tid, action)
+                _log(f"[{kind}/{action}] {p.name}  {summary}")
+            if new_or_changed == 0 or tick % 5 == 0:
+                _log(f"[heartbeat] tick={tick} inbox={len(msgs)} new_or_changed={new_or_changed}")
+        except Exception as e:
+            _log(f"[watch-error] tick={tick} {type(e).__name__}: {e}")
+            import traceback
+            _log(traceback.format_exc())
         time.sleep(interval)
 
 
@@ -221,6 +236,7 @@ def _log(line: str) -> None:
     LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
     with open(LOG_FILE, "a", encoding="utf-8") as f:
         f.write(f"[{_now_iso()}] {line}\n")
+        f.flush()
 
 
 # ---------- main ----------

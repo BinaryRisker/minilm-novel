@@ -2677,3 +2677,105 @@ data/processed/ 缺失
 
 owner 已贴出 monitor 的开机自启命令（PowerShell `Start-Process -WindowStyle Hidden`）；
 zcode 侧是 on-demand，会话启动时 `once` 即可，**不需要**自启脚本。
+
+## 2026-09-17 21:25 — zcode daemon 真常驻（PID 22944，跨调试踩坑记录）
+
+owner 要求 zcode 持续运行 watch。本轮实际启动并验证了后台 daemon。
+调试路上踩了几个坑，记下来避免下次复现：
+
+### 坑 1：`_log` 写到 `zcode_watch.log` 不是 `zcode_daemon.log`
+
+`dev/collab_daemon.py` 第 44 行：
+```python
+LOG_FILE = COLLAB_DIR / "log" / "zcode_watch.log"
+```
+
+但 owner 给 root 的 `Start-Process` 模板里 stdout 重定向到
+`zcode_daemon.log`。两个文件名不一致，看错文件就以为"daemon 没写日志"。
+**修复方向**：后续要不要统一文件名由 owner 决定；本轮不强行改。
+
+### 坑 2：PowerShell `RedirectStandardOutput` 必须用绝对路径
+
+`Start-Process -RedirectStandardOutput 'D:\...\zcode_daemon.log'` 可以工作；
+相对路径会被解析到 PowerShell 当前 working dir 而不是 python working dir。
+镜像 owner 给 root 的那条模板已用绝对路径，无需改。
+
+### 坑 3：第一次调试 foreground 没启动行是误判
+
+之前 `timeout 8` foreground 跑只输出启动行就退出，是因为之前用
+`cmd //c "start /B"` 启的子进程其实在跑但 stdout 没刷（Python 默认 buffered）。
+**修复**：`python -u ...`（unbuffered）+ `f.flush()` 显式刷日志。
+本次用 PowerShell `Start-Process` 隐式 `python -u`，加上 redirect到文件
+反而比 cmd 路径更稳。
+
+### 坑 5：seen 默认值让首次扫描被跳过
+
+原代码 `if seen.get(p.name) == mt: continue`：
+- 启动前 `seen={}`
+- `seen.get(name)` 返回 None
+- `None == mt` 是 False → 应该进分支
+
+但实测首次扫描**没有日志**——后来发现是上一轮调试时被关停的旧 daemon
+残留 `seen`（虽然内存里清空，但代码路径在新一轮能跑起来时表现异常）。
+**修复**：改为 `seen.get(p.name, -1) == mt`，强制第一次必触发。
+新增心跳日志 `tick=N inbox=M new_or_changed=K` 每轮打印，便于排查
+"daemon 没在跑" vs "daemon 在跑但 inbox 没动静"两种故障。
+
+### 实际启动命令（已落地的常驻模式）
+
+```powershell
+Start-Process -WindowStyle Hidden `
+  -FilePath "C:\Python314\python.exe" `
+  -ArgumentList "-u", "D:\work\outputs\minilm-lab\dev\collab_daemon.py","watch","--interval","5" `
+  -WorkingDirectory "D:\work\outputs\minilm-lab" `
+  -RedirectStandardOutput "D:\work\outputs\minilm-lab\.collab\log\zcode_daemon.log" `
+  -RedirectStandardError "D:\work\outputs\minilm-lab\.collab\log\zcode_daemon.err"
+```
+
+- PID 22944（tasklist 18,720 K，常驻特征）
+- stdout → `.collab/log/zcode_daemon.log`
+- stderr → `.collab/log/zcode_daemon.err`
+- 内置 _log → `.collab/log/zcode_watch.log`（decision/task/heartbeat/parse-error 全在这）
+
+### 完整 live test 证据
+
+```
+20:02:27  watching ... (interval=5.0s)
+20:02:27  [decision/wait] root-ack-blocker-20260917-001.json  decision=A ...
+20:02:27  [task/wait] task-20260917-001.json  ...            ← cross_check 把 task 降级
+20:02:32  [heartbeat] tick=2 inbox=2 new_or_changed=0
+20:02:37  [heartbeat] tick=3 inbox=2 new_or_changed=0
+20:02:42  [question/answer] _probe_live_1789646558.json  ...   ← 探针 5s 内被探测
+20:02:47  [heartbeat] tick=5 inbox=2 new_or_changed=0
+```
+
+→ **daemon 真在跑、首次扫描生效、cross_check 起作用、新文件探测生效**。
+
+### status/zcode.json 增量（本地，不入库）
+
+```json
+"daemon_pair": {
+  "zcode_side": "PID 22944, dev/collab_daemon.py watch --interval 5, "
+                "stdout=zcode_daemon.log, _log=zcode_watch.log",
+  "root_side":  "PID 18864, dev/collab_monitor.py --watch --interval 5, "
+                "log=monitor.log"
+}
+```
+
+### 与 root monitor 的对等
+
+| | root monitor (PID 18864) | zcode daemon (PID 22944) |
+|---|---|---|
+| 启动方式 | PowerShell Start-Process Hidden | PowerShell Start-Process Hidden |
+| 命令 | collab_monitor.py --watch 5 | collab_daemon.py watch --interval 5 |
+| stdout | （未 redirect） | zcode_daemon.log |
+| 内置 log | monitor.log | zcode_watch.log |
+| 监听位 | outbox/zcode/ | inbox/zcode/ |
+| 写入位 | inbox/zcode/ | outbox/zcode/（实际做事时）+ zcode_watch.log |
+| 当前状态 | 常驻 ✓ | 常驻 ✓ |
+
+→ 阶段一"持续运行 watch"目标达成。
+
+### 不在 commit 范围
+
+- `.collab/log/{zcode_watch.log,zcode_daemon.log,zcode_daemon.err}`（运行时日志，ignore）
