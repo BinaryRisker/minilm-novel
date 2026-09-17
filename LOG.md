@@ -2200,3 +2200,67 @@ sha256 对照——本轮证据缺口保留，不外推。
 1. 实例下次启动时，把 `_t30m_A250` / `_t30m_B250` 落本地后做 sha256 比对，
    把"严格位等价"证据补齐（HANDOFF 第 4 步）。
 2. D1 全量训练在同事的 6 桶分片完成、t30m+accum 显存压力重新盘点后再启动。
+
+## 2026-09-17 18:55 — 阶段判定对账（owner 复核结论 + 现状核实）
+
+owner 在 18:55 对本轮（截至 `14f6b23`）提交、日志、训练产物和数据状态
+做了一次复核，结论：**已从"训练链路验证"进入"数据准备 + 正式实验"
+阶段，但仍未达全量训练准入**。两个关键缺口：
+
+1. **GPU 端"直训 vs 中途恢复"严格位等价未完成**——本轮 A=250/B=250 ckpt
+   未回传，无 sha256 / 参数逐位对象；现在能确认的仅是 resume 后
+   val_curve 复现（同 step 五个验证点逐位相等）。
+2. **数据分片只覆盖 story 单桶**（804 部 / 22 万 token）——验证集 nll 持续
+   上升已是过拟合，不能据此判 30M 真实能力。
+
+### 两条训练线（owner 判定）+ 仓库现状核实
+
+owner 提的"两条线"在我的核实下是这样的：
+
+| 线 | 含义 | 候选清单 | 部数 | localugc 占比 | 状态 |
+|---|---|---|---|---|---|
+| **研究线** | 含 localugc，仅本地研究 / 内部评测 | `manifest.jsonl` 或 `manifest_v2.jsonl`（两者内容相同，225,756 部） | 225,756 | 224,612（99.5%） | **当前分片目录（story 1000 部）远小于此** |
+| **发布线** | 明确可分发的数据，单独分片 / 单独 ckpt / 单独 fingerprint | 当前**没有干净的"非 localugc"清单**；`manifest_v3.jsonl` 是减掉"许可证不明确"子集，但仍含 191,679 部 localugc（99.4%） | 192,823 | 191,679（99.4%） | **不能直接当发布线**，需从 v3 进一步过滤 bucket≠localugc，得到约 1,144 部（gudian 55 + scifi 5 + story 1000 + urban 26 + wuxia 23 + xiandai 35），与 owner 描述吻合 |
+
+→ **owner 的判定准确**：仓库里没有现成的"非 localugc 发布线"manifest；
+研究线和发布线必须**两套分片目录、两套 ckpt、两套 fingerprint**，绝不混用。
+
+### 本轮做 / 不做
+
+**做**（已落地）：
+- `dev/audit_two_lines.py`（只读）：扫 `data/manifest*.jsonl` 输出两线
+  桶 / 部数 / 字符 / 许可统计，不动同事文件，留给同事 review。
+- 本节 LOG：阶段判定对账 + 两条线实际清单对照。
+
+**不做**（同事工作线 / 越界）：
+- 不动 `py/novellm/dataset.py`、不动 `py/runs/shards/`、不动 `data/manifest*.jsonl`、
+  不动 `py/data/{corpus.json,fetch_corpus.py}`、不动同事的 6 桶 build 脚本。
+- 不擅自生成分片；分片由同事工作线产出。
+- 不基于当前 story 单桶结果估算正式费用；正式预算要等 6 桶分片 + 真实 token 数。
+
+### 当前 owner 建议的执行顺序（摘要留档）
+
+1. 下次 AutoDL 实例启动后，**先 fetch 再关机**：A=250 / B=250 两份
+   `checkpoint.pt` 必须落到 `py/runs/_t30m_{A,B}250/`，做 sha256 + 参数
+   逐位比较。
+2. 生成 6 个非 localugc 桶的完整分片，跑：
+   ```bash
+   python -X utf8 -m py.novellm.dataset info --split train
+   python -X utf8 -m py.novellm.dataset verify --split train
+   ```
+   确认 `n_docs` / `n_tokens` / fingerprint / 桶列表。
+3. 若做全本地研究，**单独**生成含 localugc 的 private shards，
+   目录与发布线严格隔离。
+4. 用 6 桶数据跑一轮较短 t30m 训练，看 train/val 曲线；
+   story 小数据上的过拟合不能当超参依据。
+5. 用分片得到的真实 token 数重算训练时间和费用；本轮 LOG 里
+   "6–8 小时 / ¥7–9" 仍是粗估，不能当预算。
+6. 正式长训后再做完整短故事生成、人物一致性、情节完整性、重复率、人工盲评。
+
+### 当前不建议做
+
+- 不要在 19 亿字符上立刻长训；
+- 不要把 story 单桶训练结果叫"全量训练"；
+- 不要把 `14f6b23` 的数据入库提交理解为"分片已生成"；
+- 不要仅凭 loss / perplexity 判小说质量；
+- 不要关实例前才回传 ckpt——必须先确认本地文件存在并完成校验。
