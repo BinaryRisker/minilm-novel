@@ -161,6 +161,8 @@ def main():
     ap.add_argument('--seed', type=int, default=1234)
     ap.add_argument('--device', default='cpu')
     ap.add_argument('--cfg', default=None)
+    ap.add_argument('--cfg-file', default=None,
+                    help='与 --cfg 二选一；从 JSON 文件读 cfg（避免 ssh heredoc 把 {...} 拆 token）')
     ap.add_argument('--sweep_ctx', default=None,
                     help='逗号分隔的 ctx 列表；与 --sweep_batch 同给时进入组合扫描模式'
                          '（每个组合独立建模，OOM 记为 oom:true 不崩溃）')
@@ -175,6 +177,9 @@ def main():
     cfg = dict(ctx=32, d=40, layers=2, heads=4, ffMul=4)
     if args.cfg:
         cfg.update(json.loads(args.cfg))
+    # ssh heredoc 会把 "{...}" 拆成多 token；支持 --cfg-file 旁路
+    if getattr(args, 'cfg_file', None):
+        cfg.update(json.load(open(args.cfg_file, encoding='utf-8')))
 
     out_dir = os.path.join(HERE, 'runs')
     os.makedirs(out_dir, exist_ok=True)

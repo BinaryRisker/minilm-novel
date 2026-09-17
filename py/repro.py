@@ -95,9 +95,24 @@ def set_rng_state(state: Optional[Dict[str, Any]]) -> bool:
         if state.get('python_random') is not None:
             random.setstate(state['python_random'])
         if state.get('torch') is not None:
-            torch.set_rng_state(state['torch'])
+            torch_state = state['torch']
+            # pickle/unpickle 后 ByteTensor 可能变成普通 Tensor；强制恢复 ByteTensor 类型
+            if not isinstance(torch_state, torch.ByteTensor):
+                torch_state = torch.from_numpy(
+                    torch_state.detach().cpu().numpy()
+                    if isinstance(torch_state, torch.Tensor) else torch_state
+                ).byte()
+            torch.set_rng_state(torch_state)
         if state.get('torch_cuda') and torch.cuda.is_available():
-            torch.cuda.set_rng_state_all(state['torch_cuda'])
+            cuda_states = state['torch_cuda']
+            fixed = []
+            for cs in cuda_states:
+                if not isinstance(cs, torch.ByteTensor):
+                    cs = torch.from_numpy(
+                        cs.detach().cpu().numpy() if isinstance(cs, torch.Tensor) else cs
+                    ).byte()
+                fixed.append(cs)
+            torch.cuda.set_rng_state_all(fixed)
     except Exception as e:  # 状态格式不兼容时不要把训练整挂掉
         print(f'[!] 恢复 RNG 状态失败（{type(e).__name__}: {e}），续训结果预计与直训不等价')
         return False

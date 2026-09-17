@@ -54,10 +54,11 @@ def val_eval(model, corpus: ShardedCorpus, ctx: int, max_windows: int = 256) -> 
     窗口含目标位（ctx+1 长），逐位置 top-1/top-5/NLL，与 holdout_eval 同口径。"""
     import math
     model.eval()
+    device = next(model.parameters()).device
     top1 = tot5 = total = 0
     nll_sum = 0.0
     for w in corpus.iter_windows(ctx, max_windows=max_windows):
-        chunk = torch.tensor([w[:ctx].astype(np.int64)], dtype=torch.long)
+        chunk = torch.from_numpy(w[:ctx].astype(np.int64, copy=False)).unsqueeze(0).to(device)
         tgt = w[1:ctx + 1].astype(np.int64)
         logits, _ = model(chunk)
         lg = logits[0].float()
@@ -83,7 +84,7 @@ def train(cfg: dict, train: ShardedCorpus, val: ShardedCorpus, itos: list,
           out_dir: str, ctx: int = None, val_every: int = 0,
           val_windows: int = 256, snapshot_every: int = 0,
           max_hours: float = None, resume_path: str = None,
-          cancel_check: Callable[[], bool] = None,
+          cancel_check: Callable[[], bool] = None, device: str = 'cpu',
           log: Callable[[str], None] = print) -> dict:
     """分片训练主循环。返回 meta（同时落 out_dir/meta.json）。
     取消/超限 → 保存 checkpoint 后返回 meta['cancelled']=True，退出码由 CLI 决定。"""
@@ -91,12 +92,12 @@ def train(cfg: dict, train: ShardedCorpus, val: ShardedCorpus, itos: list,
     ctx = ctx or cfg['ctx']
     V = len(itos)
 
-    model, prov = nov_model.build(cfg, V, seed)
+    model, prov = nov_model.build(cfg, V, seed, device=device)
     start_step = 0
     opt = torch.optim.Adam(model.parameters(), lr=lr)
     if resume_path:
-        ckpt = checkpoint.load_ckpt_raw(resume_path)
-        start_step = checkpoint.load_state(model, opt, ckpt)
+        ckpt = checkpoint.load_ckpt_raw(resume_path, device=device)
+        start_step = checkpoint.load_state(model, opt, ckpt, device=device)
         seed = ckpt['meta'].get('seed', seed)
         log(f'[*] 从 {resume_path} 续训：step {start_step} → {steps}')
     else:
@@ -123,7 +124,8 @@ def train(cfg: dict, train: ShardedCorpus, val: ShardedCorpus, itos: list,
     meta = {
         'run_id': out_dir, 'cfg': cfg, 'V': V, 'seed': seed,
         'steps': steps, 'batch': batch, 'accum': accum, 'lr': lr,
-        'ctx': ctx, 'step': start_step, 'train_path': 'novellm.trainer',
+        'ctx': ctx, 'step': start_step, 'device': device,
+        'train_path': 'novellm.trainer',
         'protocol': 'val_select_test_once_v1',
         'data': data_id, 'provenance': prov,
         'run_identity': rid, 'val_curve': [], 'cancelled': False,
@@ -131,7 +133,7 @@ def train(cfg: dict, train: ShardedCorpus, val: ShardedCorpus, itos: list,
     if resume_path:
         with open(resume_path, 'rb') as f:
             pass
-        old_meta = checkpoint.load_ckpt_raw(resume_path)['meta']
+        old_meta = checkpoint.load_ckpt_raw(resume_path, device=device)['meta']
         meta['val_curve'] = old_meta.get('val_curve', [])
         meta['resumed_from'] = resume_path
 
@@ -176,6 +178,7 @@ def train(cfg: dict, train: ShardedCorpus, val: ShardedCorpus, itos: list,
         step_rng = random.Random(f'{seed}:{step}')
         for _ in range(accum):
             tokens, targets = train.sample_batch(batch, ctx, step_rng)
+            tokens, targets = tokens.to(device), targets.to(device)
             _, loss = model(tokens, targets)
             (loss / accum).backward()
             micro_loss += float(loss.detach())
@@ -228,6 +231,8 @@ def main():
     ap.add_argument('--max-hours', type=float, default=None)
     ap.add_argument('--resume', default=None)
     ap.add_argument('--out', required=True)
+    ap.add_argument('--device', default='cuda' if torch.cuda.is_available() else 'cpu',
+                    help='训练设备；默认有 CUDA 时用 cuda，否则 cpu')
     args = ap.parse_args()
 
     cfg = nov_model.resolve_cfg(args.cfg)
@@ -240,7 +245,7 @@ def main():
         print(f'[!] 无 {args.val_split} 分片，本次训练不带 val 曲线')
 
     meta = train(cfg, train_c, val_c, itos, args.steps, args.batch, args.accum,
-                 args.lr, args.seed, args.out, ctx=cfg['ctx'],
+                 args.lr, args.seed, args.out, ctx=cfg['ctx'], device=args.device,
                  val_every=args.val_every, val_windows=args.val_windows,
                  snapshot_every=args.snapshot_every, max_hours=args.max_hours,
                  resume_path=args.resume)

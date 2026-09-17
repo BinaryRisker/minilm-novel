@@ -22,7 +22,7 @@ echo "[*] 训练开始（硬上限 ${AUTODL_MAX_HOURS}h）"
 # timeout 到点发 SIGTERM：train.py 的 checkpoint 每 N 步保存（--snapshot_every），
 # 最后一次保存的 checkpoint 就是续训起点——宁可少训，不可烧钱空转。
 timeout --signal=TERM --kill-after=60 "$MAX_SEC" \
-  python -X utf8 py/train.py "$@" || rc=$?
+python -X utf8 py/train.py --device "${AUTODL_DEVICE:-cuda}" "$@" || rc=$?
 rc=${rc:-0}
 if [ "$rc" -eq 124 ]; then
   echo "[!] 触达 AUTODL_MAX_HOURS 上限，已收尾（checkpoint 保留，可用 --resume 续训）"
