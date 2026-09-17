@@ -2551,3 +2551,70 @@ zcode 写 blocker                      20:40   outbox/zcode/blocker-20260917-001
 ### 不在 commit 范围
 
 - `.collab/{status,inbox,outbox,locks,log}/`（运行时本地状态，已 ignore）
+
+## 2026-09-17 20:55 — zcode 侧后台监控 daemon（独立于 root monitor）
+
+owner 让 zcode 自建后台监控——本轮写 `dev/collab_daemon.py`，
+**对偶**于 root 端的 `dev/collab_monitor.py`（commit 8eaf1f0）：
+
+| 工具 | 监听位 | 写入位 | 触发 |
+|---|---|---|---|
+| root `collab_monitor.py`（8eaf1f0）| `.collab/outbox/zcode/` | `.collab/inbox/zcode/` | root 端持续运行 |
+| **zcode `collab_daemon.py`（本轮）** | `.collab/inbox/zcode/` | 仅 stdout / `.collab/log/zcode_watch.log` | zcode 启动时按需 |
+
+### 三个子命令
+
+```bash
+python dev/collab_daemon.py peek        # 纯摘要，不动任何文件
+python dev/collab_daemon.py once        # 单次扫描 + actionable 检测；返回 2 = 有待执行
+python dev/collab_daemon.py watch --interval 5   # 后台轮询，新消息追加到 .collab/log/zcode_watch.log
+```
+
+### cross_check：解决 task 与 decision 状态冲突
+
+实际 inbox 会出现一对矛盾消息：
+- `task-20260917-001.json`（type=task，没 status 字段）
+- `root-ack-blocker-20260917-001.json`（type=decision, status=blocked_pending_root_data）
+
+raw summarize 会让 task 的 action=run，但 decision 已经把它阻塞。
+`cross_check()` 在 once/peek 里做语义覆盖：
+
+```python
+def cross_check(msgs):
+    # task 先记 raw action='run'
+    # 任何 status 以 'blocked' 开头的 decision 全局降级 task 的 effective action='wait'
+```
+
+实测：
+```
+$ python dev/collab_daemon.py once
+[ROOT-DECISION] root-ack-blocker-20260917-001.json  decision=A reply_to=blocker-20260917-001 status=blocked_pending_root_data (覆盖 task, 改用本条)
+[WAIT-TASK]     task-20260917-001.json  派工 task_id=task-20260917-001 status=queued ...
+EXIT=0
+```
+
+watch 模式实测（探针消息写入 inbox 后 2s 内被探测 + 写日志）：
+```
+[2026-09-17T19:55:13+08:00] [question/answer] _test_watch_probe.json  question id=msg-20260917-003-test
+```
+
+### 边界守则（与 monitor 对齐）
+
+- 只读 `.collab/inbox/zcode/`（zcode 协议边界）
+- 只写 `.collab/outbox/zcode/`（action 触发后真正做事时）+ `.collab/log/zcode_watch.log`
+- **绝不写** `.collab/inbox/zcode/`（那是 root 写入位，写入会破坏对方"未读"语义）
+- 不抢同事工作线（文件在 dev/）
+- 不抢 root 端 `collab_monitor.py` 的工作（不监听 outbox/zcode/）
+- 跨平台：纯 polling（不依赖 fsnotify），日志追加
+
+### 阶段一定位
+
+- zcode 端的"被唤醒"现在有两条路径：
+  1. **主动**（每次会话启动）：跑 `once`，exit=2 时上层 shell 触发自动执行
+  2. **可选常驻**：用户启动 `watch --interval 5`，新 inbox 写日志
+- 第一阶段不引入阶段二的"worker wrapper"——daemon 已经能覆盖大部分场景；
+  阶段二升级决策推迟到"看到 once 的 exit=2 自动触发"在实际中是否好用之后再做。
+
+### 不在 commit 范围
+
+- `.collab/log/zcode_watch.log`（运行时日志，ignore）
