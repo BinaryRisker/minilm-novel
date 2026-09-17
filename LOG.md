@@ -2779,3 +2779,10 @@ Start-Process -WindowStyle Hidden `
 ### 不在 commit 范围
 
 - `.collab/log/{zcode_watch.log,zcode_daemon.log,zcode_daemon.err}`（运行时日志，ignore）
+
+## 2026-09-17 21:00 root 数据完整性复核
+
+- 本地缓存重建完成：临时目录 `data/processed_research_full_build/` 共 226,725 部，桶分布 gudian 55 / localugc 225,581 / scifi 5 / story 1,000 / urban 26 / wuxia 23 / xiandai 35；prepare 去重后清单为 225,756 部，与当前 manifest 的作品数、ID、split 完全一致。
+- 但正文哈希校验失败：当前 `data/processed/` 七个桶抽样 153 部中 151 部与 `data/manifest.jsonl` hash 不一致；临时重建目录也存在标题 slug 覆盖（同名作品互相覆盖），不能直接晋级为正式训练数据。
+- 已写审计：`.collab/log/root-data-audit.json`；已通知 zcode 暂停 `task-20260917-001`：`.collab/inbox/zcode/root-data-audit-20260917-001.json`。
+- 下一步：将正文落盘键改为 `story_id + slug(title)` 的唯一文件名；由同一批 dedupe 后作品同时生成 manifest/hash 与 processed，跑全量缺失/hash/重复/切分审计后，再生成 research_full 六桶分片。当前不启动正式训练。
