@@ -83,8 +83,12 @@ VALID_TASK_TYPES_FOR_RESULT = {"task"}
 VALID_DECISION_KEYS = {"A", "B", "C", "D", "E"}  # 简单枚举；monitor 用 letter 选 proposed_options
 VALID_TASK_STATE = {
     "idle", "queued", "in_progress",
-    "blocked", "blocked_pending_root_data",
+    "blocked", "blocked_pending_root_data", "blocked_pending_integrity_fix",
     "completed", "failed",
+}
+VALID_DECISION_STATUS = {
+    "accepted", "blocked_pending_root_data", "blocked_pending_integrity_fix",
+    "blocked_processed_hash_mismatch", "blocked_other",
 }
 
 

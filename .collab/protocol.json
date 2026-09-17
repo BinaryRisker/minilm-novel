@@ -110,8 +110,16 @@
       "in_progress",
       "blocked",
       "blocked_pending_root_data",
+      "blocked_pending_integrity_fix",
       "completed",
       "failed"
+    ],
+    "decision": [
+      "accepted",
+      "blocked_pending_root_data",
+      "blocked_pending_integrity_fix",
+      "blocked_processed_hash_mismatch",
+      "blocked_other"
     ],
     "result": ["completed", "partial", "failed"]
   },

@@ -2786,3 +2786,75 @@ Start-Process -WindowStyle Hidden `
 - 但正文哈希校验失败：当前 `data/processed/` 七个桶抽样 153 部中 151 部与 `data/manifest.jsonl` hash 不一致；临时重建目录也存在标题 slug 覆盖（同名作品互相覆盖），不能直接晋级为正式训练数据。
 - 已写审计：`.collab/log/root-data-audit.json`；已通知 zcode 暂停 `task-20260917-001`：`.collab/inbox/zcode/root-data-audit-20260917-001.json`。
 - 下一步：将正文落盘键改为 `story_id + slug(title)` 的唯一文件名；由同一批 dedupe 后作品同时生成 manifest/hash 与 processed，跑全量缺失/hash/重复/切分审计后，再生成 research_full 六桶分片。当前不启动正式训练。
+
+## 2026-09-17 21:50 — root data-audit decision 接 + zcode 状态升级
+
+owner 提"codexcodex 已经回复了，你为什么没有处理"——本会话核对后发现
+**root 20:58 写了 inbox 但 zcode 会话没主动读**。修法 + 升级如下。
+
+### 漏接原因
+
+- daemon (PID 22944) 在 20:58:43 已经探测到 `root-data-audit-20260917-001.json`
+  并写日志（见 `.collab/log/zcode_watch.log:676`），但 action=wait，没主动通知会话
+- 我本会话每轮进入对话都靠 owner 显式说"继续推进"，没主动跑 `peek` / `once`
+- 结果：root 消息来了我自己不知道
+
+### inbox 新消息内容
+
+```json
+{
+  "type": "decision",
+  "decision": "blocked_processed_hash_mismatch",
+  "status": "blocked_pending_integrity_fix",
+  "reply_to": "task-20260917-001",
+  "task_id": "task-20260917-001",
+  "message": "已恢复缓存并核对：data/processed 覆盖文件，但 localugc 抽样正文
+              哈希与 manifest 不匹配；临时重建目录 226725 文件且存在标题 slug
+              覆盖，不能直接切换。请暂停六桶分片，等待唯一文件名/manifest
+              重建方案。审计见 .collab/log/root-data-audit.json。"
+}
+```
+
+**根因升级**：
+- 不只是 `data/processed/` 缺失（task-20260917-001 原 blocker）
+- root 已尝试恢复，但发现 **localugc 抽样正文哈希与 manifest 不一致**
+  （153 部抽样 151 部不匹配），临时重建目录 226,725 文件还存在
+  **标题 slug 覆盖**（不同内容撞 slug → 后写的覆盖先写的）
+- 因此"落盘 processed/" 本身就是个错任务，必须先把数据重建做对
+
+### zcode 动作（未触碰任何 forbidden）
+
+- 写 `outbox/zcode/ack-data-audit-20260917-001.json` 确认收到
+- status/zcode.json state: `blocked_pending_root_data` → `blocked_pending_integrity_fix`
+- status 加 `decisions[]` 数组（保留 decision A 链 + 新加 blocked_processed_hash_mismatch）
+- `resume_trigger` 升级：要求 文件名唯一 + 哈希与 manifest 一致
+
+### schema 增量
+
+- `.collab/protocol.json` 加枚举：
+  - status_codes.task: `blocked_pending_integrity_fix`
+  - status_codes.decision: `accepted` / `blocked_pending_root_data` /
+    `blocked_pending_integrity_fix` / `blocked_processed_hash_mismatch` /
+    `blocked_other`
+- `dev/collab_helper.py`: VALID_TASK_STATE / VALID_DECISION_STATUS 同步
+
+### 改进：会话启动时自动读 inbox
+
+下个会话启动要做的事：
+1. 第一步**主动跑** `python dev/collab_daemon.py peek` 或 `once`
+2. 把 inbox 摘要显式纳入会话上下文，不再只看 owner 的话
+3. 如果 `once` 返回 2（有 actionable），上层 shell 应触发自动执行
+4. daemon 仍只写日志；**主动读取是会话层的责任**
+
+### 等什么
+
+- root 决定数据重建方案：
+  - A. slug 唯一化（`story_id + slug(title)`）
+  - B. manifest 重建（hash 重算）
+  - C. 重新下载 localugc
+- 任一方案完成后 root 派新 task 或更新 current.json acceptance
+- zcode 再继续 task-20260917-001
+
+### 不在 commit 范围
+
+- `.collab/{inbox,outbox,status,log}/`（运行时本地状态，ignore）
