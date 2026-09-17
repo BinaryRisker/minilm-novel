@@ -6,8 +6,12 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 source dev/autodl/instance.local.sh
 
-ssh $AUTODL_SSH "bash -s" -- "$@" <<'REMOTE'
+ssh $AUTODL_SSH "bash -s" -- "$AUTODL_DIR" "$AUTODL_PRICE_PER_HOUR" "$@" <<'REMOTE'
 set -euo pipefail
+# AutoDL 基础镜像把 python 装在 /root/miniconda3，但不在 PATH。补上再跑。
+export PATH=/root/miniconda3/bin:$PATH
+AUTODL_DIR="$1"; shift
+AUTODL_PRICE_PER_HOUR="$1"; shift
 cd "$AUTODL_DIR"
 echo "== doctor =="
 python -X utf8 -m py.novellm.doctor --out dev/verify/doctor_remote.json

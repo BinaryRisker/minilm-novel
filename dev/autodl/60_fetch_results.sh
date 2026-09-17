@@ -7,8 +7,20 @@ cd "$(dirname "$0")/../.."
 source dev/autodl/instance.local.sh
 REMOTE_SUB="${1:-py/runs}"
 
-rsync -az "$AUTODL_SSH:$AUTODL_DIR/$REMOTE_SUB/" "$REMOTE_SUB/"
-rsync -az --ignore-existing "$AUTODL_SSH:$AUTODL_DIR/dev/verify/" dev/verify/
+# Git Bash 没 rsync；用 scp -r 拉回。远端目录不存在就跳过。
+# sed 在 Windows Git Bash 上对 "user@host -p port" 这种格式容易把空格后的 -p 吞进 host。
+# 用 awk 按空白切，user 在 $1，host 在 $2（@ 后），port 在 $4。
+AUTODL_USER=$(echo "$AUTODL_SSH" | awk '{print $1}' | sed 's/.*@//')
+AUTODL_HOST=$(echo "$AUTODL_SSH" | awk '{print $1}' | awk -F@ '{print $NF}')
+AUTODL_PORT=$(echo "$AUTODL_SSH" | awk '{print $NF}')
+: "${AUTODL_PORT:=22}"
+echo "[debug] AUTODL_USER=$AUTODL_USER AUTODL_HOST=$AUTODL_HOST AUTODL_PORT=$AUTODL_PORT"
+
+# 1) 远端先打包（避免一路 scp 多次文件）
+ssh $AUTODL_SSH "cd '$AUTODL_DIR' && tar -czf /tmp/fetch_results.tar.gz $REMOTE_SUB dev/verify 2>/dev/null"
+# 2) ssh stream 拉回 + 解压（scp 在 OpenSSH 10.x 上对 "user@host -p port" 这种复合参数有兼容性坑）
+ssh $AUTODL_SSH "cat /tmp/fetch_results.tar.gz" | tar -xzf -
+ssh $AUTODL_SSH "rm /tmp/fetch_results.tar.gz"
 echo "[*] 已回传 $REMOTE_SUB 与 dev/verify/"
 
 # 指纹对账：回传的每个 checkpoint/meta.json 必须带 data_identity，且与包内清单同源

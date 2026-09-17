@@ -5,10 +5,14 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 source dev/autodl/instance.local.sh
 
-ssh $AUTODL_SSH "bash -s" <<REMOTE
+ssh $AUTODL_SSH "bash -s" -- "$AUTODL_DIR" <<REMOTE
 set -euo pipefail
-mkdir -p "$AUTODL_DIR"
-cd "$AUTODL_DIR"
+# AutoDL 基础镜像把 python 装在 /root/miniconda3，但不在 PATH。补上再跑。
+export PATH=/root/miniconda3/bin:\$PATH
+AUTODL_DIR="$1"
+mkdir -p "\$AUTODL_DIR"
+cd "\$AUTODL_DIR"
 python -X utf8 -m pip install -q psutil 2>/dev/null || pip install -q psutil || echo "[!] psutil 装不上：doctor 的内存项会留空（不猜数字），其余功能不受影响"
-echo "[*] 远端就绪：$AUTODL_DIR"
+python -X utf8 -m py.novellm.doctor --out dev/verify/doctor_remote.json
+echo "[*] 远端就绪：\$AUTODL_DIR"
 REMOTE

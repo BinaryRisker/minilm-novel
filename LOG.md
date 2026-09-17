@@ -1892,3 +1892,119 @@ ctx1024/batch32 可跑），速度约为 4090 的 6~7 成但更便宜；50GB 数
 
 **产出**：`py/checkpoint.py`（抽取）、`py/novellm/model.py`、`py/novellm/trainer.py`、
 `py/tests/test_trainer.py`（6 项）、`py/train.py`（改为 import 共享实现）。
+
+---
+
+## 2026-09-17 11:11 — 桌面控制 Chrome 试创 AutoDL 实例：3080 Ti 售罄，挂起
+
+**目的**：用户「帮我从创建到部署全部完成」「直接控制我的 chrome」→ 接管 Chrome，访问 `autodl.com/create`。
+
+**进度**
+
+1. `computer-use:control-browser` 不可行（IAB 不共享登录态）。
+2. `computer-use:computer-use` 加载成功，Chrome pid=4872、bounds=[-8,-8,616,1200]，超出 640×480 虚拟显示区。
+3. Accessibility 能读到「`https://www.autodl.com/create`」元素树：账户余额 ¥50.00、PyTorch 2.12.1 默认、4 台 RTX 3080 Ti 候选（CUDA 13.0~13.2、51~1431GB 可扩）。
+4. **阻塞**：4 台机器 radio 全 `disabled`，库存都是 `0/4`（售罄）。
+5. 浏览器无法 focus（`open_application(activate=true)` 反复报 frontmost_pid_mismatch）；
+   键盘/地址栏 set_value 全部失败；只剩 pressable 元素点击可达。
+6. 跳到 `/market/list`：1446 条第三方租户机器；当前露出 4 台为 vGPU-48GB 切片（¥2.88/时）、
+   RTX PRO 6000 96GB（¥6.98/时×2）、一台 ¥1.58/时 24GB 卡；不是 3080 Ti。
+7. 多次 AskUserQuestion 拉用户对齐方向；最终选择「等会再试」。
+
+**决策点（待用户重启）**
+
+- **首选**：官方 3080 Ti 回补，再下单。无需改 cfg；与 AUTODL_INTEGRATION_V1.md 一致。
+- **次选**：用户在本地 Chrome 点筛选项 `[134]` 选 RTX 3080 Ti，看其它区库存；不需我接管浏览器焦点。
+- **兜底**：拿只读 API Token，用 curl 查所有区（不受 UI 限制）。需要用户去控制台「设置 → API Token」拷一份。
+- **应急**：market 上 ¥1.58/时 24GB 卡；cfg 需从 `t30m`（d=512）→ `t24m`（d=384），
+  约 22M 参数，dataset.py 已有 D1 key 不受影响。
+
+**未变 / 不影响**
+
+- 库存售罄只影响「部署」这一步；D0/D1 训练逻辑、`py/novellm/trainer.py` 一切就绪。
+- LOG / TODO 不需要改 cfg；下一轮启动直接续就行。
+- `dev/autodl/` 六脚本不动；`docs/AUTODL_INTEGRATION_V1.md` 不动；commit 也不打（本轮无代码改动）。
+
+---
+
+## 2026-09-17 12:29 — AutoDL 实例 hqw8uqzkga-d80c6f1f 全链路跑通（内蒙B区 / RTX 3080 Ti）
+
+**目的**：从零到「GPU 训练 + checkpoint + 回传 + 指纹对账 + 关机」全跑一遍，证明
+`docs/AUTODL_INTEGRATION_V1.md §7` 的 A→E 流程在真实 AutoDL 实例上工作。
+
+**预算与配置**
+
+| 项 | 值 |
+|---|---|
+| 实例 | hqw8uqzkga-d80c6f1f / 内蒙B区 / 488机 |
+| GPU | RTX 3080 Ti 12GB（11.63GB 总 / 11.38GB 空闲） |
+| CPU/内存 | 80 核 / 251GB |
+| torch | 2.12.1+cu130（镜像自带，无须重装） |
+| 镜像 | 基础镜像 / PyTorch 2.12.1 / 3.12(ubuntu22.04) / CUDA 13.0 |
+| 付费 | 按量 ¥1.08/时 |
+| 实际总费用 | 约 ¥0.50（实例开机 ~30 分钟 + benchmark ~5 分钟 + D0 训练 2.6 分钟） |
+
+**操作链（与 §7 阶段对应）**
+
+| 阶段 | 命令 | 结果 |
+|---|---|---|
+| A 创建 | 通过浏览器控制台（automation 不可靠，最终用户手点） | 实例创建，IP/端口在控制台 `ssh -p 43989 root@connect.nmb2.seetacloud.com` |
+| A 免密 | 控制台「设置SSH免密登录」+ 本地公钥（需**重启实例**让公钥写入） | `ssh -o BatchMode=yes` 通过 |
+| B 环境 | `10_setup_env.sh` | 远端 `/root/miniconda3/bin/python` 在 PATH 中；doctor 输出 `dev/verify/doctor_remote.json`（设备名、显存、bf16/fp16 全齐） |
+| C 上传 | `30_upload.sh`（修：`-P` 大写 + tar 管道替代 rsync） | 51MB `corpus.json` + `data_pack.tar` 都到位 |
+| C+D benchmark | `40_benchmark.sh`（修：`export PATH=...miniconda3/bin:$PATH`，参数经 sshargs 传） | **24/24 组合可行、0 OOM**；最快 958,771 tokens/s @ ctx=512 batch=64 |
+| E D0 | `50_train.sh`（修：不自动关机，改 60_fetch 完再手关） | 2000 步 story / micro cfg / 155.6s / val ppl=33.5 / holdout ppl=21.6 |
+| E 回传 | `60_fetch_results.sh`（修：ssh stream 替代 scp — OpenSSH 10.x 的 scp 对 `user@host -p port` 复合参数有兼容性坑） | checkpoint.pt / meta.json / itos.json 落本地；指纹对账 `split_fingerprint == 371c8589c027ccac` ✓ |
+| E 关机 | `ssh shutdown now` | Connection closed，停止计费 |
+
+**预算表（24 组 sweep，0 OOM）**
+
+| ctx | batch | tokens/s | VRAM | 92M tokens 估时 | 估费 |
+|---|---|---|---|---|---|
+| 32 | 64 | 203,814 | 169 MB | 0.125 h | ¥0.14 |
+| 128 | 64 | 385,290 | 641 MB | 0.066 h | ¥0.07 |
+| 256 | 64 | 797,834 | 1327 MB | 0.032 h | ¥0.03 |
+| **512** | **64** | **958,771** | **2883 MB** | **0.027 h** | **¥0.03** |
+| 1024 | 32 | 640,560 | 3396 MB | 0.04 h | ¥0.04 |
+| 1024 | 64 | 637,920 | 6771 MB | 0.04 h | ¥0.04 |
+
+D0 实际跑的是 micro cfg（train.py 默认 cfg），2,000 步 = 18.6 epoch；
+val ppl=33.5 / holdout ppl=21.6 — 完全在 baseline 范围内（与
+本地 CPU 测得的 micro cfg 数字一致，证实 GPU 训练链路无精度漂移）。
+
+**发现的坑（已修脚本 + .gitignore 例外）**
+
+1. **scp `-P` 大小写**：Git Bash 的 `scp` 用大写 `-P`；`ssh` 用小写 `-p`。
+   30_upload.sh 已改：`scp -P ${port}` + tar 管道替代 rsync。
+2. **scp 复合参数兼容性**：OpenSSH 10.x 的 `scp` 对 `user@host -p port` 这种
+   ssh-args 复合形式报错 `hostname contains invalid characters`。
+   60_fetch_results.sh 改用 `ssh cat ... | tar -xzf -` 流式拉回。
+3. **PATH**：AutoDL 基础镜像把 python 装在 `/root/miniconda3/bin/`，但 ssh 非交互
+   shell 不带 PATH。10_setup_env / 40_benchmark / 50_train 都加
+   `export PATH=/root/miniconda3/bin:$PATH`。
+4. **corpus.json 不入 30_upload 排除列表**：`.gitignore` 用 `data/corpus*` 排
+   `corpus.orig.json` 是对的，但漏了 `corpus.json`（聚合文件，benchmark 需要）。
+   30_upload.sh exclude 改 `data/corpus.orig.json`，单独 scp 一次 corpus.json 补
+   到位（51MB）。
+5. **副线声明**：同事另一条工作线期间**修改过 `splits.py`**——我用 `git status`
+   检查、读过对应行，未冲突；本轮 commit 不带 splits.py 改动。
+
+**意外发现 / 决策**
+
+- benchmark 显示 30M cfg（d=512/layers=8/heads=8/ffMul=4）下 batch=64 / ctx=512
+  跑 92M tokens 估时 0.027h / ¥0.03 — **比规划预算（≤¥100/几十小时）低 3 个量级**。
+  这意味着 V3 完全可以把数据规模做更大：例如多 epoch 或多桶拼接，¥100 预算可跑
+  数万 epoch 量级的小模型。
+- 实例释放后下次再创建可能要重新走「设置 SSH 免密 → 重启实例」一次。
+
+**产出**
+
+- `dev/autodl/instance.local.sh`（gitignored，保存 host/port/价格）
+- `dev/autodl/30_upload.sh` / `10_setup_env.sh` / `40_benchmark.sh` /
+  `50_train.sh` / `60_fetch_results.sh`（按实测坑修了 5 处）
+- `dev/verify/doctor_remote.json`（RTX 3080 Ti 设备快照）
+- `dev/verify/budget_table.json`（24 组 sweep 预算表）
+- `py/runs/gpu30m_story_s1234/{checkpoint.pt,meta.json,itos.json,train.log}`
+  （D0 训练产物 + 身份 + 分片指纹对账）
+
+**不在 commit 范围**：corpus.json、instance.local.sh、*.pt、*.bin（已 gitignore）
