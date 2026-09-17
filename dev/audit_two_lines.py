@@ -26,6 +26,12 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "data"
 CORPUS_DIR = ROOT / "py" / "data"
 
+# 两条线的正式命名（owner 19:10 修订；不再依赖 v2/v3 这种易误导的文件名）
+LINE_RESEARCH = "research_full"
+LINE_RELEASE_CANDIDATE = "release_candidate"
+SHARDS_DIR_RESEARCH = "py/runs/shards/research_full"
+SHARDS_DIR_RELEASE = "py/runs/shards/release_candidate"
+
 
 def scan_manifest(path: Path) -> dict:
     """扫一份 manifest，返回桶分布 / 字符数 / 许可统计。"""
@@ -57,14 +63,17 @@ def scan_manifest(path: Path) -> dict:
     }
 
 
-def filter_non_localugc(stats: dict) -> dict:
-    """发布线候选：bucket≠localugc。"""
-    keep_buckets = {b: c for b, c in stats["buckets_n"].items() if b != "localugc"}
+def filter_release_candidate(stats: dict) -> dict:
+    """发布线候选：bucket≠localugc 的工程过滤。
+
+    注意：bucket 过滤 ≠ 许可合规。每条来源仍要逐项核 license。
+    """
+    keep_n = {b: c for b, c in stats["buckets_n"].items() if b != "localugc"}
     keep_chars = {b: c for b, c in stats["buckets_chars"].items() if b != "localugc"}
     return {
-        "n": sum(keep_buckets.values()),
+        "n": sum(keep_n.values()),
         "chars": sum(keep_chars.values()),
-        "buckets_n": keep_buckets,
+        "buckets_n": keep_n,
         "buckets_chars": keep_chars,
     }
 
@@ -85,14 +94,17 @@ def main() -> int:
         paths = [DATA_DIR / "manifest.jsonl", DATA_DIR / "manifest_v2.jsonl", DATA_DIR / "manifest_v3.jsonl"]
 
     print("=" * 72)
-    print("两条训练线对账（只读；不动同事工作线）")
+    print(f"两线对账：{LINE_RESEARCH} / {LINE_RELEASE_CANDIDATE}（只读；不动同事工作线）")
     print("=" * 72)
+
+    # 默认推荐映射：研究线=manifest（或 manifest_v2，两者内容相同），
+    # 发布候选=从 manifest_v3 过滤 bucket≠localugc。
     for p in paths:
         if not p.exists():
             print(f"\n[skip] {p.relative_to(ROOT)} 不存在")
             continue
         stats = scan_manifest(p)
-        nlocal = filter_non_localugc(stats)
+        rc = filter_release_candidate(stats)
         print(f"\n## {stats['path']}（全量）")
         print(f"  部数={stats['n']:,}  字符={stats['total_chars']:,}")
         print(f"  桶分布：")
@@ -102,18 +114,32 @@ def main() -> int:
         for k, v in stats["license_top"].items():
             print(f"    {v:>7,}  {k}")
 
-        print(f"\n  ## 发布线候选（filter bucket≠localugc）")
-        print(f"    部数={nlocal['n']:,}  字符={nlocal['chars']:,}")
-        for b in sorted(nlocal["buckets_n"], key=lambda k: -nlocal["buckets_n"][k]):
-            print(f"      {b:>10s}: {nlocal['buckets_n'][b]:>7,} 部  {nlocal['buckets_chars'][b]:>14,} 字")
+        print(f"\n  ## {LINE_RELEASE_CANDIDATE}（filter bucket≠localugc，仅工程过滤）")
+        print(f"    部数={rc['n']:,}  字符={rc['chars']:,}")
+        for b in sorted(rc["buckets_n"], key=lambda k: -rc["buckets_n"][k]):
+            print(f"      {b:>10s}: {rc['buckets_n'][b]:>7,} 部  {rc['buckets_chars'][b]:>14,} 字")
 
     print("\n" + "=" * 72)
-    print("对账结论")
+    print("两线正式定义 + 推荐映射")
     print("=" * 72)
-    print("- 研究线：含 localugc（≈99.5%），仅本地研究用；候选 = manifest / manifest_v2")
-    print("- 发布线：必须过滤 bucket≠localugc；当前仓库无现成清单，需要新生成")
-    print("  → 两条线必须两套分片目录、两套 ckpt、两套 fingerprint，绝不混用")
-    print("  → 当前 py/runs/shards/ 只有 story 1000 部的单桶分片，距任一谱系都远")
+    print(f"""
+{LINE_RESEARCH}:
+  来源：data/manifest.jsonl（含 localugc，仅本地研究 / 内部评测）
+  候选分片目录：{SHARDS_DIR_RESEARCH}/
+
+{LINE_RELEASE_CANDIDATE}:
+  来源：从 data/manifest_v3.jsonl 过滤 bucket != localugc（工程过滤）
+  ⚠️ bucket 过滤 ≠ 许可合规；每条来源仍要逐项核 license
+  候选分片目录：{SHARDS_DIR_RELEASE}/
+
+两套分片目录必须严格分开：
+  - train / val / test
+  - tokenizer
+  - shard metadata
+  - source split fingerprint
+  - vocab fingerprint
+绝不共用 py/runs/shards/ 顶层；绝不在两线之间复用 ckpt。
+""")
     return 0
 
 

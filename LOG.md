@@ -2264,3 +2264,76 @@ owner 提的"两条线"在我的核实下是这样的：
 - 不要把 `14f6b23` 的数据入库提交理解为"分片已生成"；
 - 不要仅凭 loss / perplexity 判小说质量；
 - 不要关实例前才回传 ckpt——必须先确认本地文件存在并完成校验。
+
+## 2026-09-17 19:10 — 两条线正式定义（research_full / release_candidate）
+
+owner 19:10 进一步修订：把"研究线 / 发布线"用两个明确的名字固化下来，
+不再依赖 `manifest_v2 / manifest_v3` 这两个易误导的文件名。
+
+### 命名与定义
+
+```text
+research_full:
+  来源：data/manifest.jsonl
+  含义：含 localugc（224,612 部 / 19.18 亿字符中的 99.5%），仅本地研究和
+        内部评测使用
+  部数：225,756  字符：约 1,917,845,602
+
+release_candidate:
+  来源：从 data/manifest_v3.jsonl 过滤 bucket != localugc
+  含义：发布线候选，需进一步按来源 / 许可逐项复核，
+        bucket 过滤只是工程过滤，不等于许可合规
+  部数：约 1,144  字符：约 30,726,933
+        桶分布：
+          story    1,000 部 /     274,460 字
+          gudian      55 部 /  14,044,374 字
+          xiandai     35 部 /   1,102,135 字
+          urban       26 部 /   5,425,260 字
+          wuxia       23 部 /   8,077,717 字
+          scifi        5 部 /   1,802,987 字
+```
+
+> 重要措辞保留：`bucket != localugc` **只能形成"发布线候选"**，
+> 不能自动证明所有内容具备可分发许可。每条来源仍要逐项核许可。
+
+### 两套分片目录（必须分开）
+
+```text
+py/runs/shards/research_full/        # 研究线分片
+py/runs/shards/release_candidate/    # 发布候选分片
+```
+
+两套各自保存：train / val / test、tokenizer、shard metadata、
+source split fingerprint、vocab fingerprint。**绝不共用 `py/runs/shards/` 顶层**。
+
+### 下一步执行顺序（owner 修订版）
+
+1. 冻结两线正式定义（已写入本节）。
+2. 生成两套独立分片，目录严格分开；本地对每套执行：
+   ```bash
+   python -X utf8 -m py.novellm.dataset info --split train
+   python -X utf8 -m py.novellm.dataset verify --split train
+   ```
+   确认桶列表、作品数、token 数、train/val/test 无作品交叉、
+   分片往返校验通过、fingerprint 与清单一致。
+3. GPU 端严格恢复验证（必拿证据）：
+   - A：直训 500 步
+   - B：训 250 步保存 → 续到 500 步
+   - 两份 ckpt 落本地后比对 SHA256、参数 max|Δ|、optimizer、
+     step、RNG、final loss / val
+   - **关机前必须先 fetch + 校验本地存在**
+4. 短周期训练（两线分别短训，确认 train/val 曲线、是否仍过拟合、
+   数据 IO 是否瓶颈、12GB 显存下真实 batch / accum 配置）。
+5. 短训曲线正常后，研究线全量训练可启动；
+   发布候选必须单独训练、单独保存 checkpoint。
+
+### 当前不建议做
+
+- 不继续跑 24 组 t30m benchmark（单组 t30m 速度已够初步参数选择）；
+- 不立即启动 19 亿字符长训；
+- 不把 release_candidate 当成"已合规可分发"。
+
+### 阶段标记（截至本节）
+
+> 数据清单已完成初步对账，t30m GPU 训练链路已通过冒烟，
+> 恢复功能已有 CPU 严格证据；全量分片、GPU 严格位等价和正式训练仍未完成。
