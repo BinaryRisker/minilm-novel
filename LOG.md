@@ -2116,3 +2116,87 @@ python -X utf8 -m py.novellm.trainer --split train --val-split val --cfg t30m \
 3. **rng 修对 resume**：本轮验证了 RNG 修后 resume 等价；但完整
    `verify_resume.py`（HANDOFF 第 4 步）需要做「训 500 vs 训 250→resume 500」
    严格位等价对照，建议同事合并 RNG 修复后跑一次。
+
+## 2026-09-17 18:25 — 同事 238b730 吸收 + GPU 位等价补做 + 实验记录维护
+
+### 同事 commit 238b730 吸收
+
+- `py/novellm/trainer.py`：`train()` / `load_ckpt_raw` / `load_state` 三处
+  resume 路径显式 `device=device`，训练 batch 移到目标设备，`meta.json` 加
+  `device` 字段。
+- `py/repro.py`：`set_rng_state` 内部对 `torch` / `torch_cuda` 状态做
+  `torch.from_numpy(...).byte()` 强转，兼容 torch 2.x 反序列化类型。
+- HANDOFF 已说明"本地本次补齐了 resume 加载时的 `device=device`"——
+  同事这次 commit 把它正式纳入。
+
+### 本地复核
+
+```powershell
+python -m compileall -q py/novellm py/train.py py/benchmark.py
+python -m unittest py.tests.test_trainer
+```
+
+结果：compileall 通过；test_trainer 6/6 通过；
+`dev/verify/verify_resume.json` `B_完整状态` 行 `param_max_abs_diff_vs_A = 0.0`、
+`probe_loss_delta_vs_A = 0.0` —— 同事修复在本机 CPU 路径下的「训 80 → resume 160」
+严格位等价已实证（HANDOFF 第 4 步覆盖）。
+
+### GPU 端位等价补做情况（未达预期，缺口透明化）
+
+按 HANDOFF 第 4 步要求，本轮在克隆实例 `m6ahgmrgv8-6e1f5f61` (31932) 上
+跑了 GPU 端「A 训 250」与「B 训 250」两条独立同 seed/cfg/shards 路径：
+
+| 路径 | step | loss | wallclock | run_identity |
+|---|---|---|---|---|
+| A=250（独立直训）| 250 | 5.2136 | 39.4s | `1d85cbb683edf81b` |
+| B=250（独立直训）| 250 | 4.9183 | 40.0s | `1d85cbb683edf81b` |
+
+**run_identity 一致**（同 cfg + 同 shards + 同 seed + 同 step → 同一 hash），
+**训练 loss 不一致**（A=5.21 vs B=4.92）—— 这是因为每步的 batch 采样用
+`Random(f'{seed}:{step}')` 派生，但两台训练在加载 shards 时的 python-random
+起点若被 trainer 之外的某段代码扰乱就会差；同时远端 GPU 跑同一 step 的
+batch 顺序理论上相同，但远端 60_fetch 在实例关机后**未能回传** `checkpoint.pt`，
+本地 `_t30m_A250/` / `_t30m_B250/` 不存在——**sha256 比对无对象**，HANDOFF
+第 4 步要求"最终 ckpt 逐位相等"在本轮远端 GPU 路径上**未拿到证据**。
+
+**可用兜底**：之前 fetch 回本地的 `py/runs/gpu_t30m_smoke_s1234/` (500 直训) 与
+`py/runs/gpu_t30m_resume_s1234/` (500→750 续训) 两份产物落在本地：
+
+- 共用 `seed=1234` / `cfg t30m` / `data.source_split_fingerprint=5433cae4babe084d` /
+  `data.vocab_fingerprint=e1eb95dd88a19bb8` / `V=1772`
+- `resume` 的 val_curve 在 step=100/200/300/400/500 五个验证点
+  **与 `smoke` 完全逐位相等**（top1=3.4142..., nll=7.6677..., ppl=2138.19...）
+
+这是 GPU 端"resume 后立即复现 smoke 同 step 验证输出"的强证据（窗口切片、
+加载、推理路径），但**不是 HANDOFF 第 4 步要的「训 N vs 训 M→resume N 严格
+位等价」**。下次启动实例时建议把 A250/B250 落本地 `py/runs/_t30m_*` 再做
+sha256 对照——本轮证据缺口保留，不外推。
+
+### 今天实验文章/产物维护
+
+- `runs/review_20260914/probes.json`（同事改 1 行）、`runs/review_20260916/`、
+  `dev/review_v3_20260916.py`、`dev/kill_by_cmdline.py`、`dev/protocol_note.py`、
+  `dev/scope_seed.py`、`dev/sync_plans.py`、`dev/exit_*.txt` 等都是同事今天
+  实验的内容产物线（review 类），按 HANDOFF 第 98 行"其他同事正在修改的
+  manifest / sources / split audit / corpus / 实验产物不要覆盖或回滚"——本轮
+  **不碰**，由同事自己 commit。
+- 本轮负责维护的是 LOG.md（本节）+ 今天的 GPU 端位等价证据缺口记录 +
+  同事 238b730 的吸收复核记录。
+
+### 不在 commit 范围
+
+- 同事 in-flight：`py/novellm/trainer.py` / `py/repro.py`（238b730 已 commit，
+  本轮不再改动）
+- `runs/review_20260914/probes.json` / `runs/review_20260916/` /
+  `dev/review_v3_20260916.py` 等同事内容产物线
+- `data/manifest*.jsonl` / `data/sources.json` / `data/split_audit.json` /
+  `py/data/corpus.json` / `py/data/fetch_corpus.py` / `py/minilm_torch.py` /
+  `py/novellm/doctor.py` / `py/run_identity.py` / `py/sweep_worksplit.py` /
+  `py/runs/wsplit_summary_*` / `py/tests/test_doctor.py`（同事工作线）
+- `dev/instance.local.sh` / `*.pt` / `*.bin`（gitignore / 不在 commit）
+
+### 下一步建议
+
+1. 实例下次启动时，把 `_t30m_A250` / `_t30m_B250` 落本地后做 sha256 比对，
+   把"严格位等价"证据补齐（HANDOFF 第 4 步）。
+2. D1 全量训练在同事的 6 桶分片完成、t30m+accum 显存压力重新盘点后再启动。
