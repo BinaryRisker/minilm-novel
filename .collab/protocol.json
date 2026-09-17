@@ -93,10 +93,26 @@
     },
     "blocker": {
       "required": ["id", "from", "to", "type", "created_at", "blocker", "proposed_options"]
+    },
+    "decision": {
+      "required": [
+        "id", "from", "to", "type", "created_at", "reply_to",
+        "decision", "instruction"
+      ],
+      "optional": ["status", "constraints", "next_task_id"],
+      "note": "root 对 blocker 的回复；从 proposed_options 里选 key（A/B/C），也可直接给 instruction 覆盖"
     }
   },
   "status_codes": {
-    "task": ["queued", "in_progress", "completed", "failed", "blocked"],
+    "task": [
+      "idle",
+      "queued",
+      "in_progress",
+      "blocked",
+      "blocked_pending_root_data",
+      "completed",
+      "failed"
+    ],
     "result": ["completed", "partial", "failed"]
   },
   "field_constraints": {

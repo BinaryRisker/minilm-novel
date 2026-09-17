@@ -73,8 +73,19 @@ REQUIRED_RESULT_FIELDS = [
     "status", "commit", "changed_files", "tests",
 ]
 
+REQUIRED_DECISION_FIELDS = [
+    "id", "from", "to", "type", "created_at", "reply_to",
+    "decision", "instruction",
+]
+
 VALID_RESULT_STATUS = {"completed", "partial", "failed"}
 VALID_TASK_TYPES_FOR_RESULT = {"task"}
+VALID_DECISION_KEYS = {"A", "B", "C", "D", "E"}  # 简单枚举；monitor 用 letter 选 proposed_options
+VALID_TASK_STATE = {
+    "idle", "queued", "in_progress",
+    "blocked", "blocked_pending_root_data",
+    "completed", "failed",
+}
 
 
 # ---------- 工具函数 ----------
@@ -216,6 +227,9 @@ def main() -> int:
     p_validate.add_argument("task_id")
     p_validate.add_argument("result_json_path")
 
+    p_validate_dec = sub.add_parser("validate-decision", help="校验 decision JSON 是否符合 schema")
+    p_validate_dec.add_argument("decision_json_path")
+
     sub.add_parser("print-status", help="打印 status/zcode.json")
 
     args = ap.parse_args()
@@ -228,6 +242,23 @@ def main() -> int:
         task = read_task(args.task_id)
         result = _read_json(Path(args.result_json_path))
         errs = validate_result(task, result)
+        if errs:
+            print("INVALID:")
+            for e in errs:
+                print(f"  - {e}")
+            return 1
+        print("VALID")
+    elif args.cmd == "validate-decision":
+        d = _read_json(Path(args.decision_json_path))
+        errs = []
+        for k in REQUIRED_DECISION_FIELDS:
+            if k not in d:
+                errs.append(f"missing required field: {k}")
+        if d.get("type") != "decision":
+            errs.append(f"type must be 'decision', got {d.get('type')!r}")
+        if d.get("decision") and d["decision"] not in VALID_DECISION_KEYS:
+            # decision 可以是 'A'/'B'/...；若是自由文本（monitor 扩展）则不阻断
+            print(f"[warn] decision={d['decision']!r} 不在 {VALID_DECISION_KEYS}（可能是扩展用法，不阻断）")
         if errs:
             print("INVALID:")
             for e in errs:

@@ -2486,3 +2486,68 @@ root 选 A → 由 root 跑 fetch + dump（不在 zcode 范围）→ root 派新
 root 选 B → root 改 current.json 的 forbidden_paths → zcode 执行。
 
 root 选 C → root 改 current.json 的 acceptance → zcode 执行 gudian+story 两桶。
+
+## 2026-09-17 20:45 — root decision A 接收 + 第一阶段协议闭环验证
+
+root 在 20:45 通过 monitor 自动发现 blocker → 写 decision 到
+`.collab/inbox/zcode/root-ack-blocker-20260917-001.json`（type=`decision`、
+reply_to=`blocker-20260917-001`、decision=`A`），完整闭环验证。
+
+### 第一条 decision 消息字段核验
+
+```
+id:               msg-20260917-002
+from:             root
+to:               zcode
+type:             decision     ← schema 之前没列；root monitor 主动扩展
+reply_to:         blocker-20260917-001   ← 对得上我 20:40 写的 blocker
+decision:         A            ← 采用推荐方案
+status:           blocked_pending_root_data
+instruction:      root 端先负责恢复/生成 data/processed 正文；在该目录和
+                  fingerprint 准备完成前，不要修改 forbidden_paths，也不
+                  要重复运行必然失败的 dataset build。数据就绪后继续
+                  task-20260917-001，并按原 acceptance 写 result。
+constraints:
+  do_not_modify_forbidden_paths: true
+  max_runtime_sec:                1800
+  must_fetch_before_shutdown:     false
+```
+
+### schema 增量（commit 跟随本次）
+
+- `protocol.json`：消息类型加 `decision`（必填 id/from/to/type/created_at/
+  reply_to/decision/instruction；可选 status/constraints/next_task_id）；
+  status_codes 加 `blocked_pending_root_data`。
+- `collab_helper.py`：加 `REQUIRED_DECISION_FIELDS` / `VALID_DECISION_KEYS` /
+  `VALID_TASK_STATE`；新增 `validate-decision <path>` CLI 子命令。
+- 验证：`python dev/collab_helper.py validate-decision .collab/inbox/zcode/root-ack-blocker-20260917-001.json`
+  → `VALID`
+
+### status/zcode.json 更新
+
+- state：`idle` → `blocked_pending_root_data`
+- current_task：`task-20260917-001`
+- 记 decision 字段 + ack msg id（msg-20260917-002）+ resume_trigger
+- next_actions 写明等 processed/ 落盘后重跑 dataset.py build + info + verify
+
+### 闭环对照
+
+```
+zcode 写 blocker                      20:40   outbox/zcode/blocker-20260917-001.json
+  → root monitor 自动发现              20:4?   dev/collab_monitor.py 触发
+  → root 写 decision 到 zcode inbox    20:45   inbox/zcode/root-ack-blocker-20260917-001.json
+  → zcode 本次读取并更新 status        20:45   status/zcode.json state=blocked_pending_root_data
+  → 等 processed/ 落盘 + 数据就绪 → zcode 重跑 task-20260917-001 → 写 result
+```
+
+阶段一目标达成：**协议 + monitor + blocker/decision 闭环**全跑通。
+
+### 当前边界（你已明示，照搬）
+
+- monitor 能自动发现状态/结果/阻塞、写回决策；
+- 但 zcode 没有常驻 worker，"被唤醒执行"还需 zcode 自身支持轮询；
+- 本会话每次启动时**手动**读一次 inbox/zcode/ 即可（不需要后台 daemon）。
+
+### 不在 commit 范围
+
+- `.collab/{status,inbox,outbox,locks,log}/`（运行时本地状态，已 ignore）
