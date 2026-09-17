@@ -185,22 +185,34 @@ def cmd_peek(args: argparse.Namespace) -> int:
 def cmd_watch(args: argparse.Namespace) -> int:
     """后台轮询：新消息追加到 log；已处理消息归档到 .processed/。"""
     LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
-    seen: Dict[str, float] = {}
+    seen: Dict[str, int] = {}
     interval = float(args.interval)
     print(f"[{_now_iso()}] watching {INBOX} (interval={interval}s)")
     while True:
         msgs = list_inbox()
         for p in msgs:
-            mt = p.stat().st_mtime
+            mt = p.stat().st_mtime_ns
             if seen.get(p.name) == mt:
                 continue
-            seen[p.name] = mt
             try:
                 msg = _read_json(p)
             except Exception as e:
+                # 原子写完成前可能短暂看到空/半成品；不标记为已处理，
+                # 下一轮用同一文件的新内容重试。
                 _log(f"[parse-error] {p.name}: {e}")
                 continue
+            seen[p.name] = mt
+            msgs = []
+            for other in list_inbox():
+                try:
+                    msgs.append(_read_json(other))
+                except Exception:
+                    pass
+            eff = cross_check(msgs)
             kind, action, summary = summarize(msg)
+            if kind == "task":
+                tid = msg.get("task_id") or msg.get("id")
+                action = eff.get(tid, action)
             _log(f"[{kind}/{action}] {p.name}  {summary}")
         time.sleep(interval)
 
