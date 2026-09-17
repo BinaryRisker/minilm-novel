@@ -2337,3 +2337,93 @@ source split fingerprint、vocab fingerprint。**绝不共用 `py/runs/shards/` 
 
 > 数据清单已完成初步对账，t30m GPU 训练链路已通过冒烟，
 > 恢复功能已有 CPU 严格证据；全量分片、GPU 严格位等价和正式训练仍未完成。
+
+## 2026-09-17 20:00 — 双 agent 文件协作协议（.collab/）
+
+owner 提出把"对话协作"变成"本地通信协议"——本轮只落地**阶段一：文件协议**，
+不引入 CLI 包装器 / HTTP / MCP（按 owner 要求分阶段推进，先把文件协议跑稳）。
+
+### 目录与归属
+
+```text
+.collab/
+├── protocol.json           # 入库（共享 schema）
+├── tasks/                  # 入库（任务定义；zcode 可读）
+│   └── current.json        # 当前最新任务（id=task-20260917-001）
+├── status/                 # 不入库（运行时状态，本地各一份）
+│   ├── root.json           # root（Codex）端占位
+│   └── zcode.json          # 本会话（zcode）状态
+├── inbox/                  # 不入库（未读消息；对方写入→己方读取）
+│   ├── root/               # 发给 root 的入站（由 root 端进程读）
+│   └── zcode/              # 发给 zcode 的入站（本会话读）
+├── outbox/                 # 不入库（已发但未归档）
+│   ├── root/               # root → zcode 的派工结果
+│   └── zcode/              # zcode → root 的任务回执
+├── locks/                  # 不入库（短期文件锁，避免同时改同文件）
+└── log/                    # 不入库（运行日志）
+```
+
+`protocol.json` 已写明三角色：
+- **root / Codex**：总体方案、质量门禁、最终决策（own manifest / corpus）
+- **zcode**：编码、训练脚本、数据分片、AutoDL 执行（own dataset.py / trainer）
+- **evaluator**：评测、日志分析、生成样本、人工评测（预留，当前未启用）
+
+### 消息类型与字段约束（schema 摘要）
+
+| 类型 | 必填字段 | 备注 |
+|---|---|---|
+| `task`    | id/from/to/type/created_at/objective/allowed_paths/forbidden_paths/acceptance | + 可选 priority/max_runtime_sec/must_fetch_before_shutdown/deadline_at |
+| `result`  | id/from/to/type/reply_to/status/commit/changed_files/tests | + 可选 artifacts/risks/next_step/wallclock_sec/stdout_tail |
+| `question` / `blocker` | 预留 | 临时协商用 |
+
+status 取值：task → queued / in_progress / completed / failed / blocked；
+result → completed / partial / failed。
+
+### 安全约束（硬规则）
+
+1. 禁止 zcode 改 `forbidden_paths`（root 清单 / 同事 in-flight 代码 / 许可源）
+2. 禁止 zcode 直接覆盖另一个 agent 未提交的改动
+3. 训练 / benchmark 任务必须填 `max_runtime_sec`
+4. AutoDL 任务必须填 `must_fetch_before_shutdown=true`（关机前必 fetch + 校验本地）
+5. result 必须 commit 真实 SHA，不允许伪造
+6. 双方通过 `.collab/locks/<file>.lock` 做短期锁
+7. JSON 必须 UTF-8 无 BOM，用 `dev/collab_helper.py` 读写自动校验
+
+### 当前最新任务（task-20260917-001）
+
+> **生成 research_full 六桶预编码分片**
+>
+> objective：在 `py/runs/shards/research_full/` 下生成
+> gudian/localugc/scifi/story/urban/wuxia/xiandai 六桶的预编码分片；
+> 验收：train_meta.json + val_meta.json + 6 桶全部出现 + fingerprint 一致
+> + `dataset info/verify --shard-dir` 通过。
+>
+> forbidden_paths 23 项：manifest/sources/split_audit/corpus/fetch_corpus/
+> dataset/trainer/repro/benchmark/minilm_torch/doctor/run_identity/
+> sweep_worksplit/test_doctor/review_*/kill_by_cmdline/scope_seed/
+> protocol_note/sync_plans/instance.local.sh/protocol.json
+>
+> max_runtime_sec: 1800；deadline: 22:00
+
+### 落地工具
+
+`dev/collab_helper.py`（只读 tasks / 写 result / 更新 status / 文件锁），
+跨平台（Windows msvcrt / POSIX fcntl），CLI 子命令：
+- `read-protocol`
+- `read-task <task_id>`
+- `validate-result <task_id> <result.json>`
+- `print-status`
+
+### 不在 commit 范围
+
+- `.collab/{status,inbox,outbox,locks,log}/`（运行时本地状态，已加 .gitignore）
+- `dev/autodl/instance.local.sh` / `*.pt` / `*.bin`（gitignore / 大体积）
+
+### 三阶段规划
+
+- 阶段一（当前）：文件 + Git commit，zcode 写 result → root 读 outbox/zcode
+- 阶段二（如需）：`start_zcode_worker.ps1` 监听 inbox/zcode 启动 zcode
+- 阶段三（如需）：HTTP / MCP 接口
+
+如果第一阶段用 1-2 轮就觉得别扭（任务粒度不对、result 字段缺失等），回头再决定
+要不要升级。**不强求按阶段推进**，避免做无用功。

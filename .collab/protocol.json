@@ -1,0 +1,124 @@
+{
+  "version": "0.1.0",
+  "created_at": "2026-09-17T20:00:00+08:00",
+  "purpose": "minilm-lab 双 agent 文件协议（root/Codex ↔ zcode ↔ evaluator）。阶段一：仅文件 + Git commit；阶段二可加 CLI 包装器；阶段三再考虑 HTTP/MCP。",
+  "roles": {
+    "root": {
+      "agent": "current Codex (owner 决策)",
+      "owns": [
+        "总体方案 / 质量门禁 / 实验结论 / 最终决策",
+        "data/manifest*.jsonl / data/sources.json / data/split_audit.json（清单与许可）",
+        "py/data/corpus.json / py/data/fetch_corpus.py（语料聚合）",
+        "两线命名与冻结（research_full / release_candidate）"
+      ],
+      "writes_to": [
+        ".collab/inbox/zcode/  （派任务）",
+        ".collab/outbox/root/  （回复 zcode / evaluator）",
+        ".collab/tasks/current.json",
+        ".collab/status/root.json"
+      ]
+    },
+    "zcode": {
+      "agent": "ZCode（本会话）",
+      "owns": [
+        "编码 / 训练脚本 / 数据分片构建 / AutoDL 执行",
+        "py/novellm/*.py（dataset / trainer / checkpoint / model 配置）",
+        "dev/autodl/*.sh（AutoDL 生命周期脚本）",
+        "dev/verify/* 报告 + 60_fetch_results 回传"
+      ],
+      "writes_to": [
+        ".collab/outbox/zcode/  （完成任务后回结果）",
+        ".collab/inbox/root/    （提问 / 报风险）",
+        ".collab/status/zcode.json"
+      ]
+    },
+    "evaluator": {
+      "agent": "（预留位；当前未启用）",
+      "owns": [
+        "评测 / 日志分析 / 生成样本 / 人工评测报告",
+        "runs/review_*/probes.json（review 文章产物线）",
+        "dev/review_v3_*.py / dev/scope_seed.py / dev/kill_by_cmdline.py"
+      ],
+      "writes_to": [
+        ".collab/outbox/zcode/ 或 .collab/outbox/root/",
+        ".collab/status/evaluator.json"
+      ]
+    }
+  },
+  "message_types": {
+    "task": {
+      "required": [
+        "id",
+        "from",
+        "to",
+        "type",
+        "created_at",
+        "objective",
+        "allowed_paths",
+        "forbidden_paths",
+        "acceptance"
+      ],
+      "optional": [
+        "priority",
+        "reply_to",
+        "context",
+        "max_runtime_sec",
+        "save_before_finish",
+        "must_fetch_before_shutdown",
+        "deadline_at"
+      ]
+    },
+    "result": {
+      "required": [
+        "id",
+        "from",
+        "to",
+        "type",
+        "reply_to",
+        "status",
+        "commit",
+        "changed_files",
+        "tests"
+      ],
+      "optional": [
+        "artifacts",
+        "risks",
+        "next_step",
+        "wallclock_sec",
+        "stdout_tail"
+      ]
+    },
+    "question": {
+      "required": ["id", "from", "to", "type", "created_at", "question", "context"]
+    },
+    "blocker": {
+      "required": ["id", "from", "to", "type", "created_at", "blocker", "proposed_options"]
+    }
+  },
+  "status_codes": {
+    "task": ["queued", "in_progress", "completed", "failed", "blocked"],
+    "result": ["completed", "partial", "failed"]
+  },
+  "field_constraints": {
+    "commit": "git commit SHA（7+ hex）；失败时为 'none'",
+    "changed_files": "相对仓库根的路径列表；不得出现 forbidden_paths 中的任一项",
+    "tests": "字符串列表，每条形如 '<command>: <PASS|FAIL|SKIP>' 或纯 PASS/FAIL",
+    "max_runtime_sec": "训练/benchmark 类必填，防止 AutoDL 任务失控",
+    "must_fetch_before_shutdown": "AutoDL 任务必须为 true，关机前必须先回传 checkpoint + 校验本地存在",
+    "save_before_finish": "训练类必填，描述 save 路径和触发条件"
+  },
+  "safety_rules": [
+    "禁止 zcode 改 forbidden_paths 中的任一项（root 清单 / 同事 in-flight 代码 / 许可源）",
+    "禁止 zcode 直接覆盖另一个 agent 未提交的改动（git status 必须先干净或只动自身任务范围）",
+    "训练 / benchmark 任务必须填 max_runtime_sec；超时由 worker 强制 SIGTERM",
+    "AutoDL 任务必须填 must_fetch_before_shutdown=true；执行人不得在关机前未回传就 shutdown",
+    "任何 result 必须 commit 真实 SHA；不允许伪造 'pending' / 'todo' SHA",
+    "双方通过 .collab/locks/<file>.lock 做短期文件锁，避免同时写同一文件",
+    "JSON 必须 UTF-8 无 BOM；用 dev/collab_helper.py 读写可自动校验"
+  ],
+  "phases": {
+    "phase_1": "文件协议：JSON + Git commit（当前）",
+    "phase_2": "zcode CLI 包装器（start_zcode_worker.ps1；按需）",
+    "phase_3": "HTTP / MCP 接口（暂不启用）"
+  }
+}

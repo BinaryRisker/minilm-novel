@@ -45,3 +45,14 @@ py/runs/shards/
 # AutoDL 集成：实例连接信息只留本地；数据包/回传产物不入库
 dev/autodl/instance.local.sh
 dist/remote/
+
+# 双 agent 协作协议（.collab/）：schema / 任务定义共享，运行时状态留本地
+# 入库：.collab/protocol.json（协议）、.collab/tasks/*.json（任务定义）
+# 不入库：.collab/status/*（本地状态）、.collab/inbox/*（未读消息）
+#          .collab/outbox/*（已发但未归档）、.collab/locks/*（短期锁文件）
+#          .collab/log/*（运行日志）
+.collab/status/
+.collab/inbox/
+.collab/outbox/
+.collab/locks/
+.collab/log/
