@@ -2858,3 +2858,64 @@ owner 提"codexcodex 已经回复了，你为什么没有处理"——本会话�
 ### 不在 commit 范围
 
 - `.collab/{inbox,outbox,status,log}/`（运行时本地状态，ignore）
+
+## 2026-09-17 22:00 — root integrity_rebuild_unique_key 方案接 + zcode 保持暂停
+
+owner 在 21:42 写入新方案决策 `.collab/inbox/zcode/root-plan-integrity-rebuild-20260917-001.json`。
+本会话按上节"漏接教训"立即核对并处理。
+
+### inbox 新决策内容
+
+```json
+{
+  "type": "decision",
+  "decision": "integrity_rebuild_unique_key",
+  "status": "blocked_pending_integrity_fix",
+  "reply_to": "task-20260917-001",
+  "message": "采用 A+B：story_id 唯一键 + 同时重建正文/manifest/hash/split_report；
+              不改当前正式 manifest，先产出 runtime/research_full 候选并完成全量审计。
+              zcode 继续保持暂停，待 root 发布新 task acceptance 后再生成六桶分片。"
+}
+```
+
+### 关键判定：状态没解除
+
+| 字段 | 值 | 含义 |
+|---|---|---|
+| decision | integrity_rebuild_unique_key | 新方案标识（**新枚举**） |
+| status | blocked_pending_integrity_fix | **不解除阻塞**——root 没要 zcode 现在动 |
+| 内容 | A+B + 先 candidate + 审计 | root 自己先做完才派新 task |
+
+→ **zcode 现在唯一可做的事是 ack + 等**，不是跑 dataset.py build。
+
+### zcode 动作（未触碰 forbidden_paths）
+
+- 写 `outbox/zcode/ack-integrity-rebuild-20260917-001.json` 确认收到
+- status state 保持 `blocked_pending_integrity_fix`（不解除）
+- `decisions[]` 加 `integrity_rebuild_unique_key` 项（A → hash_mismatch → rebuild 三段链）
+- `resume_trigger` 改为：root 在 `runtime/research_full/` 产出 + 全量审计通过 + 发新 task acceptance
+- `constraints_from_decisions` 加：do_not_modify_current_formal_manifest、do_not_run_dataset_build_until_data_integrity_fixed
+
+### schema 增量
+
+- `.collab/protocol.json` status_codes.decision 加 `integrity_rebuild_unique_key`
+- `dev/collab_helper.py` VALID_DECISION_STATUS 同步
+
+### 漏接补救（已固化）
+
+owner 提"codexcodex 已经回复了，你为什么没有处理"后已修：
+- ✅ 21:42 立即主动核对 inbox（不再只靠 owner 转交）
+- ✅ daemon PID 22944 持续常驻（每轮心跳 tick +1160+）
+- ✅ 下次会话启动第一动作 = `python dev/collab_daemon.py peek`
+
+### 等什么
+
+- root 在 `runtime/research_full/` 产出 candidate（用 story_id 唯一键 + 同时重建 manifest/hash/split_report）
+- 全量审计通过（缺失/hash/重复/切分 4 项）
+- root 发新 task 给 zcode（acceptance 应包含 processed/ 唯一性 + hash 一致性 验证项）
+- zcode 跑 dataset.py build --out-dir py/runs/shards/research_full --buckets gudian,localugc,scifi,story,urban,wuxia,xiandai
+- info + verify 通过后写 `result-task-20260917-001.json`，state → completed
+
+### 不在 commit 范围
+
+- `.collab/{inbox,outbox,status,log}/`（运行时本地状态，ignore）

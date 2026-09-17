@@ -119,7 +119,8 @@
       "blocked_pending_root_data",
       "blocked_pending_integrity_fix",
       "blocked_processed_hash_mismatch",
-      "blocked_other"
+      "blocked_other",
+      "integrity_rebuild_unique_key"
     ],
     "result": ["completed", "partial", "failed"]
   },

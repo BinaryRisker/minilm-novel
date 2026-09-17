@@ -89,6 +89,7 @@ VALID_TASK_STATE = {
 VALID_DECISION_STATUS = {
     "accepted", "blocked_pending_root_data", "blocked_pending_integrity_fix",
     "blocked_processed_hash_mismatch", "blocked_other",
+    "integrity_rebuild_unique_key",
 }
 
 
