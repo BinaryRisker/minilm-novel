@@ -1,0 +1,31 @@
+{
+  "tool": "dev/audit_data_consistency.py",
+  "run_at": "2026-09-18T00:30:00+08:00",
+  "purpose": "独立复核 root 2026-09-17 的 blocked_pending_integrity_fix 判定是否仍适用于当前正式数据",
+  "method": "sha256(processed/<bucket>/<slug(title)>.txt)[:16] == manifest.hash；另做 sources−manifest==deduped、hash 唯一、家族不跨切分三项",
+  "manifest_used_by_dataset_build": "data/manifest_v2.jsonl（resolve_current 择优，与 manifest.jsonl 同 225756 部、逐部 hash 一致，文件级序列化不同）",
+  "results": {
+    "manifest.jsonl_full": {
+      "works": 225756,
+      "count_identity": {"sources_total_works": 226725, "manifest_rows": 225756, "diff": 969, "declared_dropped": 969, "ok": true},
+      "hash_unique": {"unique_hashes": 225756, "duplicate_groups": 0, "ok": true},
+      "family_cross_split": {"parent_story_id_cross": 0, "dedup_cluster_cross": 0, "ok": true},
+      "body_check": {"checked": 225756, "missing": 0, "hash_mismatch": 0, "ok": true},
+      "conclusion": "PASS"
+    },
+    "manifest_v2_sample60perbucket": {
+      "works": 225756,
+      "body_check": {"checked": 264, "missing": 0, "hash_mismatch": 0, "ok": true},
+      "dedup_cluster_families": 14,
+      "dedup_cluster_cross_split": 0,
+      "conclusion": "PASS"
+    }
+  },
+  "corroboration": {
+    "dev_review_current_py": {"missing_files": 0, "hash_mismatches": 0, "works": 225756, "note": "全量正文校验，同样 0/0"},
+    "root_own_audit_tmp": {"file": "data/_research_full_audit.tmp.json", "issues": [], "ok": true, "unique_hashes": 225756, "dedupe_dropped_works": 969},
+    "zcode_independent_sample": {"checked": 209, "missing": 0, "hash_mismatch": 0}
+  },
+  "reconciliation": "root 决策消息中的『226725 文件 slug 覆盖 + 151/153 hash 不一致』对应 sources.total_works=226725（去重前抓取全集）；当前正式 data/manifest.jsonl(225756) 与 data/processed/ 三方独立校验均为 0 缺失 / 0 不一致，dedup 已生效（丢弃 969 全在 localugc）。",
+  "caveat": "本结论只说明『当前正式 processed + manifest 一致、可作分片输入』；是否解除 task-20260917-001 的 blocked_pending_integrity_fix 由 root 决定。若 root 侧仍看到不一致，请给出比对的具体目录与样本，以便定位是正式 processed 还是已删除的临时重建目录。"
+}

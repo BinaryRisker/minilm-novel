@@ -2919,3 +2919,63 @@ owner 提"codexcodex 已经回复了，你为什么没有处理"后已修：
 ### 不在 commit 范围
 
 - `.collab/{inbox,outbox,status,log}/`（运行时本地状态，ignore）
+
+## 2026-09-18 · Day 6 · 全量自检无回归 + 数据完整性三方对账（意外发现）
+
+### 进度盘点
+
+- inbox 4 条全 `wait`：最新 root decision `integrity_rebuild_unique_key`
+  （status 仍 `blocked_pending_integrity_fix`），task-20260917-001（research_full
+  六桶分片）**继续被 root 阻塞**，dataset build 我不能跑。
+- 工作区 75 modified + 13 untracked，**绝大多数是并发内容线的 in-flight**
+  （67 篇「实践篇」docs 内容文章 + data 重建产物 + LOG 顶部「历史证据阅读说明」
+  banner + eval/baselines_report.md）。按规则不代提交、不 stash、不 reset。
+
+### 代码/数据质量自检（全部通过，无回归）
+
+| 检查 | 结果 |
+|---|---|
+| `python -m unittest discover -s py/tests` | **77/77 OK**（含 test_splits.TestVerify 报告过期/未去重/缺文件必须报错） |
+| `splits.verify()` 真实数据 | OK，fingerprint=`5433cae4babe084d`，225,756 部，用 manifest_v2 |
+| `node smoke.js` / `test_rng.js` / `uidom.js` / `eval/test_eval.js` | 23 / 11 / 41 / 68 全通过 |
+| `python py/verify_parity.py`（L0 对齐） | 前向 2/2、反向 20/20、裁剪 20/20、Adam 20/20 **全 PASS** |
+| `node test.js --grad` | 688/688，最大相对误差 1.03e-6 |
+| `python dev/review_current.py` | missing_files=[] hash_mismatches=[] same_seed equal=true resume step1→2 正常 |
+
+→ 并发线大规模重写 docs/data **未破坏任何校验**，训练链路健康。
+
+### 意外发现：root 的阻塞理由与三方独立校验矛盾
+
+root 决策称「data/processed 抽样 153 部中 151 部与 manifest hash 不一致 +
+226725 文件 slug 覆盖」，据此阻塞六桶分片。我独立复核发现**当前正式数据其实一致**：
+
+- 新增只读审计工具 `dev/audit_data_consistency.py`（四项：计数恒等 / hash 唯一 /
+  家族不跨切分 / 正文 hash），全量跑 **225,756 部：缺失 0、hash 不一致 0**。
+- `dev/review_current.py`：同样 0 缺失 / 0 不一致。
+- **root 自己的 `data/_research_full_audit.tmp.json`：`issues: []`、`ok: true`、
+  `unique_hashes: 225756`、`dedupe.dropped_works: 969`。**
+
+对账结论：root 消息里的 **226725 = `sources.total_works`（去重前抓取全集）**，
+`226725 − 225756 = 969` 正好等于 `split_audit.dedupe.dropped_works`（全在 localugc）。
+「slug 覆盖 / 151 不一致」应是针对去重前的**临时重建目录**
+`data/processed_research_full_build/`（现已不存在），而非正式
+`data/processed/ + data/manifest.jsonl`。正式数据 dedup 已生效、正文与 manifest 一致。
+
+### 处理方式：报证据，不擅自翻状态
+
+- **未**跑 dataset build（遵守 `blocked_pending_integrity_fix`）。
+- **未**改 forbidden（manifest/processed/py/data/novellm/dataset.py 一律没动）。
+- 写 `.collab/outbox/zcode/q-data-integrity-reconcile-20260918-001.json`：
+  给出可复现命令 + 三方证据，请 root 确认是否解除阻塞、或提供 root 侧
+  比对的具体目录/样本以定位。status/zcode.json 仍记 `blocked_pending_integrity_fix`
+  （是否解除由 root 决定）。
+- 证据落 `dev/verify/data_consistency_20260918.json`。
+- 建议把 `dev/audit_data_consistency.py` 作为分片前 preflight
+  （P0「不合规数据和不匹配缓存非零退出」的落地，任一失败即 exit≠0）。
+
+### 下一步
+
+- 等 root 回应：确认解除 → 我跑 research_full 六桶分片 + info/verify + 写 result；
+  root 仍看到不一致 → 按其给出的目录/样本复现定位。
+- 阶段标记不变：全量分片、GPU 严格位等价、正式训练仍未完成；当前不在损坏数据上
+  启动正式训练。
