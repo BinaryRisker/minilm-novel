@@ -2618,3 +2618,62 @@ watch 模式实测（探针消息写入 inbox 后 2s 内被探测 + 写日志）
 ### 不在 commit 范围
 
 - `.collab/log/zcode_watch.log`（运行时日志，ignore）
+
+## 2026-09-17 21:05 — 双方 daemon 已常驻 + 闭环验证
+
+owner 把 `dev/collab_monitor.py` 从即时单次检查升级为后台常驻：
+
+```
+PID 18864  python.exe  C:\Python314\python.exe -u dev/collab_monitor.py --watch --interval 5
+日志       .collab/log/monitor.log（持续追加 zcode_state=blocked_pending_root_data）
+错误       .collab/log/monitor.err（0 字节）
+```
+
+monitor 升级 commit：`cb1739b 让协作监控器持续捕获文件更新`。
+
+### 现状快照（21:05）
+
+| 检查项 | 结果 |
+|---|---|
+| `python dev/collab_daemon.py peek` | 2 条 inbox，task 被 decision 覆盖为 wait ✓ |
+| status/zcode.json | `state=blocked_pending_root_data` ✓ |
+| root monitor PID 18864 | 在 python.exe 列表中，常驻 ✓ |
+| `.collab/log/monitor.log` | 持续追加 `zcode_state=blocked_pending_root_data` ✓ |
+| `.collab/log/monitor.err` | 0 字节，无错误 ✓ |
+| `.collab/log/zcode_watch.log` | zcode 侧 watch 跑过的探针证据 ✓ |
+
+### 完整通信回路（双方 daemon 都活着）
+
+```
+zcode 写 outbox/status → root monitor (--watch 5s)
+                      → root 读 + 写 decision → zcode inbox/zcode/
+                      → zcode daemon once 读到 decision → 更新 status
+                      → 下一轮 root monitor 又看到新 status → 循环
+```
+
+### status/zcode.json 增量
+
+- `daemon_pair` 字段：记下两侧 daemon 的命令 / 日志位置 / 通信方向
+- `last_committed` 更新到 `ce7d769`
+
+### 当前 blocker 仍存在
+
+```
+data/processed/ 缺失
+→ zcode 无法跑 dataset.py build（FileNotFoundError）
+→ 等 root 端 fetch_corpus + dump_works 把 6 桶正文落盘
+→ root 派新 task 或更新 current.json 的 acceptance 加 processed/ 验证项
+→ zcode 重跑 dataset.py build + info + verify + 写 result-task-20260917-001.json
+```
+
+### 边界确认（本会话未改任何 forbidden 路径）
+
+- 只读 `.collab/inbox/zcode/` 和 `.collab/status/zcode.json`
+- 只写 `.collab/status/zcode.json`（加 daemon_pair 字段）
+- 验证命令：`python dev/collab_daemon.py peek` / `tasklist /fi "PID eq 18864"` / `tail monitor.log`
+- **未触碰** `data/processed/` / `data/manifest*.jsonl` / `py/data/{fetch_corpus,build_splits}.py` / `py/novellm/dataset.py`
+
+### 重启提醒
+
+owner 已贴出 monitor 的开机自启命令（PowerShell `Start-Process -WindowStyle Hidden`）；
+zcode 侧是 on-demand，会话启动时 `once` 即可，**不需要**自启脚本。
