@@ -39,7 +39,17 @@ from repro import set_global_seed, rng_state, set_rng_state  # noqa
 import splits as splits_mod  # noqa
 import run_identity  # noqa
 
-CKPT_VERSION = 2
+# checkpoint v2 契约抽到 py/checkpoint.py：旧路径（本文件）与 novellm 分片训练路径共用，
+# 两边各写一份迟早有一份悄悄偏离契约。
+from checkpoint import save_checkpoint, load_ckpt_raw, load_state, CKPT_VERSION  # noqa
+
+
+def load_checkpoint(path: str, device='cpu'):
+    """兼容旧签名：返回 (model, itos, meta, ckpt)。模型按 meta['cfg'] 重建。"""
+    ckpt = load_ckpt_raw(path, device)
+    model = MiniLM(len(ckpt['itos']), ckpt['meta']['cfg']).to(device)
+    load_state(model, None, ckpt, device)
+    return model, ckpt['itos'], ckpt['meta'], ckpt
 
 
 def load_corpus(corpus_name: str) -> str:
@@ -49,33 +59,6 @@ def load_corpus(corpus_name: str) -> str:
     if corpus_name not in c or not c[corpus_name].get('text'):
         raise ValueError(f'语料 {corpus_name} 不存在或为空。可用：{list(c.keys())}')
     return c[corpus_name]['text']
-
-
-def save_checkpoint(path: str, model, opt, itos: list, meta: dict, step: int):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    torch.save({
-        'version': CKPT_VERSION,
-        'model': model.state_dict(),
-        'opt': opt.state_dict(),
-        'itos': itos,
-        'meta': meta,
-        'step': step,
-        'rng': rng_state(),
-    }, path)
-
-
-def load_checkpoint(path: str, device='cpu'):
-    """返回 (model, itos, meta, ckpt)。ckpt 里带不带 opt/rng 由版本决定。"""
-    ckpt = torch.load(path, map_location=device, weights_only=False)
-    itos = ckpt['itos']
-    meta = ckpt['meta']
-    cfg = meta['cfg']
-    model = MiniLM(len(itos), cfg).to(device)
-    model.load_state_dict(ckpt['model'])
-    if 'opt' not in ckpt:
-        print('[!] 旧格式 checkpoint：没有 optimizer 状态与 RNG 状态，'
-              '续训不会与直训等价（Adam 动量从零重启）。')
-    return model, itos, meta, ckpt
 
 
 def bucket_joined(bucket: str, manifest: str = None, report: str = None) -> dict:
@@ -123,8 +106,9 @@ def main():
                          '否则「前半段用 2 万字、续训用全量」会在数据层面就不同，等价性无从谈起（踩过）')
     ap.add_argument('--val_chars', type=int, default=20000, help='val 评测用的字数上限（0=全量）')
     ap.add_argument('--test_chars', type=int, default=50000, help='test 评测用的字数上限（0=全量）')
-    ap.add_argument('--batch', type=int, default=8)
-    ap.add_argument('--lr', type=float, default=0.004)
+    # None means "not supplied" so resume can inherit the checkpoint values.
+    ap.add_argument('--batch', type=int, default=None)
+    ap.add_argument('--lr', type=float, default=None)
     ap.add_argument('--seed', type=int, default=1234)
     ap.add_argument('--cfg', default=None, help='JSON string to override DEFAULT_CFG, e.g. {"d":40,"layers":2}')
     ap.add_argument('--out', default=os.path.join('py', 'runs', 'run_default'),
@@ -148,6 +132,13 @@ def main():
         run_id = meta.get('run_id', os.path.basename(out_dir))
         start_step = int(ckpt.get('step', meta.get('step', 0)))
         seed = int(meta.get('seed', args.seed))
+        for name in ('batch', 'lr'):
+            supplied = getattr(args, name)
+            saved = meta.get(name)
+            if supplied is not None and saved is not None and supplied != saved:
+                raise ValueError(f'exact resume 拒绝 {name} 变化：checkpoint={saved} 命令行={supplied}；'
+                                 '如需新实验请复制 checkpoint 并显式使用 warm_start')
+            setattr(args, name, saved if saved is not None else (8 if name == 'batch' else 0.004))
         bucket = meta.get('bucket')
         manifest = meta.get('manifest')
         report = meta.get('split_report')
@@ -162,9 +153,8 @@ def main():
         chars = args.chars or int(meta.get('chars', 0) or 0)
         if chars:
             text = text[:chars]
-        if chars != int(meta.get('chars', 0) or 0):
-            print(f'[!] 训练切片规模与 checkpoint 不同（{meta.get("chars")} → {chars}）：'
-                  '续训用的是不同数据，结果不会与直训等价')
+        if args.chars and args.chars != int(meta.get('chars', 0) or 0):
+            raise ValueError(f'exact resume 拒绝 chars 变化：checkpoint={meta.get("chars")} 命令行={args.chars}')
         stoi = {ch: i for i, ch in enumerate(itos)}
         # 恢复 RNG：必须在建 optimizer / 下一步采样之前
         rng_ok = set_rng_state(ckpt.get('rng'))
@@ -176,6 +166,8 @@ def main():
             print('[!] checkpoint 无 RNG 状态：批量采样顺序将从 seed 重新开始，'
                   '续训结果与直训**不等价**（不要用它做等价性结论）')
     else:
+        args.batch = 8 if args.batch is None else args.batch
+        args.lr = 0.004 if args.lr is None else args.lr
         bucket = args.bucket
         manifest = args.manifest
         report = args.report

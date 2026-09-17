@@ -87,7 +87,15 @@ P0 余留（不阻断 P1）：实践篇 24/31 的泄漏归因修订（下条）�
     `sample_batch` 与 `minilm_torch.make_batch` **同 seed 逐位一致**（真实 story 桶实测）；
     verify 断言为 **token 级往返等值**（min_freq>1 时低频字按设计映射 UNK，字符串逐字相等反而不成立）。
     CLI：`python -X utf8 -m py.novellm.dataset build/info/verify`。契约测试 `py/tests/test_dataset.py` 9 项。
-  - ⏳ trainer.py（预编码分片喂入 + 累计梯度 + 取消 + 安全存盘）、checkpoint.py 抽模块待做。
+  - ✅ 2026-09-17 trainer.py 已落地：`py/novellm/trainer.py`——分片喂数（sample_batch）+
+    **累计梯度**（--accum）+ **取消/超限安全存盘**（SIGINT/max_hours → checkpoint 再退出，
+    meta.cancelled 留痕）+ val 曲线（协议 V1 口径）+ run_identity 入 meta。
+    CLI：`python -X utf8 -m py.novellm.trainer --cfg t30m --steps N --accum K --out …`。
+  - ✅ 2026-09-17 `py/checkpoint.py` 抽模块完成（v2 契约单一来源，train.py 与 novellm.trainer
+    共用；P0 的 verify_seed/verify_resume 与探针复跑全过）。
+  - 续训等价性新证据：trainer 采样 rng **按步派生**（Random(f'{seed}:{step}')），
+    「训 5 → 续训到 10」与「直训 10」最终权重**与 Adam 状态逐位相等**
+    （`py/tests/test_trainer.py` 6 项，全量 **77/77**）。
   - ⚠️ **优先级上调（2026-09-16）**：用户已批准 localugc 上云全量训练（AutoDL 3080 Ti），
     而 18.8 亿字经现行 `train.py` 全量编码会变 Python list ≈49GB 内存——**dataset.py 的
     预编码分片从「可后置」升格为「全量训练（D1）的准入条件」**。

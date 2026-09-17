@@ -1836,3 +1836,59 @@ ctx1024/batch32 可跑），速度约为 4090 的 6~7 成但更便宜；50GB 数
 若该线仍在活动，后续以它的版本为准。
 
 **产出**：`py/novellm/dataset.py`、`py/tests/test_dataset.py`、V3 TODO 勾选。
+
+---
+
+## 2026-09-17 · Day 5（续）· trainer.py + checkpoint.py 抽模块 + model 配置 schema：novellm 训练路径拼齐
+
+**做了**（V3 P1 的本地部分全部就位）：
+
+1. **`py/checkpoint.py`**：把 checkpoint v2 契约从 `train.py` 抽成独立模块
+   （save / load_ckpt_raw / load_state），旧路径与 novellm 路径**共用同一份实现**——
+   两条路径各写一份，迟早有一份悄悄偏离契约（V3 P1 原话：复用已验证状态契约）。
+   `train.py` 改为 import，行为零变化：verify_seed / verify_resume / review_current 探针复跑全过。
+2. **`py/novellm/model.py`**：配置 schema + 命名档（micro ≈1.05M / t30m ≈29.3M，V=7000）
+   + **参数量公式对账**——`assert_param_count` 把解析公式与 MiniLM 实例实数逐位比对，
+   不一致即抛。公式第一版就错了（每层漏 d(f+1) 的 mlp 偏置），靠实数对账当场抓出并修正
+   ——这正是这个断言存在的意义。provenance 显式声明 `no_external_weights: true`（V3 硬约束）。
+3. **`py/novellm/trainer.py`**：吃 `ShardedCorpus` 分片的训练器——
+   **累计梯度**（--accum）、val 曲线（协议 V1 口径，val 选型）、
+   **取消/超限安全存盘**（SIGINT / max_hours → 先存 checkpoint 再退，meta.cancelled 留痕）、
+   run_identity 入 meta、checkpoint v2 安全存盘（snapshot_every）。
+   采样 rng **按步派生**（`Random(f'{seed}:{step}')`）：续训等价性与 accum/batch 的
+   消耗数天然解耦。
+
+**数字**（全量 **77/77** 测试，新增 test_trainer.py 6 项）
+
+| 项 | 结果 |
+|---|---|
+| 续训等价性 | 「训 5 → 续训到 10」 vs 「直训 10」：model **与 Adam 状态逐位相等** |
+| 取消安全存盘 | cancel 触发 → checkpoint 落盘（step>0）+ meta.cancelled=True |
+| CLI 端到端 | story 分片、micro 小 cfg、40 步 2 秒跑完，val 曲线/快照/身份齐全 |
+| P0 探针复跑 | 同 seed Δ=0、空生成 0 分、resume exit 0 |
+
+**意外发现**
+
+1. **参数量公式第一版就是错的，而断言当场抓住了它。** 我按"每层 11d 的偏置系数"写公式，
+   实数对账差 2d/层——mlp 的两个偏置是 d(f+1) 不是 2d。如果没这个断言，
+   预算表里的"30M"就会带着一个没人发现的口径漂移去租卡。
+2. **trainer 初版的续训等价性是假的。** 采样用连续 `Random(seed)` 流，resume 后从头消费，
+   数据序列必然错位——旧路径能过 verify_resume 是因为它恰好用同样方式重放。
+   改成按步派生种子后，等价性与"每步消耗多少随机数"彻底解耦，怎么改 accum 都不会破坏它。
+3. **取消功能第一版压根没接线**（注册了信号处理、却从不在循环里调用 cancel_check），
+   测试一写就露馅。"注册了处理器"≠"处理器会被调用"——取消这类控制流必须有测试。
+
+**边界**
+
+- trainer 未做：多卡、数据并行（30M 用不上）；val 评测仍是 Python 逐窗循环（val 切片小，够用）。
+- D1 全量分片（24.5 亿字 → 10 片）等上云时现建（build 分钟级），本地只验了 story 桶。
+- `py/benchmark.py` 的 GPU 实测仍缺——等实例。
+
+**下一步**
+
+1. 你开实例跑 `40_benchmark.sh` → 预算表 → 定 D0 训练参数；
+2. trainer 接 GPU（--device cuda，分片 memmap 照常工作）后先跑 D0 微型冒烟（阶段 C）；
+3. P1 收尾：novellm/tokenizer.py（BPE 评测对照已具雏形）+ benchmark GPU 列。
+
+**产出**：`py/checkpoint.py`（抽取）、`py/novellm/model.py`、`py/novellm/trainer.py`、
+`py/tests/test_trainer.py`（6 项）、`py/train.py`（改为 import 共享实现）。
