@@ -2427,3 +2427,62 @@ result → completed / partial / failed。
 
 如果第一阶段用 1-2 轮就觉得别扭（任务粒度不对、result 字段缺失等），回头再决定
 要不要升级。**不强求按阶段推进**，避免做无用功。
+
+## 2026-09-17 20:40 — task-20260917-001 阻塞记录（processed/ 缺失）
+
+root 在 20:30 派发 inbox 通知 `.collab/inbox/zcode/task-20260917-001.json`，
+触发本会话"读 current.json 并执行"。执行前的 dry-run 检查发现
+**结构性阻塞**，未启动实际分片生成（避免在缺 processed/ 时白白消耗
+1800s runtime）；写入 `.collab/outbox/zcode/blocker-20260917-001.json`
+等 root 决策。
+
+### 阻塞点（不是代码缺陷，是数据管线前置依赖）
+
+```
+fetch_corpus.py / dump_works
+  → data/processed/<bucket>/<slug(title)>.txt  ← 当前不存在
+  → py/novellm/dataset.py build   ← 需要 processed/<bucket>/<slug>.txt
+  → py/runs/shards/research_full/
+```
+
+- `py/novellm/dataset.py` 第 68-72 行硬要求：
+  ```python
+  p = os.path.join(proc, r['bucket'], splits.slug(r['title']) + '.txt')
+  if not os.path.exists(p):
+      raise FileNotFoundError(f'作品正文缺失：{p}（{r["story_id"]} {r["title"]}）')
+  ```
+- `data/processed/` 整目录当前不存在（`ls` 确认）；
+- `py/runs/shards/train_meta.json` 显示之前 story 单桶分片来自
+  `manifest_v2.jsonl` + 单桶 processed，**同步已丢失**；
+- dataset.py CLI 本身已支持 `--out-dir py/runs/shards/research_full/` +
+  `--buckets gudian,localugc,scifi,story,urban,wuxia,xiandai`（不需改代码）。
+
+### 三个方案（已写入 blocker JSON）
+
+| 方案 | 谁做 | 时间 | 是否改 forbidden_paths |
+|---|---|---|---|
+| **A** | root 端跑 `fetch_corpus.py` + `dump_works` 把 6 桶正文重新落盘 | 1-3h | 否（推荐） |
+| **B** | root 把 `py/data/fetch_corpus.py` 与 `data/processed/` 移出 forbidden，zcode 拉取+分片 | 同 A | 是（协议边界破洞） |
+| **C** | research_full 暂缩到 gudian+story 两桶（其余桶等 processed/ 落盘后补） | 10-20min | 是（任务范围缩小） |
+
+**推荐 A**：forbidden_paths 是为 A 端设的；放 B/C 等于在协议刚落地阶段就
+打开边界口子，不该这么做。**本轮仅写 blocker，不动 status/zcode.json
+的 state（保持 idle）**——避免 root 还没回应就把任务标 in_progress。
+
+### zcode 这次没改任何 forbidden 路径
+
+只读 task 文件、inspect `py/novellm/dataset.py`（同事 in-flight，
+read-only 校验 CLI 完整性）、写 `outbox/zcode/blocker-20260917-001.json`。
+**未启动 dataset.py build**（会立刻 FileNotFoundError），**未触碰
+`py/novellm/dataset.py` / `py/data/{fetch_corpus,build_splits}.py` /
+`data/processed/` / `data/manifest*.jsonl`**。
+
+### 等 root 决策后下一步
+
+root 选 A → 由 root 跑 fetch + dump（不在 zcode 范围）→ root 派新 task 或
+本 task 改 acceptance 加 processed/ 验证项 → zcode 重跑 dataset.py build
++ info + verify → 写 result-task-20260917-001.json。
+
+root 选 B → root 改 current.json 的 forbidden_paths → zcode 执行。
+
+root 选 C → root 改 current.json 的 acceptance → zcode 执行 gudian+story 两桶。
