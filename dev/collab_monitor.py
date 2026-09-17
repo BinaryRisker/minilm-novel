@@ -29,7 +29,7 @@ def current_task() -> dict[str, Any] | None:
     return read_json(path) if path.exists() else None
 
 
-def inspect_once(seen: set[str]) -> int:
+def inspect_once(seen: dict[str, int]) -> int:
     """打印当前状态；返回 0 正常、2 blocker、3 无效回执。"""
     task = current_task()
     status_path = COLLAB / "status" / "zcode.json"
@@ -47,9 +47,10 @@ def inspect_once(seen: set[str]) -> int:
     code = 0
     for path in files:
         key = str(path.resolve())
-        if key in seen:
+        stamp = path.stat().st_mtime_ns
+        if seen.get(key) == stamp:
             continue
-        seen.add(key)
+        seen[key] = stamp
         try:
             msg = read_json(path)
         except Exception as exc:  # noqa: BLE001
@@ -83,7 +84,7 @@ def main() -> int:
     ap.add_argument("--watch", action="store_true", help="持续轮询")
     ap.add_argument("--interval", type=float, default=5.0, help="轮询秒数，默认 5")
     args = ap.parse_args()
-    seen: set[str] = set()
+    seen: dict[str, int] = {}
     if not args.watch:
         return inspect_once(seen)
     try:
