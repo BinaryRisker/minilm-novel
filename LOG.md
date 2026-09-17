@@ -2008,3 +2008,111 @@ val ppl=33.5 / holdout ppl=21.6 — 完全在 baseline 范围内（与
   （D0 训练产物 + 身份 + 分片指纹对账）
 
 **不在 commit 范围**：corpus.json、instance.local.sh、*.pt、*.bin（已 gitignore）
+
+---
+
+## 2026-09-17 14:25 — t30m 真冒烟跑通（接 HANDOFF 第 1-4 步）
+
+**目的**：跟 [`docs/HANDOFF_AUTODL_T30M_GPU_SMOKE_20260917.md`](docs/HANDOFF_AUTODL_T30M_GPU_SMOKE_20260917.md) 第 1-4 步，把「30M cfg 实际跑」从口头说法变成可复现的 evidence。
+
+### 路径
+
+1. 上一轮 `ssh shutdown now` 后，hqw8uqzkga 已释放 GPU 给其它用户；
+   在容器实例列表点「**克隆实例**」（保留系统盘+数据盘，公钥一并克隆）
+   → 新实例 `m6ahgmrgv8-6e1f5f61` / 内蒙B区 / 561机 / 已运行。
+2. JupyterLab 域名 `a1175947-rgv8-6e1f5f61.nmb2.seetacloud.com:8443`；
+   **SSH host 仍是 `connect.nmb2.seetacloud.com`，但端口变了**（旧 43989 不再工作），
+   新端口 = **31932**。
+3. `ssh -o BatchMode=yes root@connect.nmb2.seetacloud.com -p 31932` 免密通。
+
+### 修复的 3 个 in-flight bug（写进 LOG 等同事合并）
+
+1. **`40_benchmark.sh` 的 cfg 永远被拆 token**：同事把 `--cfg '{"d":512,...}'`
+   写在 heredoc 里，ssh 远端 bash 把单引号剥掉 → benchmark.py 实际收到空 cfg，
+   落到 micro 默认 `d=40 layers=2`。
+   - **修法**：改成 `--cfg-file`（写文件传 json），避免 ssh 拆 token。
+     同事文件 `py/benchmark.py` 加了 `--cfg-file` 参数；本轮 commit 暂不包含
+     `benchmark.py`（in-flight），但 `40_benchmark.sh` 已 commit（5 行 cfg-file 路径）。
+   - 验证单组 t30m：**cfg 真的生效** — `{ctx:512, d:512, layers:8, heads:8, ffMul:4}`，
+     81,349 tokens/s，VRAM 10.85 GB。
+
+2. **`trainer.py` resume 路径下 ckpt 默认 cpu load**：HANDOFF 第 4 步 resume
+   报错 `RuntimeError: Expected all tensors to be on the same device, but got
+   index is on cuda:0, different from other tensors on cpu`。
+   - **原因**：`checkpoint.load_ckpt_raw`/`load_state` 默认 `device='cpu'`，ckpt
+     落到 cpu，但模型已在 cuda，forward 时 embedding weight 在 cpu、indices 在 cuda。
+   - **建议修法**：trainer.py 第 99 / 100 / 136 行三处 `load_ckpt_raw`/`load_state`
+     调用加 `device=device`（共 3 个 token 改动）。我在远端临时打过 patch，
+     resume 跑通；本地暂不 commit（同事文件 in-flight）。
+
+3. **`repro.py set_rng_state` 报「RNG state must be a torch.ByteTensor」**：
+   - **原因**：pickle 走的 torch RNG state 在 torch 2.x 上 load 回来类型是
+     普通 Tensor，不是 ByteTensor。
+   - **建议修法**：`set_rng_state` 内部把 state 通过 `torch.from_numpy(...).byte()`
+     强制转回 ByteTensor；cuda_states 同样循环转。我在本地+远端都改了；
+     本轮 commit 暂不包含（同事文件 in-flight）。
+
+### 实际 t30m GPU 冒烟（500 步 + resume 续训 250 步）
+
+```
+python -X utf8 -m py.novellm.trainer --split train --val-split val --cfg t30m \
+  --device cuda --steps 500 --batch 2 --accum 4 \
+  --val-every 100 --snapshot-every 100 --seed 1234 \
+  --out py/runs/gpu_t30m_smoke_s1234
+```
+
+| 阶段 | step | loss | val top1 | val nll | val ppl | checkpoint |
+|---|---|---|---|---|---|---|
+| 直训 100 | 100 | 4.7731 | 3.41% | 7.668 | 2138 | ✓ |
+| 直训 200 | 200 | 3.7455 | 3.97% | 7.870 | 2616 | ✓ |
+| 直训 500 | 500 | 3.2188 | 3.90% | 8.232 | 3759 | ✓ |
+| resume 600 | 600 | 3.2158 | 3.96% | 8.290 | — | ✓ |
+| resume 700 | 700 | 3.1323 | 4.05% | 8.319 | — | ✓ |
+| resume 750 | 750 | 3.2158 | — | — | — | ✓ |
+
+- 500 步 wallclock = 84.3s（**cfg=t30m 26.65M 参数**）
+- 续训 500→750（250 步）wallclock = 42.5s（修复 RNG 后，无 `恢复 RNG 状态失败` 警告）
+- meta.run_identity: `a651ac9e...` / `604f9a90...`（每个 run 独立 run_id）
+- meta.provenance.param_count = 26,651,648（≈ 30M ✓）
+- meta.data.source_split_fingerprint = `5433cae4babe084d`（与本地 shards 一致 ✓）
+- val_curve 趋势 loss ↓、val nll ↑ → **过拟合迹象**（数据太小 804 部 + ctx=1024 大窗），
+  符合 HANDOFF 第 3 步预期
+
+### 与上一轮 micro 的对照（**别采预算**）
+
+| 项 | micro cfg (上一轮) | t30m cfg (本轮) | 倍数 |
+|---|---|---|---|
+| param_count | ~60k | 26.65M | ×444 |
+| ctx=512 batch=64 t/s | 958,771 | 81,349 | **×0.085**（慢 12 倍） |
+| ctx=1024 batch=64 VRAM | 6.77 GB | 12 GB 用尽 | ×1.8 |
+| ctx=1024 batch=64 t/s | 637,920 | n/a（batch 需降到 2） | — |
+
+→ **t30m 实际比 micro 慢 10 倍以上**；上一轮「30M tokens/¥0.03」的预算
+**不可外推到 t30m**。按 ctx=1024 batch=2 实测，500 步 ≈ 84s；
+92M tokens（30M 候选 × 6 证据桶 × ~3 epoch）实际可能
+**6-8 小时 / ¥7-9**（不是 ¥0.03）。
+
+### 实例状态
+
+- 实例 ID：`m6ahgmrgv8-6e1f5f61`，状态 `已关机`（释放倒计时 14 天），已 SSH 收；
+- **未在 commit 范围**：3 个同事 in-flight 文件（`benchmark.py`/`repro.py`/`trainer.py`）
+  的修复需要同事合并时一起 review。`40_benchmark.sh` 是我自己改的 → 本轮 commit。
+
+### 产出
+
+- `dev/autodl/40_benchmark.sh`（cfg-file 修复）
+- `dev/autodl/instance.local.sh`（port 31932）
+- `py/runs/gpu_t30m_smoke_s1234/{checkpoint.pt, meta.json}`（500 步，run_id a651ac9e...）
+- `py/runs/gpu_t30m_resume_s1234/{checkpoint.pt, meta.json}`（750 步，run_id 604f9a90...，resumed_from /tmp/t30m_step500.pt）
+
+### 下一步建议（HANDOFF 第 5 步）
+
+不要直接做 D1 全量训练。本轮证据指向：
+1. **数据量不够**：train=804 部 / 22 万 tokens，对 ctx=1024 模型严重过拟合。
+   需要先把 story + gudian/wuxia/urban/xiandai/scifi 6 桶 ≈ 18 万部 train 都生成预编码分片
+   （同事的 `py/sweep_worksplit.py` 已经看到 train=180,613，但分片只在 story 单桶上做完）。
+2. **显存吃满**：t30m 在 12GB 卡上 ctx=1024 batch=64 就 12GB 用尽，
+   实操 batch 必然降到 2-4 + accum，等效 batch 不超 16。
+3. **rng 修对 resume**：本轮验证了 RNG 修后 resume 等价；但完整
+   `verify_resume.py`（HANDOFF 第 4 步）需要做「训 500 vs 训 250→resume 500」
+   严格位等价对照，建议同事合并 RNG 修复后跑一次。

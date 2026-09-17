@@ -13,10 +13,14 @@ export PATH=/root/miniconda3/bin:$PATH
 AUTODL_DIR="$1"; shift
 AUTODL_PRICE_PER_HOUR="$1"; shift
 cd "$AUTODL_DIR"
+# 把 cfg 写成文件，避免 ssh heredoc 把 "{...}" 拆 token（实测踩过）
+BENCH_CFG_FILE="$AUTODL_DIR/dev/verify/_bench_cfg.json"
+python -c 'import json,sys; json.dump({"d":512,"layers":8,"heads":8,"ffMul":4}, open(sys.argv[1],"w"))' "$BENCH_CFG_FILE"
 echo "== doctor =="
 python -X utf8 -m py.novellm.doctor --out dev/verify/doctor_remote.json
 echo "== benchmark 组合扫描 =="
-python -X utf8 py/benchmark.py --corpus scifi --device cuda --steps 200 \
+python -X utf8 py/benchmark.py --corpus scifi --device cuda \
+  --cfg-file "$BENCH_CFG_FILE" --steps 200 \
   --sweep_ctx 32,64,128,256,512,1024 --sweep_batch 8,16,32,64 \
   --estimate_tokens 92000000 --price_per_hour "${AUTODL_PRICE_PER_HOUR:-2.0}" \
   --out dev/verify/budget_table.json "$@"
