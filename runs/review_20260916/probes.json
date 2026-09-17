@@ -1,0 +1,14 @@
+{
+  "body_hash_mismatch_rejected": true,
+  "cross_split_family_rejected": true,
+  "different_bucket_and_chars_same_identity": false,
+  "stale_trigram_cache_recomputed": true,
+  "doctor_changes_torch_rng": false,
+  "resume_default_hparams": {
+    "actual_log": "seed=1234 start_step=1 stop_at=3 plan_steps=4 batch=2 lr=0.002",
+    "stored_batch": 2,
+    "stored_lr": 0.002,
+    "max_weight_delta": 0.0
+  },
+  "changed_data_resume_rejected": true
+}

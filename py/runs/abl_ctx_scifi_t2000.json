@@ -1,0 +1,94 @@
+{
+  "meta": {
+    "mode": "ctx",
+    "bucket": "scifi",
+    "V": 3741,
+    "train_chars": 2000,
+    "test_chars": 4000,
+    "n_positions": 400,
+    "seeds": [
+      1234
+    ],
+    "epochs": 3.0,
+    "batch": 32,
+    "lr": 0.004,
+    "min_freq": 3,
+    "hist_min": 64,
+    "protocol": "固定评测位置集：用 ids[p-ctx:p] 预测 ids[p]，所有档位评同一批位置（与 sweep 的「每 ctx 步一窗」不同，后者跨 ctx 的 history 长度分布不可比）",
+    "trigram": {
+      "top1": 5.0,
+      "top5": 12.5,
+      "nll": 7.660816971485855
+    }
+  },
+  "runs": [
+    {
+      "label": "ctx8",
+      "cfg": {
+        "d": 40,
+        "layers": 2,
+        "heads": 4,
+        "ffMul": 4,
+        "ctx": 8
+      },
+      "n_seeds": 1,
+      "top1_mean": 4.0,
+      "top1_std": 0.0,
+      "top5_mean": 11.5,
+      "nll_mean": 7.0841912841796875,
+      "nll_std": 0.0,
+      "train_loss_mean": 6.878502861658732,
+      "params": 189480,
+      "steps": 30,
+      "per_seed": [
+        {
+          "top1": 4.0,
+          "top5": 11.5,
+          "nll": 7.0841912841796875,
+          "ppl": 1192.9580812000272,
+          "n": 400,
+          "train_loss": 6.878502861658732,
+          "steps": 30,
+          "params": 189480,
+          "seed": 1234,
+          "ctx": 8,
+          "causal": true
+        }
+      ]
+    },
+    {
+      "label": "ctx32",
+      "cfg": {
+        "d": 40,
+        "layers": 2,
+        "heads": 4,
+        "ffMul": 4,
+        "ctx": 32
+      },
+      "n_seeds": 1,
+      "top1_mean": 4.0,
+      "top1_std": 0.0,
+      "top5_mean": 13.25,
+      "nll_mean": 7.093049011230469,
+      "nll_std": 0.0,
+      "train_loss_mean": 6.798572969436646,
+      "params": 190440,
+      "steps": 30,
+      "per_seed": [
+        {
+          "top1": 4.0,
+          "top5": 13.25,
+          "nll": 7.093049011230469,
+          "ppl": 1203.5719160964522,
+          "n": 400,
+          "train_loss": 6.798572969436646,
+          "steps": 30,
+          "params": 190440,
+          "seed": 1234,
+          "ctx": 32,
+          "causal": true
+        }
+      ]
+    }
+  ]
+}

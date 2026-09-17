@@ -90,7 +90,7 @@ def distributable_share(did: Dict[str, object]) -> Dict[str, float]:
 
 
 def run_identity(cfg: dict, seed: int, steps: int, batch: int, lr: float,
-                 did: Dict[str, object]) -> str:
+                 did: Dict[str, object], extra: Optional[Dict[str, object]] = None) -> str:
     """配置 + 数据的稳定指纹（16 hex）。键排序后序列化，保证跨次运行一致。"""
     payload = {
         'cfg': cfg, 'seed': seed, 'steps': steps, 'batch': batch, 'lr': lr,
@@ -98,6 +98,8 @@ def run_identity(cfg: dict, seed: int, steps: int, batch: int, lr: float,
         'manifest': did['manifest'],
         'near_dup_merged': did['near_dup_merged'],
     }
+    if extra:
+        payload['extra'] = extra
     blob = json.dumps(payload, sort_keys=True, ensure_ascii=False)
     return hashlib.sha256(blob.encode('utf-8')).hexdigest()[:16]
 
@@ -109,7 +111,10 @@ def attach(meta: dict, manifest_path: Optional[str] = None,
     meta['data_identity'] = did
     meta['run_identity'] = run_identity(meta.get('cfg', {}), meta.get('seed', -1),
                                         meta.get('steps', meta.get('plan_steps', -1)),
-                                        meta.get('batch', -1), meta.get('lr', -1.0), did)
+                                        meta.get('batch', -1), meta.get('lr', -1.0), did,
+                                        {'bucket': meta.get('bucket'), 'chars': meta.get('chars'),
+                                         'splits': meta.get('splits'), 'protocol': meta.get('protocol'),
+                                         'tokenizer': meta.get('tokenizer')})
     meta['distributable_share'] = distributable_share(did)
     return meta
 

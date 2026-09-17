@@ -27,7 +27,7 @@
       "step",
       "rng"
     ],
-    "log": "Checkpoint v2 saved to C:\\Users\\jianglh\\AppData\\Local\\Temp\\minilm_review_0h0loh4n\\0\\checkpoint.pt"
+    "log": "Checkpoint v2 saved to C:\\Users\\jianglh\\AppData\\Local\\Temp\\minilm_review_q3uprwu7\\0\\checkpoint.pt"
   },
   "zero_generation": {
     "prompt": "小明推开了门。",

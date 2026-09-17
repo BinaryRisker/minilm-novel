@@ -1,0 +1,64 @@
+{
+  "corpus": null,
+  "bucket": "story",
+  "manifest": null,
+  "split_report": null,
+  "splits": null,
+  "cfg": {
+    "ctx": 32,
+    "d": 40,
+    "layers": 2,
+    "heads": 4,
+    "ffMul": 4
+  },
+  "steps": 2000,
+  "batch": 64,
+  "lr": 0.004,
+  "seed": 1234,
+  "step": 2000,
+  "chars": 0,
+  "run_id": "py/runs/gpu30m_story_s1234",
+  "vocab_source": "train_only",
+  "leaky_protocol": false,
+  "val": {
+    "top1": 33.8235294117647,
+    "top5": 63.60294117647059,
+    "nll": 3.5119016030255485,
+    "ppl": 33.5119336255556,
+    "n": 544
+  },
+  "test": {
+    "top1": 42.84980832420592,
+    "top5": 64.75219058050384,
+    "nll": 3.0734840082443298,
+    "ppl": 21.61708573467092,
+    "n": 29216
+  },
+  "train_chars": 220026,
+  "stop_at": 2000,
+  "eff_epochs": 18.615981747611645,
+  "data_identity": {
+    "manifest": "manifest.jsonl",
+    "split_report": "split_report.json",
+    "split_fingerprint": "371c8589c027ccac",
+    "works": 1000,
+    "chars": 274460,
+    "buckets": {
+      "story": 1000
+    },
+    "near_dup_merged": false,
+    "license": {
+      "synthetic": {
+        "works": 1000,
+        "chars": 274460
+      }
+    }
+  },
+  "run_identity": "ae3cfb4a89df1183",
+  "distributable_share": {
+    "works_pct": 100.0,
+    "chars_pct": 100.0,
+    "works": 1000,
+    "chars": 274460
+  }
+}

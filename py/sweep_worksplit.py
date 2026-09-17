@@ -57,6 +57,7 @@ py/sweep_worksplit.py — 在「按作品切分」的语料上做数据量扫描
 ============================================================================ """
 from __future__ import annotations
 import argparse
+import hashlib
 import glob
 import json
 import math
@@ -263,16 +264,21 @@ def trigram_eval_uncached(train_ids: List[int], test_ids: List[int], V: int,
 
 
 def trigram_cached(cache_path: str, train_ids: List[int], test_ids: List[int],
-                   V: int, ctx: int, alpha_probe: bool) -> Dict:
+                   V: int, ctx: int, alpha_probe: bool, cache_key: str = '') -> Dict:
     """trigram 与 seed 无关 → 缓存复用（多进程同时算同一配置时用原子写避免半截文件）。"""
     if os.path.exists(cache_path):
         try:
             with open(cache_path, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                cached = json.load(f)
+                if cache_key and cached.get('cache_key') != cache_key:
+                    raise ValueError('缓存身份不匹配')
+                if 'alpha_fixed' not in cached:
+                    raise ValueError('缓存 schema 无效')
+                return cached
         except Exception:
             pass  # 缓存损坏就当没有，重算
     base = trigram_eval_uncached(train_ids, test_ids, V, ctx, alpha=0.1)
-    out = {'alpha_fixed': base}
+    out = {'schema_version': 2, 'cache_key': cache_key, 'alpha_fixed': base}
     if alpha_probe:
         probe = []
         for a in TRI_ALPHAS:
@@ -469,8 +475,14 @@ def main():
                 tri_leak = trigram_eval_uncached(train_ids, leak_ids, V, ctx, alpha=0.1)
 
             t0 = time.time()
+            cache_key = hashlib.sha256(json.dumps({
+                'bucket': bk, 'label': label, 'V': V, 'ctx': ctx,
+                'train': train_ids, 'test': test_ids,
+                'protocol': 'val_select_test_once_v1'}, separators=(',', ':')).encode()).hexdigest()
             tri = trigram_cached(tri_cache, train_ids, test_ids, V, ctx,
-                                 alpha_probe=want_probe)
+                                 alpha_probe=want_probe, cache_key=cache_key)
+            # Keep the curve baseline on the same split as the model curve.
+            tri_val = trigram_eval_uncached(train_ids, val_ids, V, ctx, alpha=0.1)
             t_tri = time.time() - t0
             tri_f = tri['alpha_fixed']
             eff_epochs = steps * args.batch * ctx / max(1, len(train_ids))
@@ -524,6 +536,7 @@ def main():
                     'val_final': tr['val_final'],
                     'test_eval_points': 1,
                     'trigram': tri_f,
+                    'trigram_val': tri_val,
                     'trigram_alpha_probe': tri.get('alpha_probe'),
                     'trigram_alpha_best_on_test': tri.get('alpha_best_on_test'),
                     'leaky_test_chars': len(leak_ids) if leak_ids is not None else 0,
@@ -740,7 +753,7 @@ def plot_converge(runs: List[Dict], cfg: dict, args, tag: str):
             ax.plot([p['step'] for p in c], [p['nll'] for p in c], 'o-',
                     color=col, alpha=0.75, linewidth=1.4, markersize=5,
                     label=f'seed={r["seed"]}')
-        ax.axhline(rs[0]['trigram']['nll'], color='#555555', linestyle='--',
+        ax.axhline(rs[0].get('trigram_val', rs[0]['trigram'])['nll'], color='#555555', linestyle='--',
                    linewidth=1.5, label='Trigram(α=0.1)')
         ax.set_title(f'{bk} · {rs[0]["size_label"]} 字', fontsize=12)
         ax.set_xlabel('训练步数')

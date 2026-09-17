@@ -1,0 +1,81 @@
+{
+  "meta": {
+    "checkpoint": "py/runs/localugc_demo/checkpoint.pt",
+    "model_meta": {
+      "corpus": "localugc",
+      "splits": null,
+      "cfg": {
+        "ctx": 32,
+        "d": 40,
+        "layers": 2,
+        "heads": 4,
+        "ffMul": 4
+      },
+      "steps": 400,
+      "batch": 8,
+      "lr": 0.004,
+      "seed": 1234,
+      "step": 400,
+      "run_id": "py/runs/localugc_demo"
+    },
+    "generation": {
+      "max_new": 100,
+      "temp": 0.8,
+      "topk": 8,
+      "rep_pen": 1.15
+    }
+  },
+  "results": [
+    {
+      "prompt_id": "ugc_001",
+      "corpus": "localugc",
+      "scenario": "知乎提问",
+      "prompt": "为什么很多年轻人不愿意结婚了？",
+      "generated": "为什么很多年轻人不愿意结婚了？的有。一，\n\n的\n的，一是是，\n我，是不我是是，有。，的\n。的，是，不有不的不的\n。是\n不我\n不我的的是我是是我的，。\n是的是的我不。的\n\n是是是，，，我不，，不是有，我\n有的一，\n有不，是不一，，有",
+      "auto": {
+        "fact_check": {},
+        "event_completion": {},
+        "repetition": {
+          "dup4_ratio": 0.0,
+          "longest_repeat": 3
+        },
+        "generated_chars": 115
+      },
+      "human_score": {}
+    },
+    {
+      "prompt_id": "ugc_002",
+      "corpus": "localugc",
+      "scenario": "天涯跟帖",
+      "prompt": "楼主：我在工地上干了十年，今天终于把最后一笔债还清了。",
+      "generated": "楼主：我在工地上干了十年，今天终于把最后一笔债还清了。的，是，不的的\n\n，\n\n是是，的\n是，的，一不是\n，，。的是有。是，是\n我\n我是\n有，的我我，。我我\n有的，，，\n。，我有，的，是有。我，是\n的\n\n，不，的的。的\n，是是有。是。，是的\n一我，有我\n是",
+      "auto": {
+        "fact_check": {},
+        "event_completion": {},
+        "repetition": {
+          "dup4_ratio": 0.016129032258064516,
+          "longest_repeat": 3
+        },
+        "generated_chars": 127
+      },
+      "human_score": {}
+    },
+    {
+      "prompt_id": "ugc_003",
+      "corpus": "localugc",
+      "scenario": "网文开篇",
+      "prompt": "我穿越到这个国家已经三天了，",
+      "generated": "我穿越到这个国家已经三天了，\n是的。。。，，一\n\n一的。是。\n一\n\n\n不，，我\n，，有\n的不的，我。。，\n是是是\n有的，是是的是\n不的我有是是是\n\n\n的不\n有是不的，，不。有，是有的有\n的是是\n有，不，是我\n，的，\n，我\n不是。",
+      "auto": {
+        "fact_check": {},
+        "event_completion": {},
+        "repetition": {
+          "dup4_ratio": 0.018018018018018018,
+          "longest_repeat": 3
+        },
+        "generated_chars": 114
+      },
+      "human_score": {}
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "corpus": "localugc",
+  "splits": null,
+  "cfg": {
+    "ctx": 32,
+    "d": 40,
+    "layers": 2,
+    "heads": 4,
+    "ffMul": 4
+  },
+  "steps": 400,
+  "batch": 8,
+  "lr": 0.004,
+  "seed": 1234,
+  "step": 400,
+  "run_id": "py/runs/localugc_demo",
+  "eval": {
+    "top1": 5.480849995902647,
+    "top5": 14.713466975333935,
+    "nll": 6.591396301972576,
+    "ppl": 728.7977815557285,
+    "n": 780992,
+    "final_loss": null
+  }
+}

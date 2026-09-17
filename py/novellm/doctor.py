@@ -36,6 +36,8 @@ def _precision_probe(device: str) -> dict:
     """用真实小张量试算各精度是否可用。任何失败记 False + 原因，不猜。"""
     import torch
     out = {}
+    # Probes must not perturb training or generation randomness.
+    saved = torch.get_rng_state()
     for name, dt in (('bf16', torch.bfloat16), ('fp16', torch.float16)):
         try:
             x = torch.randn(8, 8, device=device, dtype=dt)
@@ -50,6 +52,7 @@ def _precision_probe(device: str) -> dict:
             out['tf32'] = bool(torch.backends.cuda.matmul.allow_tf32)
     except Exception:  # noqa: BLE001
         pass
+    torch.set_rng_state(saved)
     return out
 
 
@@ -88,7 +91,8 @@ def probe() -> dict:
     # ---- CPU ----
     cpu: dict = {'logical_cores': os.cpu_count()}
     try:
-        cpu['physical_cores'] = os.cpu_count() // 2 if sys.platform == 'win32' else os.cpu_count() // 2
+        import psutil
+        cpu['physical_cores'] = psutil.cpu_count(logical=False)
     except Exception:  # noqa: BLE001
         cpu['physical_cores'] = None
     try:

@@ -14,6 +14,7 @@ from __future__ import annotations
 import os
 import sys
 import unittest
+import torch
 
 PY = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PY not in sys.path:
@@ -37,7 +38,10 @@ class TestDoctor(unittest.TestCase):
             self.assertIsInstance(r['precision']['cpu'][name], bool)
 
     def test_只读且确定_连跑两次一致(self):
+        torch.manual_seed(90210)
+        before = torch.get_rng_state().clone()
         a, b = probe(), probe()
+        self.assertTrue(torch.equal(before, torch.get_rng_state()))
         self.assertEqual(a['torch'], b['torch'])
         self.assertEqual(a['cuda']['available'], b['cuda']['available'])
         self.assertEqual(a['precision']['cpu'], b['precision']['cpu'])

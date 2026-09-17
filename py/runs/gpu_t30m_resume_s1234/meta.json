@@ -1,0 +1,123 @@
+{
+  "run_id": "py/runs/gpu_t30m_resume_s1234",
+  "cfg": {
+    "ctx": 1024,
+    "d": 512,
+    "layers": 8,
+    "heads": 8,
+    "ffMul": 4
+  },
+  "V": 1772,
+  "seed": 1234,
+  "steps": 750,
+  "batch": 2,
+  "accum": 4,
+  "lr": 0.004,
+  "ctx": 1024,
+  "step": 750,
+  "device": "cuda",
+  "train_path": "novellm.trainer",
+  "protocol": "val_select_test_once_v1",
+  "data": {
+    "source_split_fingerprint": "5433cae4babe084d",
+    "vocab_fingerprint": "e1eb95dd88a19bb8",
+    "n_tokens": 218420,
+    "n_docs": 804,
+    "split": "train",
+    "shard_dir": "shards"
+  },
+  "provenance": {
+    "init": "local_random_seed",
+    "seed": 1234,
+    "no_external_weights": true,
+    "param_count": 26651648,
+    "param_count_million": 26.65,
+    "cfg": {
+      "ctx": 1024,
+      "d": 512,
+      "layers": 8,
+      "heads": 8,
+      "ffMul": 4
+    },
+    "V": 1772,
+    "reference_impl": "py/minilm_torch.MiniLM（L0 对齐路径）"
+  },
+  "run_identity": "604f9a9047fe7670",
+  "val_curve": [
+    {
+      "step": 100,
+      "top1": 3.4142127403846154,
+      "top5": 11.925330528846153,
+      "nll": 7.667716695589381,
+      "ppl": 2138.1937201371647,
+      "n": 26624,
+      "windows": 256
+    },
+    {
+      "step": 200,
+      "top1": 3.9701021634615383,
+      "top5": 11.884014423076923,
+      "nll": 7.869505547659139,
+      "ppl": 2616.2716466776246,
+      "n": 26624,
+      "windows": 256
+    },
+    {
+      "step": 300,
+      "top1": 4.1278545673076925,
+      "top5": 12.282151442307692,
+      "nll": 8.085819206817737,
+      "ppl": 3248.0795949567296,
+      "n": 26624,
+      "windows": 256
+    },
+    {
+      "step": 400,
+      "top1": 4.187950721153846,
+      "top5": 11.944110576923077,
+      "nll": 8.211340282350704,
+      "ppl": 3682.474716093057,
+      "n": 26624,
+      "windows": 256
+    },
+    {
+      "step": 500,
+      "top1": 3.898737980769231,
+      "top5": 12.086838942307692,
+      "nll": 8.231780389992444,
+      "ppl": 3758.5194291458574,
+      "n": 26624,
+      "windows": 256
+    },
+    {
+      "step": 600,
+      "top1": 3.9588341346153846,
+      "top5": 11.97040264423077,
+      "nll": 8.2895040388434,
+      "ppl": 3981.8588574025584,
+      "n": 26624,
+      "windows": 256
+    },
+    {
+      "step": 700,
+      "top1": 4.052734375,
+      "top5": 12.086838942307692,
+      "nll": 8.319210304735522,
+      "ppl": 4101.919462545946,
+      "n": 26624,
+      "windows": 256
+    }
+  ],
+  "cancelled": false,
+  "resumed_from": "/tmp/t30m_step500.pt",
+  "wallclock_sec": 42.4,
+  "val_final": {
+    "step": 700,
+    "top1": 4.052734375,
+    "top5": 12.086838942307692,
+    "nll": 8.319210304735522,
+    "ppl": 4101.919462545946,
+    "n": 26624,
+    "windows": 256
+  }
+}

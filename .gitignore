@@ -6,7 +6,8 @@ __pycache__/
 *.pyc
 
 # 跑测试时的临时探针文件（退出码 / git 状态转储 / 诊断日志），不入库
-dev/exit_*.txtdev/g_*.txt
+dev/exit_*.txt
+dev/g_*.txt
 dev/g*.txt
 dev/c*.txt
 dev/diag*.txt
@@ -36,6 +37,10 @@ dev/loop/
 
 # 预编码分片（py/novellm/dataset.py 产出）：全量 24.5 亿字 ≈4.6GiB，可由 build 命令重建
 py/runs/shards/
+
+# 模型权重 checkpoint（*.pt）：体积大（实测 t30m 单个 306MB），可由训练脚本重建；
+# 入库的是同目录的 meta.json / itos.json / report.md 等文字产物
+*.pt
 
 # AutoDL 集成：实例连接信息只留本地；数据包/回传产物不入库
 dev/autodl/instance.local.sh

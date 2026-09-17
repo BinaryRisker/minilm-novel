@@ -1,6 +1,6 @@
 # 训练数据候选清单
 
-**核对日期**：2026-09-13
+**核对日期**：2026-09-14
 **核对方式**：直接查询 HuggingFace / GitHub API 与数据集卡片，实测记录 id、体积、许可、字段结构；**未下载全量数据**（除注明外，体积取自仓库文件清单合计）。
 **为何需要这份文档**：PRD 前提要求「候选外部作品、数据、模型须记录出处与可用条件」，且「先准备自有小样本；先查质量与多样性，再决定扩充规模」。
 
@@ -120,7 +120,29 @@
 
 ---
 
-## 五、建议路线（对齐 PRD P2）
+## 五、现代白话公版补充（2026-09-14）
+
+已接入 `py/data/fetch_corpus.py` 的 `xiandai` 桶：中文维基文库公版现代白话，共 **35 部 / 110 万字**，含鲁迅《狂人日记》《孔乙己》《药》《故乡》《阿Q正传》《伤逝》《补天》《铸剑》等单篇，以及老舍《骆驼祥子》《四世同堂》、郁达夫《沉沦》、萧红《呼兰河传》《生死场》。作者卒年均满足中国大陆公版线；每篇保留 `ref`、`license`、清洗后 hash，按作品切分。
+
+知乎、天涯、猫扑：**默认不收**。它们是 UGC 平台，著作权属于发帖作者；平台 ToS 也不授权批量抓取。网上搬运包或 HuggingFace 自贴 `CC BY`/`MIT` 标签不覆盖原作者权利，和 `wdndev/webnovel-chinese`、`asd567557275/chinese_novel` 属同一风险等级。
+
+**2026-09-14 追加：本地学习桶 `localugc`（明确授权下启用）**。项目主在**仅个人本地学习**的前提下，要求把这类数据也接进来。于是新增 `bucket='localugc'`，与四个证据桶完全隔离：
+
+- **边界**：只作本地实验；**不可再分发 / 不可商用 / 不进评测桶**；不出现在 `sweep_worksplit.py` 的 `BUCKETS` 里；`data/sources.json` 逐条记录 `source` / `license` / `ref`，以便事后审计和按权利人要求删除。
+- **实际接入**（HF 上可核验的）：
+  - `liyucheng/zhihu_rlhf_3k`（`zhihu_3k_rlfh.tsv`，GBK）、`liyucheng/zhihu_26k`（`zhihu_26k.tsv`，GBK）
+  - `zirui3/zhihu_qa`（`zhihu_qa.jsonl.gz`，需 gunzip）、`next-social/zhihu_beautiful_super_alpaca`（`data.json`）
+  - `wdndev/webnovel-chinese` **首片前 30 MB 流式切片**（上游 10 片共 ~39 GB；Range 请求，不整库下载）
+- **天涯**：HF 上没有任何可核验的数据集，但 GitHub 上有两份真实抓取，均已实测：
+  - `lnlzhp126/TianYa-Zatan` —— 60 个按日 CSV，**只有帖子标题 + URL + 回复数，没有正文**，对训练无用，**未接入**；
+  - `zhaoqixu/tianya-forum-scrapper` 的 `LXZ_chi(B).xml`（莲蓬鬼话板）—— **接入为 `tianya_*`**：
+    18,550 帖 / 326 万字的 XML 多轮对话（`<s>` 是帖、`<utt>` 是发言），取 ≥200 字的前 3,000 帖。
+    ⚠️ **它是论坛辩论 / 聊天体，不是小说叙事**；发言前缀 `@用户名：时间戳`（时间戳常不带空格）已在清洗时剥除。
+- **猫扑**：GitHub / HF 双向检索**都没有可核验的叙事数据集**，故未接入。
+- **通用本地导入位**：任何自有 dump 存成 `data/raw/_cache/localugc/<标题>.txt`（UTF-8，文件名即作品名），
+  重跑 `fetch_corpus.py` 即自动作为一部作品入库，走同一套清洗与按作品切分。
+
+## 六、建议路线（对齐 PRD P2）
 
 1. **先接入现有管线**，不要另写抓取脚本：新来源登记进 `data/sources.json`，
    语料规格走 `py/data/prepare.py` → `data/manifest.jsonl` + `split_audit.json`（分组不交叉），

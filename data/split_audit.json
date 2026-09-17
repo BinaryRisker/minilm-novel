@@ -1,18 +1,18 @@
 {
-  "total_works": 32036,
-  "total_chars": 169653490,
+  "total_works": 225756,
+  "total_chars": 1917845602,
   "splits": {
     "train": {
-      "works": 25627,
-      "chars": 136311500
+      "works": 180603,
+      "chars": 1576891966
     },
     "val": {
-      "works": 3201,
-      "chars": 16851748
+      "works": 22573,
+      "chars": 172486966
     },
     "test": {
-      "works": 3208,
-      "chars": 16490242
+      "works": 22580,
+      "chars": 168466670
     }
   },
   "by_bucket": {
@@ -22,9 +22,9 @@
       "test": 6
     },
     "localugc": {
-      "train": 24713,
-      "val": 3089,
-      "test": 3090
+      "train": 179689,
+      "val": 22461,
+      "test": 22462
     },
     "scifi": {
       "train": 4,
@@ -51,14 +51,14 @@
       "val": 3
     }
   },
-  "unique_hashes": 32036,
+  "unique_hashes": 225756,
   "issues": [],
   "ok": true,
   "dedupe": {
-    "dropped_works": 550,
-    "dropped_chars": 1495655,
+    "dropped_works": 969,
+    "dropped_chars": 2703838,
     "by_bucket": {
-      "localugc": 550
+      "localugc": 969
     }
   }
 }

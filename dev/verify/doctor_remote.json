@@ -1,0 +1,39 @@
+{
+  "torch": "2.12.1+cu130",
+  "torch_cuda_compiled": "13.0",
+  "cuda": {
+    "available": true,
+    "device_count": 1,
+    "devices": [
+      {
+        "index": 0,
+        "name": "NVIDIA GeForce RTX 3080 Ti",
+        "total_mem_gb": 11.63,
+        "free_mem_gb": 11.38,
+        "compute_capability": "8.6",
+        "multiprocessors": 80
+      }
+    ],
+    "free_mem_gb_primary": 11.38
+  },
+  "mps": {
+    "available": false
+  },
+  "cpu": {
+    "logical_cores": 80,
+    "physical_cores": 40,
+    "total_mem_gb": 251.54,
+    "available_mem_gb": 229.67
+  },
+  "precision": {
+    "cpu": {
+      "bf16": true,
+      "fp16": true
+    },
+    "cuda:0": {
+      "bf16": true,
+      "fp16": true,
+      "tf32": false
+    }
+  }
+}

@@ -9,42 +9,42 @@
     "note": "A=直训；B/C*=训一半后从 checkpoint 续训；C 组按「丢失哪些状态」分解续训偏差"
   },
   "baseline_A": {
-    "probe_loss": 5.274628050625324,
-    "test_top1": 13.433485010706638,
-    "test_nll": 5.260118656035919,
-    "wallclock_sec": 20.8
+    "probe_loss": 5.25028133392334,
+    "test_top1": 13.430996714129245,
+    "test_nll": 5.258388037749476,
+    "wallclock_sec": 54.3
   },
   "rows": [
     {
       "tag": "B_完整状态",
       "step": 160,
       "param_max_abs_diff_vs_A": 0.0,
-      "probe_loss": 5.274628050625324,
+      "probe_loss": 5.25028133392334,
       "probe_loss_delta_vs_A": 0.0,
-      "wallclock_sec": 25.8
+      "wallclock_sec": 59.7
     },
     {
       "tag": "C1_丢RNG",
       "step": 160,
       "param_max_abs_diff_vs_A": 0.09201587736606598,
-      "probe_loss": 5.259885258972645,
-      "probe_loss_delta_vs_A": -0.014742791652679443,
+      "probe_loss": 5.236870147287846,
+      "probe_loss_delta_vs_A": -0.013411186635494232,
       "wallclock_sec": 0.0
     },
     {
       "tag": "C2_丢优化器",
       "step": 160,
       "param_max_abs_diff_vs_A": 0.08589433133602142,
-      "probe_loss": 5.300311237573624,
-      "probe_loss_delta_vs_A": 0.025683186948299408,
+      "probe_loss": 5.2751360684633255,
+      "probe_loss_delta_vs_A": 0.024854734539985657,
       "wallclock_sec": 0.0
     },
     {
       "tag": "C3_旧格式(全丢)",
       "step": 160,
       "param_max_abs_diff_vs_A": 0.11536958068609238,
-      "probe_loss": 5.2902752086520195,
-      "probe_loss_delta_vs_A": 0.01564715802669525,
+      "probe_loss": 5.267723102122545,
+      "probe_loss_delta_vs_A": 0.0174417681992054,
       "wallclock_sec": 0.0
     }
   ]

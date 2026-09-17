@@ -59,10 +59,13 @@ def decode(ids, itos):
 # ---------------------------- 模型本体 ----------------------------
 
 class Block(nn.Module):
-    def __init__(self, d, heads, ff_mul, n_layers):
+    def __init__(self, d, heads, ff_mul, n_layers, causal=True):
         super().__init__()
         self.heads = heads
         self.dh = d // heads
+        # causal=False 仅用于「拿掉因果掩码」的对照实验（py/ablation_ctx.py）。
+        # 默认 True，与 minilm.js 的 s<=t 循环一致 —— verify_parity 走的正是这条路径。
+        self.causal = causal
         self.ln1 = nn.LayerNorm(d, eps=1e-5)
         self.Wq = nn.Linear(d, d, bias=True)
         self.Wk = nn.Linear(d, d, bias=True)
@@ -93,7 +96,8 @@ class Block(nn.Module):
         k = self.Wk(h).view(B, T, self.heads, self.dh).transpose(1, 2)
         v = self.Wv(h).view(B, T, self.heads, self.dh).transpose(1, 2)
         # causal mask：只准看过去（minilm.js 里就是 s <= t 那个循环）
-        a = F.scaled_dot_product_attention(q, k, v, is_causal=True)
+        # is_causal=False 只用于 py/ablation_ctx.py 的「拿掉掩码」对照；默认 True，不影响对齐验证。
+        a = F.scaled_dot_product_attention(q, k, v, is_causal=self.causal)
         a = a.transpose(1, 2).reshape(B, T, D)
         x = x + self.Wo(a)
         h = self.ln2(x)
@@ -111,7 +115,8 @@ class MiniLM(nn.Module):
         D, L = c['d'], c['layers']
         self.emb = nn.Embedding(vocab_size, D)
         self.pos = nn.Embedding(c['ctx'], D)
-        self.blocks = nn.ModuleList(Block(D, c['heads'], c['ffMul'], L) for _ in range(L))
+        self.blocks = nn.ModuleList(
+            Block(D, c['heads'], c['ffMul'], L, causal=c.get('causal', True)) for _ in range(L))
         self.lnf = nn.LayerNorm(D, eps=1e-5)
         nn.init.normal_(self.emb.weight, std=0.02)
         nn.init.normal_(self.pos.weight, std=0.02)
@@ -203,18 +208,19 @@ def eval_ids(model, ids, ctx=None):
     NLL = -logP(target) 逐位置平均（对完整 V 维归一化），与 baselines.Acc 同口径。"""
     ctx = ctx or model.cfg['ctx']
     model.eval()
+    device = next(model.parameters()).device
     top1 = top5 = total = 0
     nll_sum = 0.0
     s = 0
     while s + ctx + 1 <= len(ids):
-        chunk = torch.tensor([ids[s:s + ctx]], dtype=torch.long)
+        chunk = torch.tensor([ids[s:s + ctx]], dtype=torch.long, device=device)
         tgt = ids[s + 1:s + 1 + ctx]
         with torch.no_grad():
             logits, _ = model(chunk)
         lg = logits[0]
         topv, topi = lg.topk(5)
         logp = torch.log_softmax(lg.float(), dim=-1)
-        tgt_t = torch.tensor(tgt, dtype=torch.long)
+        tgt_t = torch.tensor(tgt, dtype=torch.long, device=device)
         nll_sum += float(-logp[torch.arange(ctx), tgt_t].sum())
         for i in range(ctx):
             pred = topi[i].tolist()

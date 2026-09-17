@@ -1,0 +1,89 @@
+{
+  "meta": {
+    "checkpoint": "py/runs/localugc_demo200k/checkpoint.pt",
+    "model_meta": {
+      "corpus": "localugc",
+      "splits": null,
+      "cfg": {
+        "ctx": 32,
+        "d": 40,
+        "layers": 2,
+        "heads": 4,
+        "ffMul": 4
+      },
+      "steps": 1172,
+      "batch": 8,
+      "lr": 0.004,
+      "seed": 1234,
+      "step": 1172,
+      "run_id": "py/runs/localugc_demo200k",
+      "eval": {
+        "top1": 86.19791666666667,
+        "top5": 98.17207532051282,
+        "nll": 0.6746190414787867,
+        "ppl": 1.96328490337307,
+        "n": 19968,
+        "final_loss": null
+      }
+    },
+    "generation": {
+      "max_new": 100,
+      "temp": 0.8,
+      "topk": 8,
+      "rep_pen": 1.15
+    }
+  },
+  "results": [
+    {
+      "prompt_id": "ugc_001",
+      "corpus": "localugc",
+      "scenario": "知乎提问",
+      "prompt": "为什么很多年轻人不愿意结婚了？",
+      "generated": "为什么很多年轻人不愿意结婚了？\n萧秋水，但在一个人，这个人。\n他的眼里来来，我们的一个孩们们们的的的人。\n\n“你要有一个人，“你有的的。他们们不会没有一种个个个女孩，他不不是自己的一个人。\n““我们是他们的的人，是那时的。””\n萧",
+      "auto": {
+        "fact_check": {},
+        "event_completion": {},
+        "repetition": {
+          "dup4_ratio": 0.017857142857142856,
+          "longest_repeat": 3
+        },
+        "generated_chars": 115
+      },
+      "human_score": {}
+    },
+    {
+      "prompt_id": "ugc_002",
+      "corpus": "localugc",
+      "scenario": "天涯跟帖",
+      "prompt": "楼主：我在工地上干了十年，今天终于把最后一笔债还清了。",
+      "generated": "楼主：我在工地上干了十年，今天终于把最后一笔债还清了。\n“他他们们。”\n一个一个个人，我们的一个个个的。\n\n““是一个人。他在这个儿，这人。\n\n\n这么？\n“你没没有有有他的我们在那时的。””\n这个个人，他们不能是有有他有有一种的人。\n\n“是他们不不是一一",
+      "auto": {
+        "fact_check": {},
+        "event_completion": {},
+        "repetition": {
+          "dup4_ratio": 0.024193548387096774,
+          "longest_repeat": 3
+        },
+        "generated_chars": 127
+      },
+      "human_score": {}
+    },
+    {
+      "prompt_id": "ugc_003",
+      "corpus": "localugc",
+      "scenario": "网文开篇",
+      "prompt": "我穿越到这个国家已经三天了，",
+      "generated": "我穿越到这个国家已经三天了，他他们在那些的的一样的人人，我的，那时去。他不会人，这个的一个人，只会会会是这一种的人了，我们在他他，我们们不不不能是一个人们们不有有有一人的，”\n“他在他们们的人，这个人不不是没有有人，而是那样了。",
+      "auto": {
+        "fact_check": {},
+        "event_completion": {},
+        "repetition": {
+          "dup4_ratio": 0.009009009009009009,
+          "longest_repeat": 3
+        },
+        "generated_chars": 114
+      },
+      "human_score": {}
+    }
+  ]
+}

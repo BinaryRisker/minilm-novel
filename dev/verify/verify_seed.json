@@ -18,37 +18,37 @@
     "final_max_abs_diff": 0.0,
     "loss_trajectory_identical": true,
     "loss_head": [
-      7.252366,
-      7.261347,
-      7.229742
+      7.254328,
+      7.234048,
+      7.242183
     ],
     "loss_tail": [
-      5.58923,
-      5.695403,
-      5.706223
+      5.685409,
+      5.901412,
+      5.704409
     ]
   },
   "T2_seed_after_model_old_behavior": {
-    "init_max_abs_diff": 0.12172404676675797,
-    "final_max_abs_diff": 0.21808192133903503,
+    "init_max_abs_diff": 0.1309075802564621,
+    "final_max_abs_diff": 0.22994711995124817,
     "loss_trajectory_identical": false,
     "loss_head": [
-      7.259628,
-      7.265571,
-      7.236167
+      7.242107,
+      7.235278,
+      7.220375
     ],
     "loss_tail": [
-      5.565506,
-      5.694306,
-      5.68627
+      5.661411,
+      5.913658,
+      5.701591
     ]
   },
   "T3_different_seed": {
-    "final_max_abs_diff_vs_seed1234": 0.21776798367500305,
+    "final_max_abs_diff_vs_seed1234": 0.21548184752464294,
     "loss_tail": [
-      5.883859,
-      5.972839,
-      5.616686
+      5.853591,
+      6.039813,
+      5.542146
     ]
   }
 }

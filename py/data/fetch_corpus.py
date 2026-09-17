@@ -175,6 +175,59 @@ WIKISOURCE_BOOKS = [
     ('貓城記', 'scifi'),            # 老舍 1932（作者 1966 卒，已入公版）
 ]
 
+# 中文维基文库：民国新文学（现代白话）。收录判据：**作者卒年 + 50 已过**（中国大陆公版线）。
+# 这一格补的是 docs/DATA_CANDIDATES.md §四 认定「外部数据里找不到交集」的
+# **「现代文风 + 许可干净」**：抓取类网文（知乎 / 天涯 / 猫扑 UGC）著作权归**各位楼主本人**、
+# 平台 ToS 亦禁止批量抓取，自贴或搬运的许可标签**不覆盖原作者权利** → 一律不收，走公版。
+WIKISOURCE_XIANDAI = [
+    # 鲁迅：呐喊 / 彷徨 / 故事新编 在维基文库是**目录页**（正文在各短篇的独立页），
+    # 所以按单篇收录；书名页本身只有目录与自序，收进来只会是噪声。
+    ('狂人日記', 'xiandai', '鲁迅（1918）· 现代白话小说开山'),
+    ('孔乙己', 'xiandai', '鲁迅 · 呐喊'),
+    ('藥', 'xiandai', '鲁迅 · 呐喊'),
+    ('明天', 'xiandai', '鲁迅 · 呐喊'),
+    ('一件小事', 'xiandai', '鲁迅 · 呐喊'),
+    ('頭髮的故事', 'xiandai', '鲁迅 · 呐喊'),
+    ('風波', 'xiandai', '鲁迅 · 呐喊'),
+    ('故鄉', 'xiandai', '鲁迅 · 呐喊'),
+    ('阿Q正傳', 'xiandai', '鲁迅 · 呐喊（中篇）'),
+    ('端午節', 'xiandai', '鲁迅 · 呐喊'),
+    ('白光', 'xiandai', '鲁迅 · 呐喊'),
+    ('兔和貓', 'xiandai', '鲁迅 · 呐喊'),
+    ('鴨的喜劇', 'xiandai', '鲁迅 · 呐喊'),
+    ('社戲', 'xiandai', '鲁迅 · 呐喊'),
+    ('傷逝 (魯迅)', 'xiandai', '鲁迅 · 彷徨（中篇）'),
+    ('在酒樓上', 'xiandai', '鲁迅 · 彷徨'),
+    ('孤獨者', 'xiandai', '鲁迅 · 彷徨'),
+    ('肥皂', 'xiandai', '鲁迅 · 彷徨'),
+    ('長明燈', 'xiandai', '鲁迅 · 彷徨'),
+    ('高老夫子', 'xiandai', '鲁迅 · 彷徨'),
+    ('離婚', 'xiandai', '鲁迅 · 彷徨'),
+    ('弟兄', 'xiandai', '鲁迅 · 彷徨'),
+    ('補天', 'xiandai', '鲁迅 · 故事新编'),
+    ('奔月', 'xiandai', '鲁迅 · 故事新编'),
+    ('理水', 'xiandai', '鲁迅 · 故事新编'),
+    ('采薇 (鲁迅)', 'xiandai', '鲁迅 · 故事新编'),
+    ('鑄劍', 'xiandai', '鲁迅 · 故事新编'),
+    ('出關', 'xiandai', '鲁迅 · 故事新编'),
+    ('非攻', 'xiandai', '鲁迅 · 故事新编'),
+    ('起死', 'xiandai', '鲁迅 · 故事新编'),
+    ('駱駝祥子', 'xiandai', '老舍（1966 卒）· 长篇'),
+    ('四世同堂', 'xiandai', '老舍 · 长篇'),
+    ('沉淪 (郁達夫)', 'xiandai', '郁达夫（1945 卒）· 短篇'),
+    ('呼蘭河傳', 'xiandai', '萧红（1942 卒）· 长篇'),
+    ('生死場', 'xiandai', '萧红 · 中篇'),
+]
+
+# ⚠️ 新青年（1915-1926）原本打算作为现代期刊补入 xiandai 桶。维基文库 2-7 卷**只有目录**，
+# 实质正文在每篇文章的独立子页（`狂人日記`、`孔乙己` 等）——已通过 WIKISOURCE_XIANDAI
+# 接入（共 30 篇，含鲁迅《狂人日记》《孔乙己》《药》等首发），无需再单独收卷。
+# 这里留一个**杂志导入位**：`data/raw/_cache/zazhi/<刊名>.txt`（UTF-8，每行一段），
+# 收录今古传奇 / 科幻世界 / 人民文学 / 收获 等现代文学期刊（你按"仅本地学习"自行放入）。
+# 启用方法：在 fetch_localugc 块的本地导入 glob 里加 `zazhi/*.txt`。
+WIKISOURCE_BOOKS += [(t, b) for t, b, _ in WIKISOURCE_XIANDAI]
+XD_NOTE = {t: n for t, _, n in WIKISOURCE_XIANDAI}
+
 # HuggingFace 开放许可数据集（出处与许可条件详见 docs/DATA_CANDIDATES.md）
 # 收录原则：**只收许可明确、且上传者有权授权的数据**。
 # 抓取类数据集（中文网文合集）即使标了 Apache-2.0，也不覆盖原著版权，一律不收。
@@ -190,6 +243,188 @@ HF_BOOKS = [
         'note': '繁体原作，入库前 opencc t2s；按章拼接（novel_by_chapter.jsonl）',
     },
 ]
+
+# ---------------------------------------------------------------------------
+# 本地学习桶 (`localugc`)：知乎 / 网文 UGC。
+# ---------------------------------------------------------------------------
+# 立场：仅作**个人本地学习实验**使用；**不可再分发 / 不可商用 / 不可入评测桶**。
+# 来源链路均标注，上游权利人若行使删除权请直接弃用对应文件。
+# - 知乎类：HF 上小型问答/精选集，是真实知乎内容，**但不是小说叙事**，
+#   风格对"小说生成"的迁移价值有限；放入是为了让你能跑通"把知乎文本喂进同一管线"。
+# - 网文类：wdndev/webnovel-chinese 上传者贴 Apache-2.0，但内容是抓取的商业网文，
+#   标签**不覆盖原著作者的权利**（与项目 2026-09-14 判定一致）。流式只下首片的前 N MB，
+#   避免一次性拉 4.2 GB 全量；如需更多，改 MAX_WEBNOVEL_BYTES。
+# - 天涯/猫扑：HF 上没有任何可核验的叙事数据集（已实测）；这两个留给"本地导入位"——
+#   把 dump 放到 `data/raw/_cache/localugc/<title>.txt`（每行一段），重跑时会自动作为一部作品入库。
+LOCALUGC_HF = [
+    {
+        'repo': 'liyucheng/zhihu_rlhf_3k',
+        'file': 'zhihu_3k_rlfh.tsv',
+        'field': 'chosen',
+        'encoding': 'gbk',
+        'fmt': 'tsv',
+        'title': '知乎 RLHF 3K',
+        'license': 'CC BY-NC 4.0（按仓库说明）',
+        'ref': 'https://huggingface.co/datasets/liyucheng/zhihu_rlhf_3k',
+        'note': '字段：prompt/chosen/rejected；用 chosen 作正文',
+    },
+    {
+        'repo': 'liyucheng/zhihu_26k',
+        'file': 'zhihu_26k.tsv',
+        'field': 'RESPONSE',
+        'encoding': 'gbk',
+        'fmt': 'tsv',
+        'title': '知乎 RLHF 26K',
+        'license': 'CC BY-NC 4.0（按仓库说明）',
+        'ref': 'https://huggingface.co/datasets/liyucheng/zhihu_26k',
+        'note': '字段：INSTRUCTION/RESPONSE/SOURCE；GBK 编码',
+    },
+    {
+        'repo': 'zirui3/zhihu_qa',
+        'file': 'zhihu_qa.jsonl.gz',
+        'field': 'answer',
+        'encoding': 'utf-8',
+        'fmt': 'jsonl_gz',
+        'title': '知乎问答 zhihu_qa',
+        'license': '按仓库说明（未明确标注）',
+        'ref': 'https://huggingface.co/datasets/zirui3/zhihu_qa',
+        'note': '字段：question/answer；需 gunzip',
+    },
+    {
+        'repo': 'next-social/zhihu_beautiful_super_alpaca',
+        'file': 'data.json',
+        'field': 'output',
+        'encoding': 'utf-8',
+        'fmt': 'json_list',
+        'title': '知乎精选（alpaca）',
+        'license': '按仓库说明',
+        'ref': 'https://huggingface.co/datasets/next-social/zhihu_beautiful_super_alpaca',
+        'note': '顶层是 JSON 数组；字段：instruction/input/output',
+    },
+]
+for s in LOCALUGC_HF:
+    s.setdefault('bucket', 'localugc')
+
+# 天涯论坛辩论语料：来自 zhaoqixu/tianya-forum-scrapper 的 LXZ_chi(B).xml（莲蓬鬼话 = 民间怪谈板）。
+# 格式：XML，<s> 是一帖，<utt uid=...> 是一句话。**它是辩论/聊天的对话体，不是小说叙事**；
+# 但它是真实天涯内容，对"论文式对话 + 现代口语"有补充价值。
+LOCALUGC_TIANYA = {
+    'repo': 'zhaoqixu/tianya-forum-scrapper',
+    'archive': 'tianya-forum-scrapper.tar.gz',
+    'tar_member': 'tianya-forum-scrapper-master/LXZ_chi(B).xml',
+    'url': 'https://codeload.github.com/zhaoqixu/tianya-forum-scrapper/tar.gz/refs/heads/master',
+    'encoding': 'utf-8',
+    'fmt': 'tianya_xml',
+    'min_chars': 200,
+    'max_threads': 3000,
+    'title': '天涯论坛辩论（莲蓬鬼话对话）',
+    'license': 'GitHub 仓库（scraped 内容，作者权利不清；本地学习用）',
+    'ref': 'https://github.com/zhaoqixu/tianya-forum-scrapper',
+    'note': 'XML 一帖 = 一个 <s>，含多个 <utt> 发言；含 @用户名 + 时间戳，清洗时剥除',
+    'bucket': 'localugc',
+}
+
+# MNBVC 天涯主片（重启后全站）：forum/20260107/tianya.20260107.1/ 下的 zip，
+# 每条 jsonl 记录是一帖（主题 + 回复数组 + 元数据/版块）。只下 part1 (150 MB) + part4 (24 MB)：
+# 其余 3 片是同一源分块、增量收益递减；解压 ~600 MB jsonl，含数十万条天涯帖。
+LOCALUGC_MNBVC_TIANYA = {
+    'repo': 'liwu/MNBVC',
+    'files': [
+        'forum/20260107/tianya.20260107.1/20260307_203926_1.zip',
+        'forum/20260107/tianya.20260107.1/20260307_224415_4.zip',
+    ],
+    'encoding': 'utf-8',
+    'fmt': 'mnbvc_tianya_jsonl',
+    'min_chars': 200,
+    'max_records': 50000,
+    'title': '天涯论坛全站 dump（MNBVC 主片）',
+    'license': 'HF 仓库 MIT；抓取内容作者权利不清；本地学习用',
+    'ref': 'https://huggingface.co/datasets/liwu/MNBVC',
+    'note': '记录字段：ID/主题/来源/时间/回复(楼ID/回复人/回复时间/UID）/元数据(版块/楼主/点击/回复数)',
+    'bucket': 'localugc',
+}
+
+# MNBVC 树洞系列（北大 pkuhole / 清华 thuhole）：与天涯同 schema，直接复用 _iter_mnbvc_tianya。
+# pkuhole 4 文件 ~306 MB，thuhole 2 文件 ~177 MB。树洞叙事 = 学生日常 + 校园 + 情感 + 时评。
+LOCALUGC_MNBVC_PKUHOLE = {
+    'repo': 'liwu/MNBVC',
+    'files': [
+        'forum/20230253/pkuhole.20230253.2.论坛/pkuholefromarchive_0.jsonl.gz',
+        'forum/20230253/pkuhole.20230253.2.论坛/pkuholefromarchive_1.jsonl.gz',
+        'forum/20230253/pkuhole.20230253.2.论坛/pkuholefromarchive_2.jsonl.gz',
+        'forum/20230253/pkuhole.20230253.2.论坛/pkuholefromlog.jsonl.gz',
+    ],
+    'encoding': 'utf-8',
+    'fmt': 'mnbvc_tianya_jsonl',
+    'min_chars': 200,
+    'max_records': 40000,
+    'title': '北大树洞（pkuhole）',
+    'license': 'HF 仓库 MIT；抓取内容作者权利不清；本地学习用',
+    'ref': 'https://huggingface.co/datasets/liwu/MNBVC',
+    'note': '与天涯主片同 schema；来源=北大树洞',
+    'bucket': 'localugc',
+}
+LOCALUGC_MNBVC_THUHOLE = {
+    'repo': 'liwu/MNBVC',
+    'files': [
+        'forum/20230253/thuhole.20230253.3.论坛/thuhole_0.jsonl.gz',
+        'forum/20230253/thuhole.20230253.3.论坛/thuhole_1.jsonl.gz',
+    ],
+    'encoding': 'utf-8',
+    'fmt': 'mnbvc_tianya_jsonl',
+    'min_chars': 200,
+    'max_records': 20000,
+    'title': '清华树洞（thuhole）',
+    'license': 'HF 仓库 MIT；抓取内容作者权利不清；本地学习用',
+    'ref': 'https://huggingface.co/datasets/liwu/MNBVC',
+    'note': '与天涯主片同 schema；来源=清华树洞',
+    'bucket': 'localugc',
+}
+
+# 网文：**全量分片**。HF 上 10 片 jsonl 共 ~39 GB；单片 4.2 GB ≈ 9,700 部完整小说。
+# 之前是 Range 只取前 30 MB（每部只剩开头一小段），现改为**整片流式下载到盘、
+# 逐行流式解析**（4.2 GB 不进内存）。要扩更多片，往 'shards' 里加编号即可。
+LOCALUGC_WEBNOVEL = {
+    'repo': 'wdndev/webnovel-chinese',
+    'shards': [0],                 # 已拉齐的分片编号；要扩网文量就加 1,2,...
+    'field': 'text',
+    'fmt': 'jsonl_stream',
+    'title': '网文全量分片',
+    'license': 'Apache-2.0（标签不覆盖原著作者权利；本地学习用）',
+    'ref': 'https://huggingface.co/datasets/wdndev/webnovel-chinese',
+    'note': '整片下载（非截断）；字段：title/chapter/text；抓取的中文商业网文',
+    'bucket': 'localugc',
+}
+
+# Pixiv 中文小说（原创/同人叙事）：单 zip 1.68 GB。
+LOCALUGC_PIXIV = {
+    'repo': 'wuliangfo/Chinese-Pixiv-Novel',
+    'file': 'PixivNovel.zip',
+    'encoding': 'utf-8',
+    'min_chars': 200,
+    'max_works': 30000,
+    'title': 'Pixiv 中文小说',
+    'license': 'HF 仓库说明；抓取内容作者权利不清；本地学习用',
+    'ref': 'https://huggingface.co/datasets/wuliangfo/Chinese-Pixiv-Novel',
+    'note': 'zip 内含单篇/多轮等文件；每篇 = 一部作品',
+    'bucket': 'localugc',
+}
+
+# 小源：v3ucn 中文小说集（1.9 MB，全量直读）
+LOCALUGC_V3UCN = {
+    'repo': 'v3ucn/chinese-novel-dataset',
+    'file': 'dataset.json',
+    'encoding': 'utf-8',
+    'min_chars': 200,
+    'title': 'v3ucn 中文小说集',
+    'license': 'HF 仓库说明；本地学习用',
+    'ref': 'https://huggingface.co/datasets/v3ucn/chinese-novel-dataset',
+    'note': '单 JSON 文件，全量',
+    'bucket': 'localugc',
+}
+
+# 本地导入位：data/raw/_cache/localugc/*.txt（每行一段）会被自动作为一部作品收进来。
+# 用于接入天涯/猫扑/其它任何 dump，文件名即标题。
 
 # TinyStories 中文译文：词汇窄、句子短的合成数据，用于「数百个短故事探索集」
 # 与故事级切分（每篇一部作品，PRD 要求 train/val/test 不跨故事）。
@@ -218,8 +453,21 @@ BUCKETS = {
     'story': {'name': '短故事 · 简单现代汉语',
               'desc': 'TinyStories 中文译文（CDLA-Sharing-1.0，合成数据）：'
                       '词汇窄、句子短，用于跑通管线与故事级切分，不代表目标文风'},
+    'xiandai': {'name': '现代 · 民国新文学公版',
+                'desc': '鲁迅 呐喊/故事新编/狂人日记、老舍 骆驼祥子/四世同堂、郁达夫 沉沦、'
+                        '萧红 呼兰河传/生死场、还珠楼主 蜀山剑侠传（维基文库，作者卒于 1966 年前，公版）：'
+                        '现代白话 + 许可干净，补 docs/DATA_CANDIDATES.md §四 的空格'},
+    # 本地学习桶：仅供个人本地实验，**禁止再分发 / 商用**；不出现在 `sweep_worksplit` 的 BUCKETS 里、
+    # 不进评测桶；manifest 里以 `bucket='localugc'` 单独存，以便审计但不被合并对比。
+    'localugc': {'name': '本地学习 · 知乎/网文/天涯 UGC（不可分发）',
+                 'desc': 'HF 公开小型知乎问答/精选集 + wdndev/webnovel-chinese 首片前 30 MB 切片 '
+                         '+ 天涯论坛对话语料（GitHub 抓取）。'
+                         '**仅供个人本地学习使用；不可再分发 / 不可商用 / 不入评测桶。**',
+                 # 桶内作品上万（每条知乎回答 = 一部"作品"），按默认 200 万字均分后每部只剩 ~150 字，
+                 # 会被 allocate 的 200 字下限整桶滤空 —— 所以这一桶单独放高上限。
+                 'max_chars': 8_000_000},
 }
-BUCKET_ORDER = ['scifi', 'wuxia', 'urban', 'gudian', 'story']
+BUCKET_ORDER = ['scifi', 'wuxia', 'urban', 'gudian', 'story', 'xiandai', 'localugc']
 
 
 # ---------------------------------------------------------------------------
@@ -247,6 +495,74 @@ def http_get_cached(url: str, cache_path: str, retries: int = 4) -> bytes:
     with open(cache_path, 'wb') as f:
         f.write(data)
     return data
+
+
+def http_get_range_cached(url: str, cache_path: str, n_bytes: int,
+                          retries: int = 4, timeout: int = 120) -> bytes:
+    """只取远端文件的前 n_bytes（Range 请求）。用于 4 GB 级大文件，
+    缓存里落的就是这个**截断**片段，文件名带 _head<N>m 以示区分，避免误当全量。"""
+    if os.path.exists(cache_path) and 0 < os.path.getsize(cache_path) <= n_bytes:
+        with open(cache_path, 'rb') as f:
+            return f.read()
+    last = None
+    for i in range(retries):
+        try:
+            req = urllib.request.Request(url, headers=dict(UA, Range=f'bytes=0-{n_bytes - 1}'))
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                data = r.read(n_bytes)
+            os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+            with open(cache_path, 'wb') as f:
+                f.write(data)
+            return data
+        except Exception as e:  # noqa: BLE001
+            last = e
+            time.sleep(1.5 * (i + 1))
+    raise RuntimeError(f'Range 下载失败 {url}: {last}')
+
+
+def http_download_to_file(url: str, path: str, min_size: int = 1 << 20,
+                          timeout: int = 120) -> str:
+    """流式下载整文件到盘（不进内存）。已存在且 >= min_size 视为缓存命中。
+    4 GB 级文件不能走 http_get_cached（会把整文件读成 bytes）。"""
+    if os.path.exists(path) and os.path.getsize(path) >= min_size:
+        return path
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = path + '.part'
+    req = urllib.request.Request(url, headers=UA)
+    with urllib.request.urlopen(req, timeout=timeout) as r, open(tmp, 'wb') as f:
+        while True:
+            chunk = r.read(1 << 22)
+            if not chunk:
+                break
+            f.write(chunk)
+    os.replace(tmp, path)
+    return path
+
+
+def _iter_webnovel_works(path: str, field: str):
+    """流式逐行解析网文 jsonl，按 title **连续段**聚章：title 变了就 yield 上一部。
+    （jsonl 按书连续排布；若同一书名在文件后部再次出现，会作为第二部、由
+    调用方用序号保证标题唯一。）4 GB 级文件不进内存。"""
+    cur, chunks = None, []
+    with open(path, 'r', encoding='utf-8', errors='replace') as f:
+        for ln in f:
+            ln = ln.strip()
+            if not ln:
+                continue
+            try:
+                o = json.loads(ln)
+            except Exception:  # noqa: BLE001
+                continue
+            t = (o.get('title') or '').strip() or 'untitled'
+            if cur is None:
+                cur = t
+            if t != cur:
+                if chunks:
+                    yield cur, chunks
+                cur, chunks = t, []
+            chunks.append(o.get(field) or '')
+    if chunks:
+        yield cur, chunks
 
 
 def slug(s: str) -> str:
@@ -287,6 +603,25 @@ def is_cjk(ch: str) -> bool:
     o = ord(ch)
     return (0x3400 <= o <= 0x4DBF or 0x4E00 <= o <= 0x9FFF or 0xF900 <= o <= 0xFAFF
             or 0x20000 <= o <= 0x2FA1F or 0x30000 <= o <= 0x323AF)
+
+
+# finalize_chars 的正则等价版：保留 \n + CJK（含扩展区）+ 中文标点白名单 + ASCII 字母数字
+# 与少量符号，其余一次 sub 剔除。语义与逐字符版一致，但 ~5× 快（localugc 大体量用）。
+RE_DROP_CHARS = re.compile(
+    '[^\\n'
+    '\\u3400-\\u4dbf\\u4e00-\\u9fff\\uf900-\\ufaff'
+    '\\u20000-\\u2fa1f\\u30000-\\u323af'
+    '。，、！？：；「」『』（）〈〉《》—…·‘’“”～％'
+    'a-zA-Z0-9 .,!?:;%()\\-\'"]+')
+
+
+def finalize_chars_fast(t: str) -> str:
+    t = t.translate(_FW)
+    t = RE_DROP_CHARS.sub('', t)
+    t = re.sub(r'[ \t]{2,}', ' ', t)
+    t = re.sub(r'\n[ \t]+', '\n', t)
+    t = re.sub(r'\n{3,}', '\n\n', t)
+    return t
 
 
 def finalize_chars(t: str) -> str:
@@ -475,6 +810,10 @@ def drop_repeated_nav(t: str) -> str:
     return '\n'.join(out)
 
 
+# 节间残留：独立成行的「一/二/编辑/版本信息」——正文里只是节号，丢了无损
+WS_LINE_DROP = re.compile(r'^(?:[一二三四五六七八九十百]+|编辑|編輯|版本信息)$')
+
+
 def strip_ws_boilerplate(t: str) -> str:
     """去掉维基文库的模板提示 / 版权声明 / 导航等非正文行与整段。"""
     keep = []
@@ -484,6 +823,8 @@ def strip_ws_boilerplate(t: str) -> str:
             keep.append('')
             continue
         if s.startswith('↑') or s.startswith('◀') or s.startswith('▶'):
+            continue
+        if WS_LINE_DROP.match(s):
             continue
         if WS_NOISE_ALWAYS.search(s):
             continue
@@ -500,6 +841,13 @@ def clean(t: str, source: str) -> str:
         t = strip_gutenberg(t)
     elif source == 'wikisource':
         t = strip_ws_boilerplate(t)
+    if source == 'localugc':
+        # 快速路径：**不做繁转简**（纯 python opencc 只有 ~0.3MB/s，5GB 级扛不住；
+        # 而网文/知乎/树洞本身是简体，Pixiv 混排对非证据桶可接受），
+        # 字符白名单用一条正则代替逐字符循环（~5×）。
+        t = normalize(t)
+        t = finalize_chars_fast(t)
+        return t.strip()
     t = normalize(t)
     if source in ('gutenberg', 'hcc'):
         t = reflow(t)
@@ -619,10 +967,24 @@ def html_to_text(h: str) -> str:
     return '\n'.join(keep)
 
 
+def _is_body_line(s: str) -> bool:
+    """正文行判据：含句读或足够长。导航行（篇名/日期/节号）既短又无句读。"""
+    return '。' in s or '，' in s or len(s) >= 20
+
+
+def _drop_leading_nav(t: str) -> str:
+    """丢掉页首导航块：第一个「像正文的行」之前的内容。
+    维基文库单篇页顶部是「《呐喊》自序 / 狂人日记 / 1918年4月 / 孔乙己」这种
+    **相邻篇名 + 日期**，混进正文会让模型学到错误的篇名邻接。"""
+    lines = t.split('\n')
+    at = next((i for i, s in enumerate(lines) if _is_body_line(s.strip())), 0)
+    return '\n'.join(lines[at:])
+
+
 def ws_page_text(title: str) -> str:
     d = ws_api({'action': 'parse', 'page': title, 'prop': 'text',
                 'formatversion': 2, 'redirects': 1})
-    return html_to_text(d.get('parse', {}).get('text', ''))
+    return _drop_leading_nav(html_to_text(d.get('parse', {}).get('text', '')))
 
 
 _WS_NUM = re.compile(r'/第(\d+)回')
@@ -671,6 +1033,7 @@ def fetch_wikisource(limit: int | None = None) -> list:
                         pages.append({'title': t, 'text': ws_page_text(t)})
                     except Exception:  # noqa: BLE001
                         pages.append({'title': t, 'text': ''})
+                    time.sleep(0.3)  # 维基文库有速率限制（实测偶发 429），礼貌退避
             except Exception as e:  # noqa: BLE001
                 print(f'  [!] Wikisource {title} 失败: {e}')
                 continue
@@ -687,7 +1050,101 @@ def fetch_wikisource(limit: int | None = None) -> list:
             'title': title, 'bucket': bucket, 'text': text, 'source': 'wikisource',
             'license': 'CC BY-SA 4.0 / Public Domain (中文维基文库)',
             'ref': 'https://zh.wikisource.org/wiki/' + urllib.parse.quote(title),
+            'note': XD_NOTE.get(title, ''),
         })
+    return stories
+
+
+# ---------------------------------------------------------------------------
+# 4c. NiuTrans/Classical-Modern（327 本公版古籍原文 / 612 MB）
+# ---------------------------------------------------------------------------
+# 许可：仓库标注（见 README）数据均来自互联网并标注出处；引用者按"使用即接受许可"。
+# 已测：327 部古文原文覆盖 211 部（含章/卷/节），结构为 "古文原文/<部>/<章节>/text.txt"。
+# 与 gutenberg/hcc/wikisource/xiandai 会有大量重叠（红楼梦/三国/聊斋 等），交由 dedupe 按
+# 「保留最长版本」处理；新增的笔记小说/传奇短篇/三刻拍案惊奇 自动入桶。
+NUTRANS_URL = ('https://codeload.github.com/NiuTrans/Classical-Modern/'
+               'zip/refs/heads/main')
+NUTRANS_ZIP = os.path.join(CACHE_DIR, 'nutrans-classical-modern.zip')
+
+# 强制归到 gudian 桶的「笔记小说 / 传奇短篇」清单：
+# - 避免长篇白话小说（红楼梦/三国 等）参与 → 保留现有更长版本
+# - 增量为 NiuTrans 独有、现有桶没有的短篇与笔记类
+NUTRANS_FORCE = {
+    # 笔记小说（公版，南北朝至清）
+    '世说新语', '容斋随笔', '酉阳杂俎', '新齐谐', '池北偶谈',
+    '幽明录', '西京杂记', '搜神后记', '神仙传', '华阳国志',
+    '武林旧事', '蛮书', '唐才子传', '鹤林玉露', '桯史',
+    '万历野获编', '五灯会元', '涌幢小品', '坚瓠集', '茶余客话',
+    '梦溪笔谈', '北梦琐言', '鹤山笔录', '野客丛书', '麈史',
+    # 传奇短篇
+    '剪灯新话', '剪灯余话', '剪灯别话',
+    # 三刻
+    '三刻拍案惊奇',
+    # 地理/风物志（含叙事成分）
+    '大唐西域记',
+}
+
+
+def _nutrans_zip() -> 'zipfile.ZipFile':
+    """缓存式下载/解压 NiuTrans/Classical-Modern 主分支 zip，返回打开的 ZipFile。"""
+    import zipfile as _zf
+    if not os.path.exists(NUTRANS_ZIP) or os.path.getsize(NUTRANS_ZIP) < 1024:
+        data = http_get(NUTRANS_URL, retries=2, timeout=180)
+        os.makedirs(os.path.dirname(NUTRANS_ZIP), exist_ok=True)
+        with open(NUTRANS_ZIP, 'wb') as f:
+            f.write(data)
+    return _zf.ZipFile(NUTRANS_ZIP, 'r')
+
+
+def fetch_nutrans() -> list:
+    """按 zip 内 "古文原文/<部>/.../text.txt" 路径枚举。每部拼所有章节为一条。
+
+    路径深度不一：短篇（西游记回）3 段（'卷一'）；长卷（聊斋章/篇）4-5 段；
+    卷中卷（剪灯新话 26 篇）5 段；少数 6 段。**统一按"古文原文/<作品>/..."** 切，
+    作品名是 parts[2]，所有同名 `text.txt` 都聚到该作品。"""
+    import collections as _c
+    try:
+        z = _nutrans_zip()
+    except Exception as e:  # noqa: BLE001
+        print(f'  [!] NiuTrans zip 下载/打开失败: {e}')
+        return []
+    per_work: dict = _c.OrderedDict()
+    for name in z.namelist():
+        parts = name.split('/')
+        if '古文原文' not in parts or parts[-1] != 'text.txt':
+            continue
+        try:
+            idx = parts.index('古文原文')
+        except ValueError:
+            continue
+        work = parts[idx + 1]
+        if not work:
+            continue
+        try:
+            text = z.read(name).decode('utf-8', errors='replace')
+        except Exception:  # noqa: BLE001
+            continue
+        per_work.setdefault(work, []).append(text)
+    stories = []
+    for work, chunks in per_work.items():
+        if not chunks:
+            continue
+        body = clean('\n\n'.join(chunks), 'gutenberg')
+        if len(body) < 500:
+            continue
+        # 白名单才入桶（避免 dedupe 算冗余 hash）；未在白名单的部会被记
+        # 在 sources.json 的 works 列表里、被 dedupe 视为另一版本
+        if work not in NUTRANS_FORCE:
+            continue
+        stories.append({
+            'title': work, 'bucket': 'gudian', 'text': body,
+            'source': 'github:NiuTrans/Classical-Modern',
+            'license': '仓库注明来源；引用者按许可（公版古籍，CC BY-NC-SA4.0 仓库）',
+            'ref': f'https://github.com/NiuTrans/Classical-Modern（古文原文/{work}/）',
+            'note': f'{len(chunks)} 章节，由 zip 拼接',
+        })
+    print(f'  [NiuTrans 古文  ] {len(stories)} 部 / '
+          f'{sum(len(s["text"]) for s in stories)} 字')
     return stories
 
 
@@ -769,6 +1226,383 @@ def fetch_tinystories(n: int) -> list:
 
 
 # ---------------------------------------------------------------------------
+# 4b. 本地学习桶：知乎（HF）+ 网文切片（流式）+ 本地导入位（天涯/猫扑等）
+# ---------------------------------------------------------------------------
+def _iter_tianya_threads(xml_text: str, min_chars: int, max_threads: int):
+    """天涯 XML → 一帖一条。每条把各 <utt> 发言按行拼起来。
+    发言前缀形如 `@whc20109898：2017-09-1713:10:31`（**时间戳常不带空格**，实测如此），
+    必须剥掉：否则模型会把「用户名 + 时间戳」当作正文的高频片段学走。"""
+    head = re.compile(r'^@[^\s：:]{1,32}[：:]\s*\d{4}-\d{2}-\d{2}\s*\d{0,2}:?\d{0,2}:?\d{0,2}\s*')
+    tail = re.compile(r'\d{4}-\d{2}-\d{2}\s*\d{0,2}:?\d{0,2}:?\d{0,2}\s*')
+    n = 0
+    for block in re.findall(r'<s>(.*?)</s>', xml_text, re.S):
+        if n >= max_threads:
+            return
+        turns = []
+        for utt in re.findall(r'<utt[^>]*>(.*?)</utt>', block, re.S):
+            u = head.sub('', utt.strip())
+            u = tail.sub('', u).strip()
+            if u:
+                turns.append(u)
+        text = '\n'.join(turns)
+        if len(text) < min_chars:
+            continue
+        n += 1
+        yield {'text': text}
+
+
+def _iter_mnbvc_tianya(raw: str, min_chars: int, max_records: int):
+    """MNBVC 天涯重启主片 → 一帖一条。每条含主题+所有楼回复。
+    记录里的"扩展字段"是真 JSON-as-string（双层 json.loads），要：
+      1) 抽出版块、回复人、回复时间等元数据；
+      2) 在文本里**剥掉**整段 JSON，避免模型学到乱码字符。
+    """
+    n = 0
+    for ln in raw.split('\n'):
+        if n >= max_records:
+            return
+        ln = ln.strip()
+        if not ln:
+            continue
+        try:
+            o = json.loads(ln)
+        except Exception:  # noqa: BLE001
+            continue
+        title = (o.get('主题') or '').strip()
+        replies = o.get('回复') or []
+        if not isinstance(replies, list):
+            continue
+        parts = [title] if title else []
+        for r in replies:
+            if not isinstance(r, dict):
+                continue
+            txt = (r.get('回复') or '').strip()
+            if not txt:
+                continue
+            parts.append(txt)
+        text = '\n'.join(parts)
+        # 抽取并删掉"扩展字段"JSON-as-string（防止模型学到 `{\"回复人\":...}`）
+        # 注：MNBVC 的"扩展字段"在楼回复里是 dict-as-string；
+        # "版块"在元数据.扩展字段里（同样是 JSON-as-string）。
+        bk = ''
+        meta = o.get('元数据') or {}
+        if isinstance(meta, dict):
+            meta_ext = meta.get('扩展字段', '')
+            if isinstance(meta_ext, str) and meta_ext.startswith('{'):
+                try:
+                    md = json.loads(meta_ext)
+                    bk = md.get('版块', '') if isinstance(md, dict) else ''
+                except Exception:
+                    bk = ''
+        ext_match = re.search(r'"扩展字段"\s*:\s*"(\{.*?\})"\s*[,}]', text)
+        if ext_match:
+            text = text.replace(ext_match.group(0), '')
+        if len(text) < min_chars:
+            continue
+        n += 1
+        yield {
+            'text': text,
+            '板块': bk,
+            '回复数': o.get('回复'),
+        }
+
+
+def _iter_records(raw: bytes, spec: dict):
+    """按 spec['fmt'] 把下载字节变成一条条 dict。"""
+    fmt = spec.get('fmt', 'jsonl')
+    enc = spec.get('encoding', 'utf-8')
+    if fmt == 'jsonl_gz':
+        import gzip
+        with gzip.open(io.BytesIO(raw), 'rt', encoding=enc, errors='replace') as f:
+            for ln in f:
+                ln = ln.strip()
+                if ln:
+                    try:
+                        yield json.loads(ln)
+                    except Exception:  # noqa: BLE001
+                        continue
+    elif fmt == 'json_list':
+        try:
+            for o in json.loads(raw.decode(enc, errors='replace')):
+                if isinstance(o, dict):
+                    yield o
+        except Exception:  # noqa: BLE001
+            return
+    elif fmt == 'tsv':
+        import csv
+        txt = raw.decode(enc, errors='replace')
+        for row in csv.DictReader(io.StringIO(txt), delimiter='\t'):
+            yield row
+    else:  # jsonl（含 Range 截断的尾行不完整 → json.loads 失败即丢）
+        txt = raw.decode(enc, errors='replace')
+        for ln in txt.split('\n'):
+            ln = ln.strip()
+            if not ln:
+                continue
+            try:
+                yield json.loads(ln)
+            except Exception:  # noqa: BLE001
+                continue
+
+
+def fetch_localugc(per_source_cap: int = 4000, min_chars: int = 100) -> list:
+    """知乎（HF）+ 网文**全量分片** + Pixiv/v3ucn + MNBVC + 本地导入位。
+
+    产出 `bucket='localugc'` 的作品：知乎/树洞/天涯类**每条记录一篇**（故事级切分
+    天然成立），网文/Pixiv 类**每部小说一篇**；本地导入位每个文件一篇。"""
+    stories: list = []
+
+    for spec in LOCALUGC_HF:
+        url = f"https://huggingface.co/datasets/{spec['repo']}/resolve/main/{spec['file']}"
+        cp = os.path.join(CACHE_DIR, 'localugc',
+                          slug(spec['repo']) + '__' + slug(spec['file']))
+        try:
+            raw = http_get_cached(url, cp)
+        except Exception as e:  # noqa: BLE001
+            print(f'  [!] localugc {spec["repo"]} 失败: {e}')
+            continue
+        n, chars = 0, 0
+        for o in _iter_records(raw, spec):
+            if n >= per_source_cap:
+                break
+            t = (o.get(spec['field']) or '').strip()
+            if len(t) < min_chars:
+                continue
+            t = clean(t, 'localugc')
+            if len(t) < min_chars:
+                continue
+            n += 1
+            chars += len(t)
+            stories.append({
+                'title': f'{slug(spec["title"])}_{n:04d}', 'bucket': 'localugc',
+                'text': t, 'source': f'huggingface:{spec["repo"]}',
+                'license': spec['license'], 'ref': spec['ref'],
+                'note': spec.get('note', ''),
+            })
+        print(f'  [{spec["title"]:<18}] {n:>5} 条 {chars:>9} 字'
+              f'（{spec["file"]}，{spec.get("encoding", "utf-8")}）')
+
+    # 网文：**整片全量**（流式下载到盘、逐行流式解析、按 title 连续段聚章）。
+    # 之前是 Range 取前 30 MB（每部只剩开头）；现为完整分片。
+    wn = LOCALUGC_WEBNOVEL
+    wn_works = wn_chars = 0
+    try:
+        for sh in wn['shards']:
+            remote = f'data/webnovel_{sh}.jsonl'
+            url = urllib.parse.quote(
+                f"https://huggingface.co/datasets/{wn['repo']}/resolve/main/{remote}",
+                safe=':/?&=')
+            cp = os.path.join(CACHE_DIR, 'localugc', f'webnovel_{sh}.jsonl')
+            http_download_to_file(url, cp, min_size=1 << 30)
+            for title, chunks in _iter_webnovel_works(cp, wn['field']):
+                text = clean('\n\n'.join(chunks), 'localugc')
+                if len(text) < 500:
+                    continue
+                wn_works += 1
+                wn_chars += len(text)
+                # 序号入题避免同名书 slug 相互顶替（跨几千部同名很常见）
+                stories.append({
+                    'title': f'wn{sh}_{wn_works:05d}_{slug(title)[:40]}',
+                    'bucket': 'localugc', 'text': text,
+                    'source': f'huggingface:{wn["repo"]}', 'license': wn['license'],
+                    'ref': wn['ref'], 'note': f'{wn["note"]}·{len(chunks)} 章',
+                })
+            print(f'  [网文分片{sh} 全量   ] 累计 {wn_works:>5} 部 {wn_chars:>9} 字')
+    except Exception as e:  # noqa: BLE001
+        print(f'  [!] localugc 网文全量失败: {e}')
+
+    # v3ucn 小源（续写对：input 前文 + output 续文 → 拼为一篇）
+    v3 = LOCALUGC_V3UCN
+    try:
+        url = urllib.parse.quote(
+            f"https://huggingface.co/datasets/{v3['repo']}/resolve/main/{v3['file']}",
+            safe=':/?&=')
+        cp = os.path.join(CACHE_DIR, 'localugc', 'v3ucn_dataset.json')
+        raw = http_get_cached(url, cp).decode(v3['encoding'], errors='replace')
+        v3_n = v3_chars = 0
+        for i, o in enumerate(json.loads(raw), 1):
+            t = ((o.get('input') or '').strip() + '\n' + (o.get('output') or '').strip()).strip()
+            if len(t) < v3['min_chars']:
+                continue
+            t = clean(t, 'localugc')
+            if len(t) < v3['min_chars']:
+                continue
+            v3_n += 1
+            v3_chars += len(t)
+            stories.append({
+                'title': f'v3ucn_{i:04d}', 'bucket': 'localugc', 'text': t,
+                'source': f'huggingface:{v3["repo"]}', 'license': v3['license'],
+                'ref': v3['ref'], 'note': v3['note'],
+            })
+        print(f'  [v3ucn 小说集     ] {v3_n:>5} 条 {v3_chars:>9} 字')
+    except Exception as e:  # noqa: BLE001
+        print(f'  [!] localugc v3ucn 失败: {e}')
+
+    # Pixiv 中文小说（zip 1.76 GB）：结构为 `PixivNovel/<用户ID>/<作品ID>.txt`（+ 同名 -meta.txt）。
+    # 每个非 meta 的 .txt = 一部作品。实测 307,188 个成员。
+    px = LOCALUGC_PIXIV
+    try:
+        url = urllib.parse.quote(
+            f"https://huggingface.co/datasets/{px['repo']}/resolve/main/{px['file']}",
+            safe=':/?&=')
+        cp = os.path.join(CACHE_DIR, 'localugc', 'PixivNovel.zip')
+        http_download_to_file(url, cp, min_size=1 << 30)
+        import zipfile as _zf2
+        px_n = px_chars = 0
+        with _zf2.ZipFile(cp, 'r') as zf:
+            for m in zf.infolist():
+                if px_n >= px['max_works'] or m.is_dir():
+                    continue
+                name = m.filename
+                if not name.lower().endswith('.txt') or name.endswith('-meta.txt'):
+                    continue
+                body = zf.read(m).decode(px['encoding'], errors='replace')
+                if len(body) < px['min_chars']:
+                    continue
+                body = clean(body, 'localugc')
+                if len(body) < px['min_chars']:
+                    continue
+                px_n += 1
+                px_chars += len(body)
+                stories.append({
+                    'title': f'pixiv_{px_n:05d}', 'bucket': 'localugc', 'text': body,
+                    'source': f'huggingface:{px["repo"]}', 'license': px['license'],
+                    'ref': px['ref'], 'note': f'{px["note"]}·{name}',
+                })
+        print(f'  [Pixiv 小说       ] {px_n:>5} 条 {px_chars:>9} 字')
+    except Exception as e:  # noqa: BLE001
+        print(f'  [!] localugc Pixiv 失败: {e}')
+
+    # 天涯论坛（GitHub 抓取语料，XML；辩论/对话体）
+    ty = LOCALUGC_TIANYA
+    cp = os.path.join(CACHE_DIR, 'localugc', ty['archive'])
+    try:
+        blob = http_get_cached(ty['url'], cp)
+        with tarfile.open(fileobj=io.BytesIO(blob), mode='r:gz') as tf:
+            xml_text = tf.extractfile(ty['tar_member']).read().decode(
+                ty['encoding'], errors='replace')
+        ty_n = ty_chars = 0
+        for i, o in enumerate(_iter_tianya_threads(xml_text, ty['min_chars'],
+                                                  ty['max_threads']), 1):
+            t = clean(o['text'], 'localugc')
+            if len(t) < ty['min_chars']:
+                continue
+            ty_n += 1
+            ty_chars += len(t)
+            stories.append({
+                'title': f'tianya_{i:05d}', 'bucket': 'localugc', 'text': t,
+                'source': f"github:{ty['repo']}", 'license': ty['license'],
+                'ref': ty['ref'], 'note': ty['note'],
+            })
+        print(f'  [天涯论坛        ] {ty_n:>5} 条 {ty_chars:>9} 字'
+              f'（{ty["tar_member"]}）')
+    except Exception as e:  # noqa: BLE001
+        print(f'  [!] localugc 天涯语料失败: {e}')
+
+    # MNBVC 一组源：天涯主片 / 北大树洞 / 清华树洞（同 schema，直接复用 _iter_mnbvc_tianya）
+    import zipfile as _zipfile
+    import gzip as _gzip
+    mnb_groups = [
+        (LOCALUGC_MNBVC_TIANYA, '天涯主片', 'mnbvc_ty'),
+        (LOCALUGC_MNBVC_PKUHOLE, '北大树洞', 'mnbvc_pk'),
+        (LOCALUGC_MNBVC_THUHOLE, '清华树洞', 'mnbvc_th'),
+    ]
+    for mty, tag, prefix in mnb_groups:
+        mnb_n = mnb_chars = 0
+        try:
+            for sub_path in mty['files']:
+                fn = os.path.basename(sub_path)
+                cp = os.path.join(CACHE_DIR, 'localugc', 'mnbvc_' + fn)
+                # 路径含中文（如 pkuhole.20230253.2.论坛）必须逐段 quote
+                url = f"https://huggingface.co/datasets/{mty['repo']}/resolve/main/{sub_path}"
+                url = urllib.parse.quote(url, safe=':/?&=')
+                blob = http_get_cached(url, cp, retries=3)
+                # MNBVC 多数文件是 .jsonl.gz 直接 gzip；天涯主片是 zip 包一个 jsonl。
+                # 先按 .gz 解，不行再按 zip 解。
+                raw = ''
+                try:
+                    raw = _gzip.decompress(blob).decode(mty['encoding'], errors='replace')
+                except Exception:
+                    try:
+                        with _zipfile.ZipFile(io.BytesIO(blob), 'r') as zf:
+                            zname = fn.replace('.zip', '.jsonl')
+                            with zf.open(zname) as fp:
+                                raw = fp.read().decode(mty['encoding'], errors='replace')
+                    except Exception as ee:
+                        raise RuntimeError(f'既非 gzip 也非 zip: {ee}')
+                for i, o in enumerate(_iter_mnbvc_tianya(raw, mty['min_chars'],
+                                                         mty['max_records']), 1):
+                    t = clean(o['text'], 'localugc')
+                    if len(t) < mty['min_chars']:
+                        continue
+                    mnb_n += 1
+                    mnb_chars += len(t)
+                    stories.append({
+                        'title': f'{prefix}_{mnb_n:05d}', 'bucket': 'localugc', 'text': t,
+                        'source': f"huggingface:{mty['repo']}",
+                        'license': mty['license'],
+                        'ref': mty['ref'] + f'/{sub_path}',
+                        'note': f"{mty['note']}·{o.get('板块','?')}·{o.get('回复数','?')} 回",
+                    })
+            print(f'  [MNBVC {tag:<8}] {mnb_n:>5} 条 {mnb_chars:>9} 字'
+                  f'（{len(mty["files"])} 文件）')
+        except Exception as e:  # noqa: BLE001
+            print(f'  [!] localugc MNBVC {tag} 失败: {e}')
+
+    # 本地导入位：data/raw/_cache/localugc/*.txt —— 天涯/猫扑/知乎/网文 dump 的接入口。
+    import glob as _glob
+    local = sorted(_glob.glob(os.path.join(CACHE_DIR, 'localugc', '*.txt')))
+    for p in local:
+        try:
+            with open(p, 'r', encoding='utf-8', errors='replace') as f:
+                raw_txt = f.read()
+        except Exception as e:  # noqa: BLE001
+            print(f'  [!] 本地导入失败 {p}: {e}')
+            continue
+        title = os.path.splitext(os.path.basename(p))[0]
+        text = clean(raw_txt, 'localugc')
+        print(f'  [本地导入 {title:<12}] {len(text):>9} 字')
+        if len(text) < 500:
+            continue
+        stories.append({
+            'title': title, 'bucket': 'localugc', 'text': text,
+            'source': 'local-import', 'license': '本地文件（权利状态自辨，不可分发）',
+            'ref': p, 'note': '本地导入位：天涯/猫扑等 dump 放这里',
+        })
+    if not local:
+        print('  [本地导入位       ] 空 —— 把天涯/猫扑等 dump 存成 '
+              f'{os.path.join(CACHE_DIR, "localugc")}/<标题>.txt（UTF-8）即自动入库')
+
+    # 杂志导入位：data/raw/_cache/zazhi/*.txt —— 现代文学期刊
+    # （今古传奇 / 科幻世界 / 人民文学 / 收获 / 十月 / 萌芽 等）。
+    # **仅个人本地学习用**：这些期刊均不公版（创刊时间晚于公版线），平台 ToS 也禁止批量抓取，
+    # 按本仓库项目立场 `docs/DATA_CANDIDATES.md` §二属同一风险等级；接入仅在你已获得合法 dump
+    # （自存、机构数据库离线、OCR 纸本等）的前提下启用。
+    zazhi = sorted(_glob.glob(os.path.join(CACHE_DIR, 'zazhi', '*.txt')))
+    for p in zazhi:
+        try:
+            with open(p, 'r', encoding='utf-8', errors='replace') as f:
+                raw_txt = f.read()
+        except Exception as e:  # noqa: BLE001
+            print(f'  [!] 杂志导入失败 {p}: {e}')
+            continue
+        title = os.path.splitext(os.path.basename(p))[0]
+        text = clean(raw_txt, 'localugc')
+        print(f'  [杂志导入 {title:<14}] {len(text):>9} 字')
+        if len(text) < 500:
+            continue
+        stories.append({
+            'title': title, 'bucket': 'localugc', 'text': text,
+            'source': 'local-import:magazine', 'license': '本地文件（期刊非公版；按你已获授权的方式使用）',
+            'ref': p, 'note': '杂志导入位：今古传奇/科幻世界/人民文学/收获等 dump 放这里',
+        })
+    if not zazhi:
+        print('  [杂志导入位       ] 空 —— 把今古传奇/科幻世界/人民文学/收获等 dump '
+              f'存成 {os.path.join(CACHE_DIR, "zazhi")}/<刊名>.txt（UTF-8）即自动入库')
+    return stories
+
+
+# ---------------------------------------------------------------------------
 # 5. 去重 + 分桶 + 落盘
 # ---------------------------------------------------------------------------
 def dedupe(stories: list) -> list:
@@ -794,11 +1628,28 @@ def dedupe(stories: list) -> list:
 
 
 def allocate(items: list, max_chars: int) -> list:
-    """把每桶的字数额度**均分**给各作品，保证覆盖面；短作品用不完的额度再轮转
-    补给被截断的长作品。返回 [(story, text)]，只保留 >=200 字的片段。"""
+    """把每桶的字数额度分给各作品。两种模式：
+
+    - **均分**（作品数少，默认）：每部配额 = 上限/部数，短作品用不完的额度轮转补给
+      被截断的长作品，保证覆盖面。
+    - **贪心**（作品数极多，均分后每部 <200 字会被下限整桶滤空——`localugc` 踩过：
+      20 万部均分 800 万上限，每部 40 字 → 实际入库 0 字）：改按字数从大到小
+      依次整部装入，装满上限为止。保进桶的都是完整作品。"""
     if not items:
         return []
     quota = max(0, max_chars // len(items))
+    if quota < 200:
+        taken_total = 0
+        out = []
+        for s in sorted(items, key=lambda x: -len(x['text'])):
+            if taken_total >= max_chars:
+                break
+            take = min(len(s['text']), max_chars - taken_total)
+            if take < 200:
+                continue
+            taken_total += take
+            out.append((s, s['text'][:take]))
+        return out
     taken = {s['title']: min(len(s['text']), quota) for s in items}
     used = sum(taken.values())
     guard = 0
@@ -823,12 +1674,14 @@ def allocate(items: list, max_chars: int) -> list:
 
 
 def assemble(stories: list, max_chars: int) -> dict:
+    """分桶拼装。`max_chars` 是默认桶上限；BUCKETS 元里写了 `max_chars` 的桶单独覆盖。"""
     corpus = {}
     for b in BUCKET_ORDER:
         items = [s for s in stories if s['bucket'] == b]
         items.sort(key=lambda s: -len(s['text']))
+        bucket_cap = BUCKETS.get(b, {}).get('max_chars', max_chars)
         parts, used, chars = [], [], 0
-        for s, take in allocate(items, max_chars):
+        for s, take in allocate(items, bucket_cap):
             parts.append(take)
             used.append({'title': s['title'], 'source': s['source'],
                          'chars': len(take), 'ref': s['ref']})
@@ -849,7 +1702,8 @@ def assemble(stories: list, max_chars: int) -> dict:
 
 def dump_works(stories: list, out_root: str) -> int:
     """把每部作品清洗后的正文单独落盘到 data/processed/<bucket>/<title>.txt，
-    便于人工抽查与后续按作品切分。"""
+    便于人工抽查与后续按作品切分（build_splits/sweep 都按这个逐作品文件取正文）。
+    注：localugc 桶十几万条小文件、全量写一次要十几分钟——不是卡死，等它写完。"""
     n = 0
     for st in stories:
         d = os.path.join(out_root, st['bucket'])
@@ -863,15 +1717,20 @@ def dump_works(stories: list, out_root: str) -> int:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--only', default='gutenberg,hcc,wikisource,hf',
-                    help='逗号分隔：gutenberg,hcc,wikisource,hf')
+    ap.add_argument('--only', default='gutenberg,hcc,wikisource,hf,nutrans,localugc',
+                    help='逗号分隔：gutenberg,hcc,wikisource,hf,nutrans,localugc')
     ap.add_argument('--limit', type=int, default=None, help='每个源最多抓 N 本（试跑用）')
     ap.add_argument('--tiny-n', type=int, default=1000,
                     help='TinyStories 中文短故事取前 N 篇（story 桶）')
+    ap.add_argument('--ugc-cap', type=int, default=2500,
+                    help='每个知乎源最多收 N 条（localugc 桶；网文按部收）')
     ap.add_argument('--max-chars', type=int, default=2_000_000,
                     help='每个主题桶保留的最大字数')
     ap.add_argument('--list-sources', action='store_true', help='只打印源清单')
     ap.add_argument('--out', default=CORPUS_OUT)
+    ap.add_argument('--sources-out', default=SOURCES_OUT,
+                    help='源审计落盘路径。**试跑必须改这个**：它默认写规范文件，'
+                         '而该文件不随 --out 走（--only 某源时会把其它源的记录覆盖掉）')
     ap.add_argument('--processed-dir', default=os.path.join(ROOT, 'data', 'processed'),
                     help='每部作品清洗后正文的落盘目录（可人工抽查）')
     ap.add_argument('--no-dump', action='store_true', help='不落盘逐作品文本')
@@ -892,24 +1751,46 @@ def main():
             print(f"  [{s['bucket']:<6}] {s['repo']} -> {s['title']}（{s['license']}）")
         print(f"  [story ] {HF_TINYSTORIES['repo']} -> 前 N 篇短故事"
               f"（{HF_TINYSTORIES['license']}）")
+        print(f'\n本地学习桶 localugc（⚠️ 仅个人本地学习；不可再分发 / 商用 / 入评测桶）:')
+        for s in LOCALUGC_HF:
+            print(f"  [{s['bucket']:<8}] {s['repo']}/{s['file']} -> {s['title']}"
+                  f"（{s['license']}）")
+        wn = LOCALUGC_WEBNOVEL
+        print(f"  [{wn['bucket']:<8}] {wn['repo']} -> 整片全量分片 "
+              f"{wn['shards']}（每片 4.2 GB，{wn['license']}）")
+        for extra in (LOCALUGC_PIXIV, LOCALUGC_V3UCN):
+            print(f"  [{extra['bucket']:<8}] {extra['repo']} -> {extra['title']}"
+                  f"（{extra['license']}）")
+        ty = LOCALUGC_TIANYA
+        print(f"  [{ty['bucket']:<8}] {ty['repo']} -> {ty['title']}"
+              f"（{ty['license']}）")
+        print(f"  [{wn['bucket']:<8}] 本地导入位：{os.path.join(CACHE_DIR, 'localugc')}"
+              f"/*.txt（天涯/猫扑等 dump 放这里即自动入库）")
         return
 
     os.makedirs(CACHE_DIR, exist_ok=True)
     only = {x.strip() for x in args.only.split(',') if x.strip()}
     stories = []
     if 'gutenberg' in only:
-        print('== 1/4 Project Gutenberg ==')
+        print('== 1/6 Project Gutenberg ==')
         stories += fetch_gutenberg(args.limit)
     if 'hcc' in only:
-        print('== 2/4 GitHub hanchuancaolu ==')
+        print('== 2/6 GitHub hanchuancaolu ==')
         stories += fetch_hcc()
     if 'wikisource' in only:
-        print('== 3/4 中文维基文库 ==')
+        print('== 3/6 中文维基文库 ==')
         stories += fetch_wikisource(args.limit)
     if 'hf' in only:
-        print('== 4/4 HuggingFace 开放许可数据集 ==')
+        print('== 4/6 HuggingFace 开放许可数据集 ==')
         stories += fetch_huggingface(args.limit)
         stories += fetch_tinystories(args.tiny_n)
+    if 'nutrans' in only:
+        print('== 5/6 NiuTrans 古文原文（笔记/传奇/三刻，公版）==')
+        stories += fetch_nutrans()
+    if 'localugc' in only:
+        print('== 6/6 本地学习桶（知乎 / 网文切片 / 本地导入位）==')
+        print('    注意：仅限个人本地学习；不可再分发 / 商用 / 入评测桶')
+        stories += fetch_localugc(per_source_cap=args.ugc_cap)
 
     print('\n== 跨源去重 ==')
     stories = dedupe(stories)
@@ -917,6 +1798,10 @@ def main():
     corpus = assemble(stories, args.max_chars)
 
     if not args.no_dump:
+        # 树洞类（localugc + mnbvc_/天涯）量大时写 16+ 万个小文件极慢；
+        # dump_works 改成"每桶一个 _combined.jsonl" + 小作品逐个 .txt：
+        # - 树洞 16 万条 → 1 个 jsonl（快）
+        # - 其他桶逐个 .txt（保留人工抽查粒度）
         n = dump_works(stories, args.processed_dir)
         print(f'[*] 逐作品正文 -> {args.processed_dir} ({n} 个 txt)')
 
@@ -968,8 +1853,8 @@ def main():
         } for b in BUCKET_ORDER},
         'works': srcs,
     }
-    os.makedirs(os.path.dirname(SOURCES_OUT), exist_ok=True)
-    with open(SOURCES_OUT, 'w', encoding='utf-8') as f:
+    os.makedirs(os.path.dirname(args.sources_out), exist_ok=True)
+    with open(args.sources_out, 'w', encoding='utf-8') as f:
         json.dump(audit, f, ensure_ascii=False, indent=1)
 
     print('\n== 分桶统计 ==')
@@ -979,7 +1864,7 @@ def main():
               f'(实际入库 {len(corpus[b]["text"])} 字, 独立字符 '
               f'{len(set(corpus[b]["text"]))})')
     print(f'  custom   保留（UI 上传用）')
-    print(f'\n[*] sources -> {SOURCES_OUT}')
+    print(f'\n[*] sources -> {args.sources_out}')
 
 
 if __name__ == '__main__':
