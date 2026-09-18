@@ -117,4 +117,4 @@ python py/ablation_ctx.py --mode ctx  --bucket wuxia --size 20000 \
 - [x] 数据切分方式明确（按作品切分 + 前 20,000 字训练 + 留出 20,000 字测试）
 - [x] 评测协议版本与窗口口径写明（固定位置集 vs sweep 的「每 ctx 步一窗」不同，理由给出）
 - [x] 失败/异常样本已记录
-- [x] 因果掩码开关是 cfg 的可选字段，默认 True，不影响 `py/verify_parity.py` 的 bitwise 对齐
+- [x] 因果掩码开关是 cfg 的可选字段，默认 True，不影响 `py/verify_parity.py` 的 容差内数值对齐

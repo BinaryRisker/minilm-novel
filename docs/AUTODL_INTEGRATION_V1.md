@@ -1,5 +1,7 @@
 # AutoDL 远程训练集成方案 V1
 
+> **2026-09-17 阅读说明**：保留远程集成决策背景；实际入口见[训练手册](FORMAL_30M_SCRATCH_TRAINING_RUNBOOK.md)和[GPU 交接记录](HANDOFF_AUTODL_T30M_GPU_SMOKE_20260917.md)。下面历史硬件配置不替代本次 doctor、吞吐和显存实测。
+
 日期：2026-09-16。状态：**方案，待用户对 §9 三个决策点拍板后实施**。
 配套：[`docs/TODO_NOVEL_MODEL_LEARNING_V3.md`](TODO_NOVEL_MODEL_LEARNING_V3.md)（P1/P2）、
 [`docs/EVAL_PROTOCOL_V1.md`](EVAL_PROTOCOL_V1.md)、`py/license_policy.py`、`py/run_identity.py`。
@@ -40,15 +42,15 @@ AutoDL 只是**一台按小时计费的远程 Linux GPU 机**，不是新技术�
 
 ## 3. 实例与镜像（2026-09-16 用户选定：RTX 3080 Ti 12GB）
 
-**结论：该配置满足 30M 候选与全量数据训练的要求**，逐项核对：
+**该配置是候选环境；是否满足目标 batch、上下文和全量数据要求须实测**，逐项核对：
 
 | 项 | 配置 | 评估 |
 |---|---|---|
-| GPU | RTX 3080 Ti 12GB | 30M 模型（Adam fp32 状态 ≈0.5GB + 激活）余量充足；ctx 1024 / batch 32 可跑。速度约为 4090 的 6~7 成，够用 |
-| 数据盘 | 50GB SSD | 全量打包（B 包 gzip ≈2GB）+ 解包 7.5GB + checkpoint（30M×fp32 ≈360MB/个）绰绰有余 |
+| GPU | RTX 3080 Ti 12GB | 需要实测峰值显存与有效 token/s；不承诺 ctx 1024 / batch 32，也不固定折算相对 4090 速度 |
+| 数据盘 | 50GB SSD | 全量打包（B 包 gzip ≈2GB）+ 解包 7.5GB + checkpoint 按实测大小与保留个数预算；30M 的 FP32 权重约 120MB，完整训练状态更大 |
 | 内存 | 90GB | 充足；但见 §7 的编码瓶颈——瓶颈在 Python 对象不在物理内存 |
 | CPU | 12 核 | 数据预处理/打包足够 |
-| 镜像 | PyTorch 2.12.1 / Py3.12 / CUDA 13.0 | 可用；仓库代码不挑 torch 小版本（2.12 vs 本地 2.14），`--resume` 跨版本加载在冒烟阶段（§7-C）验证 |
+| 镜像 | PyTorch 2.12.1 / Py3.12 / CUDA 13.0 | 可用；应固定经过测试的 torch 版本（2.12 vs 本地 2.14），`--resume` 跨版本加载在冒烟阶段（§7-C）验证 |
 | 系统盘 | 30GB | 装镜像+环境后偏紧；**代码、数据、checkpoint 全放数据盘**（autodl-tmp），系统盘只留环境 |
 
 价格以控制台实时价为准；3080 Ti 通常低于 4090，对本项目是性价比更优的选择。

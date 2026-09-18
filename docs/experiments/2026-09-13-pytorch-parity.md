@@ -48,11 +48,11 @@ adam-step:          20/20 通过
 > 并补了一行明确的总体结论；判定逻辑与退出码一直是对的（全绿 → `exit 0`）。
 
 具体最大误差：
-- forward logits: max|Δ| = 5.55e-17（bitwise 一致）
+- forward logits: max|Δ| = 5.55e-17（容差内数值一致）
 - forward loss: |Δ| = 9.02e-09（JS log 加 1e-9 epsilon 导致）
-- backward (raw): 所有 20 个参数梯度 max|Δ| ≤ 1.94e-16（bitwise 一致）
-- grad-clip: 所有 20 个参数 max|Δ| ≤ 1.94e-16（bitwise 一致）
-- adam-step: 所有 20 个参数 max|Δ| ≤ 4.68e-17（bitwise 一致）
+- backward (raw): 所有 20 个参数梯度 max|Δ| ≤ 1.94e-16（容差内数值一致）
+- grad-clip: 所有 20 个参数 max|Δ| ≤ 1.94e-16（容差内数值一致）
+- adam-step: 所有 20 个参数 max|Δ| ≤ 4.68e-17（容差内数值一致）
 
 ## 6. 调试记录 / 失败样本
 
@@ -64,7 +64,7 @@ adam-step:          20/20 通过
 ## 7. 结论与边界
 
 **结论**：
-> minilm.js 与 PyTorch 复刻在 float64 下实现了前向、反向、梯度裁剪、Adam 单步的 bitwise 对齐。
+> minilm.js 与 PyTorch 复刻在 float64 下实现了前向、反向、梯度裁剪、Adam 单步的 容差内数值对齐。
 
 **边界**：
 > - 仅在一个极小配置（ctx=4 d=8 layers=1）上验证；
